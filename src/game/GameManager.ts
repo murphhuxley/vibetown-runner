@@ -130,6 +130,11 @@ export class GameManager {
   private updatePlayer(): void {
     const { player, grid } = this.state;
 
+    // Update ladder/rope awareness BEFORE gravity check
+    // (prevents falling through ropes/ladders when landing on them)
+    player.isOnLadder = canClimb(grid, player.pos);
+    player.isOnRope = canTraverseRope(grid, player.pos);
+
     // Apply gravity — if not supported, fall
     if (!isSupported(grid, player.pos, player.isOnLadder, player.isOnRope)) {
       const fallen = movePlayer(player, grid, Direction.Down);
@@ -139,10 +144,6 @@ export class GameManager {
       return;
     }
     player.isFalling = false;
-
-    // Update ladder/rope awareness
-    player.isOnLadder = canClimb(grid, player.pos);
-    player.isOnRope = canTraverseRope(grid, player.pos);
 
     // Process directional input
     let dir = Direction.None;
