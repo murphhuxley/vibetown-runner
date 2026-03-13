@@ -12,8 +12,12 @@ import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killD
 import { InputManager } from '@/engine/Input';
 
 import levelData01 from '@/levels/level-01.json';
+import levelData02 from '@/levels/level-02.json';
+import levelData03 from '@/levels/level-03.json';
+import levelData04 from '@/levels/level-04.json';
+import levelData05 from '@/levels/level-05.json';
 
-const LEVELS = [levelData01];
+const LEVELS = [levelData01, levelData02, levelData03, levelData04, levelData05];
 
 export class GameManager {
   state!: GameState;
