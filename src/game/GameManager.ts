@@ -1,47 +1,70 @@
-import { GameState, GamePhase, TileType, Direction, WeatherType } from '@/types';
-import { GRID_COLS, GRID_ROWS, STARTING_LIVES } from '@/constants';
-import { parseLevel, countBadges, findSpawnPosition, findAllSpawnPositions, cloneGrid } from '@/game/Level';
+import { GameState, GamePhase, TileType, Direction, DuckState } from '@/types';
+import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM } from '@/constants';
+import { parseLevel, countBadges, findSpawnPosition, findAllSpawnPositions, cloneGrid, ensureHiddenExit } from '@/game/Level';
 import { createPlayer, movePlayer, canClimb, canTraverseRope } from '@/game/Player';
 import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck, respawnDuck } from '@/game/Duck';
 import { isSupported, getTile } from '@/game/Physics';
 import { canDig, getDigTarget, createHole, updateHoles } from '@/game/Dig';
 import { createVibeMeter, addVibe, activateLFV, updateLFV, isLFVActive, isLFVReady, VibeMeterState } from '@/game/VibeMeter';
 import { createDrop, collectDrop, updateDrops, VibestrDrop } from '@/game/Vibestr';
+import { createConfettiBurst, updateConfetti, ConfettiPiece } from '@/game/Confetti';
 import { getSpeedMultiplier } from '@/game/Weather';
 import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
 import { InputManager } from '@/engine/Input';
-
-import levelData01 from '@/levels/level-01.json';
-import levelData02 from '@/levels/level-02.json';
-import levelData03 from '@/levels/level-03.json';
-import levelData04 from '@/levels/level-04.json';
-import levelData05 from '@/levels/level-05.json';
-
-const LEVELS = [levelData01, levelData02, levelData03, levelData04, levelData05];
+import { LEVELS } from '@/levels/catalog';
 
 export class GameManager {
   state!: GameState;
   scoring!: ScoringState;
   vibeMeter!: VibeMeterState;
   drops: VibestrDrop[] = [];
+  confetti: ConfettiPiece[] = [];
   input: InputManager;
+
+  // SFX callbacks — set from outside to avoid coupling audio into game logic
+  onDig?: () => void;
+  onCollect?: () => void;
+  onTrap?: () => void;
+  onKill?: () => void;
+  onDeath?: () => void;
+  onLFV?: () => void;
+  onLevelComplete?: () => void;
+  onVibestr?: () => void;
+  onRevealLadders?: () => void;
+  onLand?: () => void;
 
   // Tick-based movement accumulators
   private playerMoveAccum = 0;
   private duckMoveAccum = 0;
-  private readonly PLAYER_MOVE_INTERVAL = 150; // ms between moves
+  private readonly PLAYER_MOVE_INTERVAL = 1000 / PLAYER_SPEED;
+  private readonly PLAYER_FALL_INTERVAL = 1000 / PLAYER_FALL_SPEED;
   private readonly DUCK_MOVE_INTERVAL = 250;
+  private playerRenderFrom = { x: 0, y: 0 };
+  private playerRenderTo = { x: 0, y: 0 };
+  private playerRenderProgress = 1;
+  private playerRenderDuration = this.PLAYER_MOVE_INTERVAL;
+
+  // Duck render interpolation
+  private duckRenderFrom: Map<number, { x: number; y: number }> = new Map();
+  private duckRenderTo: Map<number, { x: number; y: number }> = new Map();
+  private duckRenderProgress = 1;
+  private usedLFVThisLevel = false;
 
   constructor(input: InputManager) {
     this.input = input;
     this.scoring = createScoring();
     this.vibeMeter = createVibeMeter();
     this.loadLevel(0);
+    this.state.phase = GamePhase.Menu;
   }
 
-  loadLevel(index: number): void {
+  startGame(): void {
+    this.state.phase = GamePhase.Playing;
+  }
+
+  loadLevel(index: number): boolean {
     const raw = LEVELS[index];
-    if (!raw) return;
+    if (!raw) return false;
 
     const level = parseLevel(raw);
     const grid = cloneGrid(level.grid);
@@ -53,6 +76,13 @@ export class GameManager {
     for (const ds of duckSpawns) {
       grid[ds.y][ds.x] = TileType.Empty;
     }
+
+    // Prefer authored exits so puzzle solutions stay deterministic.
+    ensureHiddenExit(grid, level.exitColumn);
+
+    // Active LFV should not carry across retries or level transitions.
+    this.vibeMeter.lfvTimer = 0;
+    this.usedLFVThisLevel = false;
 
     this.state = {
       phase: GamePhase.Playing,
@@ -73,8 +103,23 @@ export class GameManager {
     };
 
     this.drops = [];
+    this.confetti = [];
     this.playerMoveAccum = 0;
     this.duckMoveAccum = 0;
+    this.playerRenderFrom = { ...playerSpawn };
+    this.playerRenderTo = { ...playerSpawn };
+    this.playerRenderProgress = 1;
+    this.playerRenderDuration = this.PLAYER_MOVE_INTERVAL;
+
+    // Init duck render positions
+    this.duckRenderFrom.clear();
+    this.duckRenderTo.clear();
+    this.duckRenderProgress = 1;
+    for (const duck of this.state.ducks) {
+      this.duckRenderFrom.set(duck.id, { ...duck.pos });
+      this.duckRenderTo.set(duck.id, { ...duck.pos });
+    }
+    return true;
   }
 
   update(dt: number): void {
@@ -83,16 +128,67 @@ export class GameManager {
     const weatherMult = getSpeedMultiplier(this.state.weather, 'player');
     const lfvActive = isLFVActive(this.vibeMeter);
     const lfvMult = lfvActive ? 1.5 : 1;
+    const playerSpeedMult = weatherMult * lfvMult;
+    const player = this.state.player;
+    const playerOnLadder = canClimb(this.state.grid, player.pos);
+    const playerOnRope = canTraverseRope(this.state.grid, player.pos);
+    const playerWillFall = !isSupported(this.state.grid, player.pos, playerOnLadder, playerOnRope);
+    const activePlayerInterval =
+      (player.isFalling || playerWillFall ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL);
+    let digLockedThisFrame = this.state.player.isDigging;
+
+    this.advancePlayerRender(dt);
 
     // Update LFV timer
     updateLFV(this.vibeMeter, dt);
     this.state.player.isLFV = isLFVActive(this.vibeMeter);
 
+    // Tick down dig animation timer
+    if (this.digTimer > 0) {
+      this.digTimer -= dt;
+      if (this.digTimer <= 0) {
+        this.digTimer = 0;
+        this.state.player.isDigging = false;
+      }
+    }
+
+    // Update facing direction instantly (not tick-gated) so sprite responds immediately
+    if (!digLockedThisFrame) {
+      if (this.input.left) this.state.player.facing = Direction.Left;
+      else if (this.input.right) this.state.player.facing = Direction.Right;
+    }
+
+    // Digging — checked every frame so justPressed isn't missed
+    if (!digLockedThisFrame && this.input.justPressed('z')) {
+      digLockedThisFrame = this.tryDig(Direction.Left) || digLockedThisFrame;
+    }
+    if (!digLockedThisFrame && (this.input.justPressed('x') || this.input.justPressed('c'))) {
+      digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
+    }
+
+    // LFV activation (spacebar) — also every frame
+    if (this.input.justPressed(' ') && isLFVReady(this.vibeMeter)) {
+      activateLFV(this.vibeMeter);
+      this.usedLFVThisLevel = true;
+      this.onLFV?.();
+    }
+
     // Player movement (tick-based)
-    this.playerMoveAccum += dt * weatherMult * lfvMult;
-    if (this.playerMoveAccum >= this.PLAYER_MOVE_INTERVAL) {
+    if (digLockedThisFrame) {
       this.playerMoveAccum = 0;
-      this.updatePlayer();
+      this.updatePlayer(true);
+    } else {
+      this.playerMoveAccum += dt * playerSpeedMult;
+    }
+
+    if (!digLockedThisFrame && this.playerMoveAccum >= activePlayerInterval) {
+      const previousPos = { ...this.state.player.pos };
+      this.playerMoveAccum -= activePlayerInterval;
+      this.updatePlayer(false);
+      const playerRenderDuration = (
+        this.state.player.isFalling ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL
+      ) / playerSpeedMult;
+      this.startPlayerRender(previousPos, this.state.player.pos, playerRenderDuration);
     }
 
     // Duck movement
@@ -101,23 +197,41 @@ export class GameManager {
     if (this.duckMoveAccum >= this.DUCK_MOVE_INTERVAL) {
       this.duckMoveAccum = 0;
       if (!isLFVActive(this.vibeMeter)) {
+        // Snapshot positions before move
+        for (const duck of this.state.ducks) {
+          this.duckRenderFrom.set(duck.id, { ...duck.pos });
+        }
         this.updateDucks();
+        // Set targets after move
+        for (const duck of this.state.ducks) {
+          this.duckRenderTo.set(duck.id, { ...duck.pos });
+        }
+        this.duckRenderProgress = 0;
       }
     }
 
-    // Update holes (regeneration timers)
-    this.state.holes = updateHoles(this.state.holes, this.state.grid, dt);
+    // Advance duck render interpolation
+    if (this.duckRenderProgress < 1) {
+      this.duckRenderProgress = Math.min(this.duckRenderProgress + dt / this.DUCK_MOVE_INTERVAL, 1);
+    }
+
+    // Update trapped ducks
+    this.updateTrappedDucks(dt);
+
+    // Update holes (regeneration timers and lifecycle)
+    const holeUpdate = updateHoles(this.state.holes, this.state.grid, dt);
+    this.state.holes = holeUpdate.holes;
+    if (holeUpdate.closed.some((pos) => pos.x === this.state.player.pos.x && pos.y === this.state.player.pos.y)) {
+      this.playerDeath();
+      return;
+    }
 
     // Check for ducks killed by closing holes
     this.checkHoleKills();
 
-    // Update trapped ducks
-    for (const duck of this.state.ducks) {
-      updateTrappedDuck(duck, dt);
-    }
-
     // Update $VIBESTR drops
     this.drops = updateDrops(this.drops);
+    this.confetti = updateConfetti(this.confetti, dt);
 
     // Sync scoring state → game state
     this.state.score = this.scoring.score;
@@ -127,8 +241,19 @@ export class GameManager {
     this.state.lfvTimer = this.vibeMeter.lfvTimer;
   }
 
-  private updatePlayer(): void {
+  private updatePlayer(digLocked = false): void {
     const { player, grid } = this.state;
+
+    // Trapped ducks act as solid ground (classic Lode Runner bridge mechanic).
+    // Temporarily mark their positions as Sand so all isSupported/canMoveTo
+    // calls see them as solid during the entire player update.
+    const trappedPositions: { x: number; y: number }[] = [];
+    for (const duck of this.state.ducks) {
+      if (duck.isTrapped) {
+        trappedPositions.push({ x: duck.pos.x, y: duck.pos.y });
+        grid[duck.pos.y][duck.pos.x] = TileType.Sand;
+      }
+    }
 
     // Update ladder/rope awareness BEFORE gravity check
     // (prevents falling through ropes/ladders when landing on them)
@@ -140,10 +265,40 @@ export class GameManager {
       const fallen = movePlayer(player, grid, Direction.Down);
       Object.assign(player, fallen);
       player.isFalling = true;
+      this.restoreTrappedTiles(grid, trappedPositions);
+      // Fell into a hole and stuck (solid below) → death
+      // Fell through a hole with open space below → keep falling, survive
+      const inHole = this.state.holes.some(
+        h => h.x === player.pos.x && h.y === player.pos.y
+      );
+      if (inHole && isSupported(grid, player.pos, false, false)) {
+        this.playerDeath();
+        return;
+      }
       this.checkPlayerCollisions();
       return;
     }
     player.isFalling = false;
+
+    if (digLocked) {
+      this.restoreTrappedTiles(grid, trappedPositions);
+      this.checkBadgeCollection();
+
+      if (collectDrop(this.drops, player.pos)) {
+        scoreVibestr(this.scoring);
+        this.onVibestr?.();
+      }
+
+      this.checkPlayerCollisions();
+
+      if (this.state.badgesCollected >= this.state.badgesTotal) {
+        this.revealHiddenLadders();
+        if (player.pos.y === 0) {
+          this.completeLevel();
+        }
+      }
+      return;
+    }
 
     // Process directional input
     let dir = Direction.None;
@@ -157,18 +312,8 @@ export class GameManager {
       Object.assign(player, moved);
     }
 
-    // Digging (Z = left, X = right)
-    if (this.input.justPressed('z')) {
-      this.tryDig(Direction.Left);
-    }
-    if (this.input.justPressed('x')) {
-      this.tryDig(Direction.Right);
-    }
-
-    // LFV activation (spacebar)
-    if (this.input.justPressed(' ') && isLFVReady(this.vibeMeter)) {
-      activateLFV(this.vibeMeter);
-    }
+    // Restore grid before badge/collision checks
+    this.restoreTrappedTiles(grid, trappedPositions);
 
     // Badge collection
     this.checkBadgeCollection();
@@ -176,6 +321,7 @@ export class GameManager {
     // $VIBESTR collection
     if (collectDrop(this.drops, player.pos)) {
       scoreVibestr(this.scoring);
+      this.onVibestr?.();
     }
 
     // Player-duck collision
@@ -190,16 +336,45 @@ export class GameManager {
     }
   }
 
-  private tryDig(direction: Direction): void {
-    const { player, grid } = this.state;
-    if (canDig(grid, player.pos, direction, player.isOnRope)) {
-      const target = getDigTarget(player.pos, direction)!;
-      const hole = createHole(grid, target);
-      this.state.holes.push(hole);
+  private restoreTrappedTiles(grid: TileType[][], positions: { x: number; y: number }[]): void {
+    for (const pos of positions) {
+      grid[pos.y][pos.x] = TileType.Empty;
     }
   }
 
+  private digTimer = 0;
+
+  private tryDig(direction: Direction): boolean {
+    const { player, grid } = this.state;
+    if (player.isDigging) return false;
+    const target = getDigTarget(player.pos, direction);
+    if (!target) return false;
+    if (this.state.holes.some((hole) => hole.x === target.x && hole.y === target.y)) return false;
+    if (canDig(grid, player.pos, direction, player.isOnRope)) {
+      const hole = createHole(grid, target, direction as Direction.Left | Direction.Right);
+      this.state.holes.push(hole);
+      player.isDigging = true;
+      player.facing = direction;
+      this.digTimer = HOLE_OPEN_ANIM;
+      this.playerMoveAccum = 0;
+      this.onDig?.();
+      return true;
+    }
+    return false;
+  }
+
   private updateDucks(): void {
+    const { grid } = this.state;
+
+    // Trapped ducks act as solid ground for other ducks (can't fall in occupied hole)
+    const trappedPositions: { x: number; y: number }[] = [];
+    for (const duck of this.state.ducks) {
+      if (this.isDuckProvidingSupport(duck)) {
+        trappedPositions.push({ x: duck.pos.x, y: duck.pos.y });
+        grid[duck.pos.y][duck.pos.x] = TileType.Sand;
+      }
+    }
+
     for (const duck of this.state.ducks) {
       if (duck.isTrapped) continue;
 
@@ -218,18 +393,24 @@ export class GameManager {
       // Duck falls into hole
       for (const hole of this.state.holes) {
         if (duck.pos.x === hole.x && duck.pos.y === hole.y) {
-          // Check badge BEFORE trapping (trapDuck clears carryingBadge)
-          const wasBadgeless = !duck.carryingBadge;
+          const hadBadge = duck.carryingBadge;
           trapDuck(duck);
-          if (wasBadgeless) {
+          if (hadBadge) {
+            // Drop the badge above the hole so the player can collect it
+            this.state.grid[duck.pos.y - 1][duck.pos.x] = TileType.Badge;
+          } else {
             // Spawn $VIBESTR drop above the hole
             this.drops.push(createDrop({ x: duck.pos.x, y: duck.pos.y - 1 }));
           }
           scoreTrap(this.scoring);
           addVibe(this.vibeMeter, 'trap');
+          this.onTrap?.();
         }
       }
     }
+
+    // Restore trapped tile positions
+    this.restoreTrappedTiles(grid, trappedPositions);
   }
 
   private checkBadgeCollection(): void {
@@ -240,6 +421,7 @@ export class GameManager {
       this.state.badgesCollected++;
       scoreBadge(this.scoring);
       addVibe(this.vibeMeter, 'badge');
+      this.onCollect?.();
     }
   }
 
@@ -256,37 +438,127 @@ export class GameManager {
   private checkHoleKills(): void {
     for (const duck of this.state.ducks) {
       if (!duck.isTrapped) continue;
-      // Hole regenerated with duck still in it → duck dies
       const tile = getTile(this.state.grid, duck.pos);
-      if (tile === TileType.Sand) {
+      if (tile === TileType.Sand || tile === TileType.TrapSand) {
+        this.confetti.push(...createConfettiBurst(duck.pos));
+        if (duck.carryingBadge) {
+          // Drop badge above the closed hole
+          this.state.grid[duck.pos.y - 1][duck.pos.x] = TileType.Badge;
+        }
         scoreKill(this.scoring);
+        this.onKill?.();
+        // Classic feel: killed ducks re-enter from the top rather than
+        // immediately reappearing at the hole they just died in.
         respawnDuck(duck, this.state.grid);
       }
     }
   }
 
-  private revealHiddenLadders(): void {
-    for (let y = 0; y < GRID_ROWS; y++) {
-      for (let x = 0; x < GRID_COLS; x++) {
-        if (this.state.grid[y][x] === TileType.HiddenLadder) {
-          this.state.grid[y][x] = TileType.Ladder;
-        }
+  private updateTrappedDucks(dt: number): void {
+    for (const duck of this.state.ducks) {
+      if (!duck.isTrapped) continue;
+
+      const holePos = { ...duck.pos };
+      const escaped = updateTrappedDuck(duck, dt);
+      if (!escaped) continue;
+
+      if (this.state.player.pos.x === holePos.x && this.state.player.pos.y === holePos.y - 1) {
+        const previousPos = { ...this.state.player.pos };
+        this.state.player.pos = { ...holePos };
+        this.state.player.isOnLadder = false;
+        this.state.player.isOnRope = false;
+        this.state.player.isFalling = false;
+        this.startPlayerRender(previousPos, this.state.player.pos, this.PLAYER_FALL_INTERVAL);
       }
     }
   }
 
+  private isDuckProvidingSupport(duck: DuckState): boolean {
+    return duck.isTrapped && duck.trapTimer <= DUCK_TRAP_ESCAPE_TIME - DUCK_TRAP_SUPPORT_DELAY;
+  }
+
+  private revealHiddenLadders(): void {
+    let revealed = false;
+    for (let y = 0; y < GRID_ROWS; y++) {
+      for (let x = 0; x < GRID_COLS; x++) {
+        if (this.state.grid[y][x] === TileType.HiddenLadder) {
+          this.state.grid[y][x] = TileType.Ladder;
+          revealed = true;
+        }
+      }
+    }
+    if (revealed) this.onRevealLadders?.();
+  }
+
   private completeLevel(): void {
-    const lfvUnused = this.vibeMeter.meter >= 0 && this.vibeMeter.lfvTimer === 0;
+    const lfvUnused = !this.usedLFVThisLevel;
     scoreComplete(this.scoring, lfvUnused);
+    this.scoring.lives++;
     this.state.phase = GamePhase.LevelComplete;
+    this.onLevelComplete?.();
   }
 
   private playerDeath(): void {
     this.scoring.lives--;
+    this.onDeath?.();
     if (this.scoring.lives <= 0) {
       this.state.phase = GamePhase.GameOver;
     } else {
       this.state.phase = GamePhase.Dead;
     }
+  }
+
+  restart(): void {
+    this.scoring = createScoring();
+    this.vibeMeter = createVibeMeter();
+    this.loadLevel(0);
+  }
+
+  getDuckRenderPos(duckId: number): { x: number; y: number } {
+    const from = this.duckRenderFrom.get(duckId);
+    const to = this.duckRenderTo.get(duckId);
+    if (!from || !to || this.duckRenderProgress >= 1) {
+      return to ?? { x: 0, y: 0 };
+    }
+    const t = this.duckRenderProgress;
+    return {
+      x: from.x + (to.x - from.x) * t,
+      y: from.y + (to.y - from.y) * t,
+    };
+  }
+
+  getPlayerRenderPos(): { x: number; y: number } {
+    if (this.playerRenderProgress >= 1) {
+      return { ...this.playerRenderTo };
+    }
+
+    const t = this.playerRenderProgress;
+    return {
+      x: this.playerRenderFrom.x + (this.playerRenderTo.x - this.playerRenderFrom.x) * t,
+      y: this.playerRenderFrom.y + (this.playerRenderTo.y - this.playerRenderFrom.y) * t,
+    };
+  }
+
+  private startPlayerRender(from: { x: number; y: number }, to: { x: number; y: number }, duration: number): void {
+    if (from.x === to.x && from.y === to.y) {
+      this.playerRenderFrom = { ...to };
+      this.playerRenderTo = { ...to };
+      this.playerRenderProgress = 1;
+      return;
+    }
+
+    this.playerRenderFrom = { ...from };
+    this.playerRenderTo = { ...to };
+    this.playerRenderProgress = 0;
+    this.playerRenderDuration = Math.max(duration, 1);
+  }
+
+  private advancePlayerRender(dt: number): void {
+    if (this.playerRenderProgress >= 1) return;
+
+    this.playerRenderProgress = Math.min(
+      this.playerRenderProgress + dt / this.playerRenderDuration,
+      1
+    );
   }
 }

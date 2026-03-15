@@ -2,7 +2,7 @@ import { TileType, WeatherType, LevelData, Position } from '@/types';
 import { GRID_COLS, GRID_ROWS } from '@/constants';
 
 export function parseLevel(raw: any): LevelData {
-  const { id, name, grid, weather, npcs } = raw;
+  const { id, name, grid, weather, npcs, theme, exitColumn } = raw;
 
   if (!grid || grid.length !== GRID_ROWS) {
     throw new Error(`Level grid must have ${GRID_ROWS} rows, got ${grid?.length}`);
@@ -27,6 +27,8 @@ export function parseLevel(raw: any): LevelData {
     grid: grid.map((row: number[]) => row.map((t: number) => t as TileType)),
     weather: weatherMap[weather] ?? WeatherType.None,
     npcs: npcs ?? [],
+    exitColumn: typeof exitColumn === 'number' ? exitColumn : undefined,
+    theme: theme ?? 'beach',
   };
 }
 
@@ -61,4 +63,57 @@ export function findAllSpawnPositions(grid: TileType[][], type: TileType): Posit
 
 export function cloneGrid(grid: TileType[][]): TileType[][] {
   return grid.map(row => [...row]);
+}
+
+function findTopPlatformRow(grid: TileType[][]): number {
+  for (let y = 0; y < GRID_ROWS; y++) {
+    for (let x = 0; x < GRID_COLS; x++) {
+      if (grid[y][x] === TileType.Sand) {
+        return y;
+      }
+    }
+  }
+
+  return GRID_ROWS - 1;
+}
+
+function getValidExitColumns(grid: TileType[][], topPlatformRow: number): number[] {
+  const validCols: number[] = [];
+
+  for (let x = 0; x < GRID_COLS; x++) {
+    if (grid[topPlatformRow][x] !== TileType.Sand) continue;
+
+    let clear = true;
+    for (let y = 0; y < topPlatformRow; y++) {
+      if (grid[y][x] !== TileType.Empty) {
+        clear = false;
+        break;
+      }
+    }
+
+    if (clear) validCols.push(x);
+  }
+
+  return validCols;
+}
+
+export function ensureHiddenExit(grid: TileType[][], exitColumn?: number): number | null {
+  const hasAuthoredHiddenLadder = grid.some((row) => row.includes(TileType.HiddenLadder));
+  if (hasAuthoredHiddenLadder) return null;
+
+  const topPlatformRow = findTopPlatformRow(grid);
+  const validCols = getValidExitColumns(grid, topPlatformRow);
+  if (validCols.length === 0) return null;
+
+  const resolvedColumn = (
+    typeof exitColumn === 'number' && validCols.includes(exitColumn)
+      ? exitColumn
+      : validCols[0]
+  );
+
+  for (let y = 0; y < topPlatformRow; y++) {
+    grid[y][resolvedColumn] = TileType.HiddenLadder;
+  }
+
+  return resolvedColumn;
 }

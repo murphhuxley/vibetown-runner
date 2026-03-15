@@ -1,20 +1,24 @@
 export const GRID_COLS = 28;
-export const GRID_ROWS = 16;
+export const GRID_ROWS = 20;
 export const TILE_SIZE = 32;
+export const DISPLAY_SCALE = 2;
+export const RENDER_SCALE = 2;
+export const PLAYER_SPRITE_SOURCE_SCALE = 2;
 
 export const CANVAS_WIDTH = GRID_COLS * TILE_SIZE;
 export const CANVAS_HEIGHT = (GRID_ROWS + 1) * TILE_SIZE;
 
-export const HOLE_REGEN_TIME = 10_000;
-export const HOLE_OPEN_ANIM = 300;
+export const HOLE_REGEN_TIME = 6_000;
+export const HOLE_OPEN_ANIM = 520;
 export const HOLE_CLOSE_ANIM = 300;
 export const LFV_DURATION = 5_000;
 export const DUCK_TRAP_ESCAPE_TIME = 3_000;
+export const DUCK_TRAP_SUPPORT_DELAY = 250;
 
 export const PLAYER_SPEED = 6;
 export const DUCK_SPEED = 4;
 export const PLAYER_FALL_SPEED = 10;
-export const DUCK_FALL_SPEED = 8;
+export const DUCK_FALL_SPEED = 6;
 export const LFV_SPEED_MULTIPLIER = 1.5;
 export const SUNSHINE_SPEED_MULTIPLIER = 1.25;
 export const RAIN_SPEED_MULTIPLIER = 0.7;

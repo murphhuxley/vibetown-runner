@@ -16,7 +16,7 @@ export function createPlayer(pos: Position): PlayerState {
 
 export function canClimb(grid: TileType[][], pos: Position): boolean {
   const tile = getTile(grid, pos);
-  return tile === TileType.Ladder || tile === TileType.HiddenLadder;
+  return tile === TileType.Ladder;
 }
 
 export function canTraverseRope(grid: TileType[][], pos: Position): boolean {
@@ -67,6 +67,13 @@ export function movePlayer(
       next.pos = target;
       next.isOnLadder = true;
       next.isOnRope = false;
+      return next;
+    }
+    // Drop off rope — let go and fall
+    if (player.isOnRope && canMoveTo(grid, target)) {
+      next.pos = target;
+      next.isOnRope = false;
+      next.isFalling = true;
       return next;
     }
     if (canMoveTo(grid, target) && !isSupported(grid, player.pos, player.isOnLadder, player.isOnRope)) {

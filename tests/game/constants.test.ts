@@ -15,7 +15,7 @@ describe('Constants', () => {
 
   it('grid is standard Lode Runner size', () => {
     expect(GRID_COLS).toBe(28);
-    expect(GRID_ROWS).toBe(16);
+    expect(GRID_ROWS).toBe(20);
   });
 
   it('vibe meter can be filled by collecting badges alone', () => {

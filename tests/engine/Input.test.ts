@@ -35,10 +35,12 @@ describe('InputManager', () => {
     expect(input.left).toBe(true);
   });
 
-  it('maps z/x to dig left/right', () => {
+  it('maps z/x/c to dig left/right', () => {
     input.handleKeyDown('z');
     expect(input.digLeft).toBe(true);
     input.handleKeyDown('x');
+    expect(input.digRight).toBe(true);
+    input.handleKeyDown('c');
     expect(input.digRight).toBe(true);
   });
 

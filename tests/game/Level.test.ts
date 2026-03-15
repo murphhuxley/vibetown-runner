@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseLevel, countBadges, findSpawnPosition } from '@/game/Level';
+import { parseLevel, countBadges, findSpawnPosition, ensureHiddenExit } from '@/game/Level';
 import { TileType, WeatherType } from '@/types';
 import { GRID_COLS, GRID_ROWS } from '@/constants';
 
@@ -29,6 +29,11 @@ describe('Level', () => {
     expect(level.weather).toBe(WeatherType.None);
   });
 
+  it('parses authored exit metadata', () => {
+    const level = parseLevel({ ...MINIMAL_LEVEL, exitColumn: 7 });
+    expect(level.exitColumn).toBe(7);
+  });
+
   it('rejects levels with wrong grid dimensions', () => {
     const bad = { ...MINIMAL_LEVEL, grid: [[0, 1]] };
     expect(() => parseLevel(bad)).toThrow();
@@ -49,5 +54,29 @@ describe('Level', () => {
     const level = parseLevel(MINIMAL_LEVEL);
     const spawn = findSpawnPosition(level.grid, TileType.DuckSpawn);
     expect(spawn).toEqual({ x: 10, y: 0 });
+  });
+
+  it('builds a deterministic hidden exit when the level has no authored ladder tiles', () => {
+    const grid = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(TileType.Empty));
+    grid[2] = Array(GRID_COLS).fill(TileType.Sand);
+
+    const exitColumn = ensureHiddenExit(grid, 6);
+
+    expect(exitColumn).toBe(6);
+    expect(grid[0][6]).toBe(TileType.HiddenLadder);
+    expect(grid[1][6]).toBe(TileType.HiddenLadder);
+  });
+
+  it('keeps authored hidden ladder tiles intact', () => {
+    const grid = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(TileType.Empty));
+    grid[2] = Array(GRID_COLS).fill(TileType.Sand);
+    grid[0][4] = TileType.HiddenLadder;
+    grid[1][4] = TileType.HiddenLadder;
+
+    const exitColumn = ensureHiddenExit(grid, 6);
+
+    expect(exitColumn).toBeNull();
+    expect(grid[0][4]).toBe(TileType.HiddenLadder);
+    expect(grid[0][6]).toBe(TileType.Empty);
   });
 });

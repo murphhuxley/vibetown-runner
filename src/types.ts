@@ -26,6 +26,7 @@ export enum GamePhase {
   LevelComplete = 'level-complete',
   Dead = 'dead',
   GameOver = 'game-over',
+  Victory = 'victory',
 }
 
 export enum WeatherType {
@@ -46,6 +47,8 @@ export interface Hole {
   y: number;
   timer: number;
   phase: 'opening' | 'open' | 'closing';
+  fillTile: TileType.Sand | TileType.TrapSand;
+  direction: Direction.Left | Direction.Right;
 }
 
 export interface PlayerState {
@@ -85,6 +88,8 @@ export interface LevelData {
   weather: WeatherType;
   npcs: NPCData[];
   par?: number;
+  exitColumn?: number;
+  theme?: string;
 }
 
 export interface GameState {

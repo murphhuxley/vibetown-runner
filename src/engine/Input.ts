@@ -45,7 +45,7 @@ export class InputManager {
     return this.isDown('z');
   }
   get digRight(): boolean {
-    return this.isDown('x');
+    return this.isDown('x') || this.isDown('c');
   }
   get activateLFV(): boolean {
     return this.isDown(' ');

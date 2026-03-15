@@ -1,0 +1,44 @@
+{
+  "player-run-right": {
+    "file": "player-run-right.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 3
+  },
+  "player-run-left": {
+    "file": "player-run-left.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 3
+  },
+  "player-idle": {
+    "file": "player-idle.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 1
+  },
+  "player-idle-side": {
+    "file": "player-idle-side.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 3
+  },
+  "player-climb-back": {
+    "file": "player-climb-back.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 2
+  },
+  "player-rope-hang": {
+    "file": "player-rope-hang.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 2
+  },
+  "player-walk-front": {
+    "file": "player-walk-front.png",
+    "frameWidth": 64,
+    "frameHeight": 88,
+    "frameCount": 3
+  }
+}

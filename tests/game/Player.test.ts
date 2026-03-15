@@ -14,16 +14,18 @@ function floorGrid(): TileType[][] {
 }
 
 describe('Player', () => {
+  const groundedY = GRID_ROWS - 2;
+
   it('creates player at spawn position', () => {
-    const player = createPlayer({ x: 5, y: 14 });
-    expect(player.pos).toEqual({ x: 5, y: 14 });
+    const player = createPlayer({ x: 5, y: groundedY });
+    expect(player.pos).toEqual({ x: 5, y: groundedY });
     expect(player.alive).toBe(true);
     expect(player.facing).toBe(Direction.Right);
   });
 
   it('moves left on solid ground', () => {
     const grid = floorGrid();
-    const player = createPlayer({ x: 5, y: 14 });
+    const player = createPlayer({ x: 5, y: groundedY });
     const moved = movePlayer(player, grid, Direction.Left);
     expect(moved.pos.x).toBe(4);
     expect(moved.facing).toBe(Direction.Left);
@@ -31,41 +33,41 @@ describe('Player', () => {
 
   it('moves right on solid ground', () => {
     const grid = floorGrid();
-    const player = createPlayer({ x: 5, y: 14 });
+    const player = createPlayer({ x: 5, y: groundedY });
     const moved = movePlayer(player, grid, Direction.Right);
     expect(moved.pos.x).toBe(6);
   });
 
   it('cannot move into solid tile', () => {
     const grid = floorGrid();
-    grid[14][4] = TileType.Coral;
-    const player = createPlayer({ x: 5, y: 14 });
+    grid[groundedY][4] = TileType.Coral;
+    const player = createPlayer({ x: 5, y: groundedY });
     const moved = movePlayer(player, grid, Direction.Left);
     expect(moved.pos.x).toBe(5);
   });
 
   it('cannot move out of bounds', () => {
     const grid = floorGrid();
-    const player = createPlayer({ x: 0, y: 14 });
+    const player = createPlayer({ x: 0, y: groundedY });
     const moved = movePlayer(player, grid, Direction.Left);
     expect(moved.pos.x).toBe(0);
   });
 
   it('can climb ladder', () => {
     const grid = floorGrid();
-    grid[14][5] = TileType.Ladder;
-    grid[13][5] = TileType.Ladder;
-    expect(canClimb(grid, { x: 5, y: 14 })).toBe(true);
+    grid[groundedY][5] = TileType.Ladder;
+    grid[groundedY - 1][5] = TileType.Ladder;
+    expect(canClimb(grid, { x: 5, y: groundedY })).toBe(true);
   });
 
   it('moves up on ladder', () => {
     const grid = floorGrid();
-    grid[14][5] = TileType.Ladder;
-    grid[13][5] = TileType.Ladder;
-    const player = createPlayer({ x: 5, y: 14 });
+    grid[groundedY][5] = TileType.Ladder;
+    grid[groundedY - 1][5] = TileType.Ladder;
+    const player = createPlayer({ x: 5, y: groundedY });
     player.isOnLadder = true;
     const moved = movePlayer(player, grid, Direction.Up);
-    expect(moved.pos.y).toBe(13);
+    expect(moved.pos.y).toBe(groundedY - 1);
   });
 
   it('can traverse rope', () => {
