@@ -6,7 +6,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
-import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders } from '@/engine/Audio';
+import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop } from '@/engine/Audio';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -117,6 +117,13 @@ const loop = new GameLoop(
     renderer.playerFacing = game.state.player.facing;
     renderer.playerDigging = isPlaying && game.state.player.isDigging;
     renderer.updateAnimation(dt);
+
+    // Fall sound — play while falling, stop on land
+    if (isPlaying && game.state.player.isFalling) {
+      sfxFallStart();
+    } else {
+      sfxFallStop();
+    }
 
     input.endFrame();
   },

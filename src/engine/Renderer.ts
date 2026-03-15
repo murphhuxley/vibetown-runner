@@ -18,7 +18,7 @@ export class Renderer {
   private animAccum = 0;
   private animState: 'run-left' | 'run-right' | 'climb' | 'rope' | null = null;
   private readonly ANIM_FRAME_MS = 80;
-  private readonly ROPE_LINE_OFFSET_Y = 5;
+  private readonly ROPE_LINE_OFFSET_Y = 13;
   private readonly ROPE_HAND_ANCHOR_Y = 6;
   private readonly BADGE_SCALE = 0.72;
   private readonly PLAYER_SCALE = 1;
@@ -509,7 +509,7 @@ export class Renderer {
   private drawRope(px: number, py: number): void {
     const ctx = this.ctx;
     const color = this.theme.rope;
-    const midY = py + TILE_SIZE / 2;
+    const midY = py + this.ROPE_LINE_OFFSET_Y;
     const startX = px;
     const endX = px + TILE_SIZE;
     const ropeH = 6;

@@ -42,19 +42,19 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      background: #0a0a0a;
     }
     #menu-screen.hidden { display: none; }
 
     #menu-video {
       position: absolute;
-      inset: 0;
+      top: -10%;
+      left: -10%;
       width: 120%;
       height: 120%;
       object-fit: cover;
-      /* Shift to crop out bottom-right VEO watermark */
       object-position: top left;
-      transform: translate(-5%, -5%);
-      filter: brightness(0.5);
+      filter: brightness(0.45);
     }
 
     #menu-content {
