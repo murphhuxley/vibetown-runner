@@ -6,8 +6,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
-// Audio disabled — needs proper sound design
-// import { resumeAudio, sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders } from '@/engine/Audio';
+import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders } from '@/engine/Audio';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -39,16 +38,34 @@ const game = new GameManager(input);
 const renderer = new Renderer(ctx);
 const isDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-// SFX disabled — needs proper sound design
-// game.onDig = sfxDig;
-// game.onCollect = sfxCollect;
-// game.onTrap = sfxTrap;
-// game.onKill = sfxKill;
-// game.onDeath = sfxDeath;
-// game.onLFV = sfxLFV;
-// game.onLevelComplete = sfxLevelComplete;
-// game.onVibestr = sfxVibestr;
-// game.onRevealLadders = sfxRevealLadders;
+// Wire up SFX
+game.onDig = sfxDig;
+game.onCollect = sfxCollect;
+game.onTrap = sfxTrap;
+game.onKill = sfxKill;
+game.onDeath = sfxDeath;
+game.onLFV = sfxLFV;
+game.onLevelComplete = sfxLevelComplete;
+game.onVibestr = sfxVibestr;
+game.onRevealLadders = sfxRevealLadders;
+
+// ── Main Menu UI ──
+const menuScreen = document.getElementById('menu-screen')!;
+const instructionsModal = document.getElementById('instructions-modal')!;
+
+function hideMenu(): void {
+  menuScreen.classList.add('hidden');
+  game.startGame();
+  canvas.focus();
+}
+
+document.getElementById('btn-play')!.addEventListener('click', hideMenu);
+document.getElementById('btn-instructions')!.addEventListener('click', () => {
+  instructionsModal.classList.remove('hidden');
+});
+document.getElementById('instructions-close')!.addEventListener('click', () => {
+  instructionsModal.classList.add('hidden');
+});
 
 function syncTheme(): void {
   const key = game.state.level.theme ?? 'beach';
@@ -147,35 +164,6 @@ const loop = new GameLoop(
     );
 
     // Phase overlays
-    if (game.state.phase === GamePhase.Menu) {
-      ctx.fillStyle = 'rgba(0,0,0,0.75)';
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-      const cx = CANVAS_WIDTH / 2;
-      const cy = CANVAS_HEIGHT / 2;
-
-      ctx.fillStyle = COLORS.vibestrGold;
-      ctx.font = "900 44px 'Brice', sans-serif";
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('VIBETOWN RUNNER', cx, cy - 100);
-
-      ctx.fillStyle = COLORS.cream;
-      ctx.font = "bold 14px 'Brice', sans-serif";
-      ctx.fillText('HOW TO PLAY', cx, cy - 40);
-
-      ctx.font = "13px 'Brice', sans-serif";
-      ctx.fillStyle = '#C0C0C0';
-      ctx.fillText('Arrow Keys — Move & Climb', cx, cy - 10);
-      ctx.fillText('Z — Dig Left    C — Dig Right', cx, cy + 15);
-      ctx.fillText('SPACE — Activate LFV Mode', cx, cy + 40);
-      ctx.fillText('Collect all money bags to reveal the escape ladder', cx, cy + 70);
-      ctx.fillText('Climb to the top to complete the level', cx, cy + 90);
-
-      ctx.fillStyle = COLORS.vibestrGold;
-      ctx.font = "bold 18px 'Brice', sans-serif";
-      ctx.fillText('Press ENTER to start', cx, cy + 140);
-    }
-
     if (game.state.phase === GamePhase.Dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -240,9 +228,7 @@ const loop = new GameLoop(
 // Handle state transitions (retry / next level)
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
-    if (game.state.phase === GamePhase.Menu) {
-      game.startGame();
-    } else if (game.state.phase === GamePhase.Dead) {
+    if (game.state.phase === GamePhase.Dead) {
       game.loadLevel(game.state.currentLevel - 1);
       syncTheme();
     } else if (game.state.phase === GamePhase.LevelComplete) {

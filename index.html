@@ -19,20 +19,221 @@
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #1a1a1a;
+      background: #0a0a0a;
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       overflow: hidden;
+      font-family: 'Brice', sans-serif;
     }
     canvas {
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
+
+    /* ── Main Menu Overlay ── */
+    #menu-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    #menu-screen.hidden { display: none; }
+
+    #menu-video {
+      position: absolute;
+      inset: 0;
+      width: 120%;
+      height: 120%;
+      object-fit: cover;
+      /* Shift to crop out bottom-right VEO watermark */
+      object-position: top left;
+      transform: translate(-5%, -5%);
+      filter: brightness(0.5);
+    }
+
+    #menu-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: white;
+    }
+
+    #menu-title-wrap {
+      margin-bottom: 20px;
+    }
+    #menu-title-canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #menu-title { display: none; }
+
+    #menu-subtitle {
+      font-weight: 700;
+      font-size: 18px;
+      color: #ccc;
+      margin-bottom: 50px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    .menu-btn {
+      display: block;
+      margin: 12px auto;
+      padding: 14px 48px;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 4px;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      min-width: 240px;
+    }
+    .menu-btn:hover {
+      background: rgba(245,215,110,0.2);
+      border-color: #F5D76E;
+      color: #F5D76E;
+    }
+
+    /* ── Instructions Modal ── */
+    #instructions-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.8);
+    }
+    #instructions-modal.hidden { display: none; }
+
+    #instructions-box {
+      background: #1a1a1a;
+      border: 2px solid #F5D76E;
+      border-radius: 8px;
+      padding: 40px 50px;
+      max-width: 500px;
+      text-align: center;
+      color: white;
+    }
+
+    #instructions-box h2 {
+      font-weight: 900;
+      font-size: 28px;
+      color: #F5D76E;
+      margin-bottom: 24px;
+    }
+
+    .instruction-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      font-size: 15px;
+    }
+    .instruction-row:last-child { border-bottom: none; }
+
+    .instruction-key {
+      background: rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 3px;
+      font-weight: 700;
+      color: #F5D76E;
+      font-size: 13px;
+    }
+
+    .instruction-desc {
+      color: #ccc;
+      text-align: right;
+    }
+
+    #instructions-close {
+      margin-top: 24px;
+    }
   </style>
 </head>
 <body>
+  <!-- Main Menu -->
+  <div id="menu-screen">
+    <video id="menu-video" autoplay muted loop playsinline>
+      <source src="/assets/video/menu-bg.mp4" type="video/mp4">
+    </video>
+    <div id="menu-content">
+      <div id="menu-title-wrap">
+        <canvas id="menu-title-canvas"></canvas>
+        <div id="menu-title">VIBETOWN RUNNER</div>
+      </div>
+      <script>
+        // Wait for Brice font to load, then render pixelated title
+        document.fonts.ready.then(function() {
+          var scale = 3;
+          var c = document.getElementById('menu-title-canvas');
+          var ctx = c.getContext('2d');
+          var text = 'VIBETOWN RUNNER';
+          var fontSize = 22;
+          ctx.font = 'bold ' + fontSize + "px 'Brice', sans-serif";
+          var w = Math.ceil(ctx.measureText(text).width) + 8;
+          var h = fontSize + 12;
+          c.width = w;
+          c.height = h;
+          ctx.font = 'bold ' + fontSize + "px 'Brice', sans-serif";
+          ctx.fillStyle = '#F5D76E';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, 4, h / 2 + 1);
+          c.style.width = (w * scale) + 'px';
+          c.style.height = (h * scale) + 'px';
+        });
+      </script>
+      <div id="menu-subtitle">A Good Vibes Club Game</div>
+      <button class="menu-btn" id="btn-play">PLAY</button>
+      <button class="menu-btn" id="btn-instructions">HOW TO PLAY</button>
+    </div>
+  </div>
+
+  <!-- Instructions Modal -->
+  <div id="instructions-modal" class="hidden">
+    <div id="instructions-box">
+      <h2>HOW TO PLAY</h2>
+      <div class="instruction-row">
+        <span class="instruction-key">ARROW KEYS</span>
+        <span class="instruction-desc">Move & Climb</span>
+      </div>
+      <div class="instruction-row">
+        <span class="instruction-key">Z</span>
+        <span class="instruction-desc">Dig Left</span>
+      </div>
+      <div class="instruction-row">
+        <span class="instruction-key">C</span>
+        <span class="instruction-desc">Dig Right</span>
+      </div>
+      <div class="instruction-row">
+        <span class="instruction-key">SPACE</span>
+        <span class="instruction-desc">Activate LFV Mode</span>
+      </div>
+      <div class="instruction-row">
+        <span class="instruction-key">GOAL</span>
+        <span class="instruction-desc">Collect all money bags</span>
+      </div>
+      <div class="instruction-row">
+        <span class="instruction-key">ESCAPE</span>
+        <span class="instruction-desc">Climb the hidden ladder to the top</span>
+      </div>
+      <button class="menu-btn" id="instructions-close">GOT IT</button>
+    </div>
+  </div>
+
   <canvas id="game"></canvas>
   <script type="module" src="/src/main.ts"></script>
 </body>

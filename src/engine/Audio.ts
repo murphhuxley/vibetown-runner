@@ -1,129 +1,53 @@
 /**
- * Retro synthesized sound effects using Web Audio API.
- * Inspired by classic Lode Runner SFX — no audio files needed.
+ * Sound effects using pre-pooled Audio elements for zero-latency playback.
  */
 
-let ctx: AudioContext | null = null;
+const POOL_SIZE = 4;
+const pools: Map<string, HTMLAudioElement[]> = new Map();
 
-function getCtx(): AudioContext {
-  if (!ctx) {
-    ctx = new AudioContext();
+function createPool(src: string): HTMLAudioElement[] {
+  const pool: HTMLAudioElement[] = [];
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const audio = new Audio(src);
+    audio.preload = 'auto';
+    pool.push(audio);
   }
-  return ctx;
+  pools.set(src, pool);
+  return pool;
 }
 
-function playTone(
-  freq: number,
-  duration: number,
-  type: OscillatorType = 'square',
-  volume = 0.15,
-  freqEnd?: number,
-): void {
-  const ac = getCtx();
-  const osc = ac.createOscillator();
-  const gain = ac.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, ac.currentTime);
-  if (freqEnd !== undefined) {
-    osc.frequency.linearRampToValueAtTime(freqEnd, ac.currentTime + duration);
-  }
-  gain.gain.setValueAtTime(volume, ac.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
-  osc.connect(gain);
-  gain.connect(ac.destination);
-  osc.start(ac.currentTime);
-  osc.stop(ac.currentTime + duration);
+function play(src: string, volume = 0.5): void {
+  const pool = pools.get(src);
+  if (!pool) return;
+  // Find an idle instance or reuse the oldest
+  const audio = pool.find(a => a.paused || a.ended) ?? pool[0];
+  audio.currentTime = 0;
+  audio.volume = volume;
+  audio.play().catch(() => {});
 }
 
-function playNoise(duration: number, volume = 0.1): void {
-  const ac = getCtx();
-  const bufferSize = Math.floor(ac.sampleRate * duration);
-  const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-  const source = ac.createBufferSource();
-  source.buffer = buffer;
-  const gain = ac.createGain();
-  gain.gain.setValueAtTime(volume, ac.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
-  source.connect(gain);
-  gain.connect(ac.destination);
-  source.start(ac.currentTime);
-}
+// Pre-create pools for all sounds
+createPool('/assets/audio/dig.mp3');
+createPool('/assets/audio/collect.mp3');
+createPool('/assets/audio/level-complete.mp3');
+createPool('/assets/audio/trap.mp3');
+createPool('/assets/audio/fall.mp3');
+createPool('/assets/audio/cheer.wav');
+createPool('/assets/audio/yay.wav');
 
-/** Short crunchy dig sound — noise burst + low frequency sweep */
-export function sfxDig(): void {
-  playNoise(0.08, 0.12);
-  playTone(200, 0.08, 'square', 0.08, 80);
-}
+export function sfxDig(): void { play('/assets/audio/dig.mp3', 0.5); }
+export function sfxCollect(): void { play('/assets/audio/collect.mp3', 0.5); }
+export function sfxLevelComplete(): void { play('/assets/audio/level-complete.mp3', 0.6); }
+export function sfxTrap(): void { play('/assets/audio/trap.mp3', 0.5); }
+export function sfxFall(): void { play('/assets/audio/fall.mp3', 0.4); }
 
-/** Bright ascending chime — money bag collected */
-export function sfxCollect(): void {
-  playTone(880, 0.08, 'square', 0.12);
-  setTimeout(() => playTone(1320, 0.1, 'square', 0.12), 60);
-}
-
-/** Triumphant ascending arpeggio — level complete */
-export function sfxLevelComplete(): void {
-  const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
-  notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 0.2, 'square', 0.1), i * 120);
-  });
-}
-
-/** Quick low thud — player lands after falling */
-export function sfxLand(): void {
-  playTone(120, 0.1, 'square', 0.1, 40);
-}
-
-/** Comedic descending boop — duck trapped */
-export function sfxTrap(): void {
-  playTone(600, 0.12, 'square', 0.1, 150);
-}
-
-/** Pop/splat — duck killed by closing hole */
 export function sfxKill(): void {
-  playNoise(0.06, 0.1);
-  playTone(400, 0.06, 'square', 0.08, 800);
-  setTimeout(() => playTone(200, 0.1, 'square', 0.06, 60), 50);
+  const sound = Math.random() < 0.5 ? '/assets/audio/cheer.wav' : '/assets/audio/yay.wav';
+  play(sound, 0.15);
 }
+export function sfxDeath(): void { /* silence */ }
+export function sfxLFV(): void { play('/assets/audio/collect.mp3', 0.6); }
+export function sfxVibestr(): void { play('/assets/audio/collect.mp3', 0.3); }
+export function sfxRevealLadders(): void { play('/assets/audio/collect.mp3', 0.4); }
 
-/** Power-up rising sweep — LFV activated */
-export function sfxLFV(): void {
-  playTone(300, 0.3, 'sawtooth', 0.08, 1200);
-  setTimeout(() => playTone(600, 0.2, 'square', 0.06, 1600), 150);
-}
-
-/** Quick death sound — player caught */
-export function sfxDeath(): void {
-  playTone(400, 0.15, 'square', 0.1, 100);
-  setTimeout(() => playTone(200, 0.2, 'square', 0.08, 50), 120);
-}
-
-/** Short step/footstep tick — optional for movement */
-export function sfxStep(): void {
-  playTone(150, 0.03, 'square', 0.04);
-}
-
-/** Collect $VIBESTR token */
-export function sfxVibestr(): void {
-  playTone(1047, 0.06, 'triangle', 0.1);
-  setTimeout(() => playTone(1319, 0.08, 'triangle', 0.1), 50);
-}
-
-/** Hidden ladders revealed — magical ascending sweep */
-export function sfxRevealLadders(): void {
-  const notes = [440, 554, 659, 880, 1047, 1319];
-  notes.forEach((freq, i) => {
-    setTimeout(() => playTone(freq, 0.15, 'triangle', 0.06), i * 60);
-  });
-}
-
-/** Resume audio context after user interaction (required by browsers) */
-export function resumeAudio(): void {
-  if (ctx?.state === 'suspended') {
-    ctx.resume();
-  }
-}
+export function resumeAudio(): void {}

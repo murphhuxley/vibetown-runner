@@ -508,14 +508,38 @@ export class Renderer {
 
   private drawRope(px: number, py: number): void {
     const ctx = this.ctx;
-    ctx.strokeStyle = this.theme.rope;
-    ctx.lineWidth = 3;
+    const color = this.theme.rope;
+    const midY = py + TILE_SIZE / 2;
+    const startX = px;
+    const endX = px + TILE_SIZE;
+    const ropeH = 6;
+    const top = midY - ropeH / 2;
 
-    const midY = py + this.ROPE_LINE_OFFSET_Y;
-    ctx.beginPath();
-    ctx.moveTo(px, midY);
-    ctx.lineTo(px + TILE_SIZE, midY);
-    ctx.stroke();
+    // Dark shadow for contrast
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(startX, top + 2, TILE_SIZE, ropeH);
+
+    // Main rope body
+    ctx.fillStyle = color;
+    ctx.fillRect(startX, top, TILE_SIZE, ropeH);
+
+    // Top highlight (lighter)
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(startX, top, TILE_SIZE, 2);
+
+    // Bottom shadow edge (darker)
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(startX, top + ropeH - 1, TILE_SIZE, 1);
+
+    // Rope texture — vertical hash marks every 6px for a twisted rope look
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    for (let x = startX + 3; x < endX; x += 6) {
+      ctx.fillRect(x, top + 1, 1, ropeH - 2);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    for (let x = startX + 5; x < endX; x += 6) {
+      ctx.fillRect(x, top + 1, 1, ropeH - 2);
+    }
   }
 
   drawHoles(holes: Hole[]): void {
