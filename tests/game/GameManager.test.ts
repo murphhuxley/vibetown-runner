@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
+import { Direction, TileType } from '@/types';
+import { createProjectile } from '@/game/Projectile';
 
 describe('GameManager', () => {
   let input: InputManager;
@@ -41,5 +43,85 @@ describe('GameManager', () => {
 
     game.update(200);
     expect(game.state.player.pos.x).toBe(startPos.x + 1);
+  });
+
+  it('does not spawn a money drop when a duck without a bag falls into a hole', () => {
+    const hole = { x: 5, y: 5 };
+    const grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+
+    grid[hole.y][hole.x - 1] = TileType.Sand;
+    grid[hole.y][hole.x + 1] = TileType.Sand;
+    grid[hole.y + 1][hole.x] = TileType.Sand;
+
+    game.state.grid = grid;
+    game.state.player.pos = { x: 0, y: 0 };
+    game.state.holes = [{
+      x: hole.x,
+      y: hole.y,
+      timer: 1000,
+      phase: 'open',
+      fillTile: TileType.Sand,
+      direction: Direction.Left,
+    }];
+
+    const duck = game.state.ducks[0];
+    duck.pos = { ...hole };
+    duck.carryingBadge = false;
+    duck.isTrapped = false;
+    duck.isFalling = false;
+    duck.isOnLadder = false;
+    duck.isOnRope = false;
+
+    game.drops = [];
+
+    (game as any).updateDucks();
+
+    expect(game.state.ducks[0].isTrapped).toBe(true);
+    expect(game.drops).toHaveLength(0);
+  });
+
+  it('auto-equips the level 3 helmet pickup and uses space to fire', () => {
+    game.loadLevel(2);
+    game.startGame();
+
+    expect(game.state.powerHelmetPos).toEqual({ x: 13, y: 7 });
+
+    game.state.player.pos = { x: 13, y: 7 };
+    (game as any).checkPowerHelmetCollection();
+
+    expect(game.state.powerHelmetCollected).toBe(true);
+    expect(game.state.powerHelmetActive).toBe(true);
+    expect(game.state.powerHelmetPos).toBeNull();
+    expect(game.state.powerHelmetShots).toBe(3);
+
+    input.handleKeyDown(' ');
+    game.update(16);
+
+    expect(game.state.powerHelmetActive).toBe(true);
+    expect(game.state.powerHelmetShots).toBe(2);
+    expect(game.projectiles).toHaveLength(1);
+  });
+
+  it('fires a helmet projectile that can kill a duck', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 5 };
+    duck.isTrapped = false;
+    duck.carryingBadge = false;
+
+    game.projectiles = [createProjectile(game.state.player.pos, Direction.Right)];
+
+    (game as any).updateProjectiles(220);
+
+    expect(game.projectiles).toHaveLength(0);
+    expect(game.duckDeaths).toHaveLength(1);
+    expect(game.confetti.length).toBeGreaterThan(0);
   });
 });

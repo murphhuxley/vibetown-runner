@@ -14,6 +14,9 @@ export const HOLE_CLOSE_ANIM = 300;
 export const LFV_DURATION = 5_000;
 export const DUCK_TRAP_ESCAPE_TIME = 3_000;
 export const DUCK_TRAP_SUPPORT_DELAY = 250;
+export const POWER_HELMET_SHOTS = 3;
+export const POWER_PROJECTILE_SPEED = 18;
+export const POWER_PROJECTILE_TTL = 900;
 
 export const PLAYER_SPEED = 6;
 export const DUCK_SPEED = 4;

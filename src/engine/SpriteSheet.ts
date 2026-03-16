@@ -17,6 +17,10 @@ export interface SpriteSet {
   rope: SpriteAnimation;
   digLeft: SpriteAnimation;
   digRight: SpriteAnimation;
+  powerRunRight: SpriteAnimation;
+  powerRunLeft: SpriteAnimation;
+  powerFront: SpriteAnimation;
+  powerPickup: SpriteAnimation;
 }
 
 export interface DuckSprites {
@@ -24,6 +28,7 @@ export interface DuckSprites {
   left: HTMLImageElement;
   front: HTMLImageElement;
   back: HTMLImageElement;
+  death: SpriteAnimation;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -37,9 +42,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function loadPlayerSprites(): Promise<SpriteSet> {
   const base = '/assets/sprites/';
-  const version = 'aseprite-v2';
+  const version = 'gif-run-v7';
 
-  const [runRight, runLeft, idle, climb, rope, digLeft, digRight] = await Promise.all([
+  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerPickup] = await Promise.all([
     loadImage(base + 'player-run-right.png?v=' + version),
     loadImage(base + 'player-run-left.png?v=' + version),
     loadImage(base + 'player-idle.png?v=' + version),
@@ -47,13 +52,28 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
     loadImage(base + 'player-rope-hang.png?v=' + version),
     loadImage(base + 'player-dig-left.png?v=' + version),
     loadImage(base + 'player-dig-right.png?v=' + version),
+    loadImage(base + 'player-power-run-right.png?v=' + version),
+    loadImage(base + 'player-power-run-left.png?v=' + version),
+    loadImage(base + 'player-power-front.png?v=' + version),
+    loadImage(base + 'power-helmet.png?v=' + version),
   ]);
-  const runFrameCount = 5;
+  const runFrameCount = 8;
   const runSourceFrameWidth = Math.floor(runRight.naturalWidth / runFrameCount);
-  const climbFrameCount = 2;
+  const idleFrameCount = 4;
+  const idleSourceFrameWidth = Math.floor(idle.naturalWidth / idleFrameCount);
+  const climbFrameCount = 7;
   const climbSourceFrameWidth = Math.floor(climb.naturalWidth / climbFrameCount);
-  const ropeFrameCount = 2;
+  const ropeFrameCount = 7;
   const ropeSourceFrameWidth = Math.floor(rope.naturalWidth / ropeFrameCount);
+  const digFrameCount = 9;
+  const digLeftSourceFrameWidth = Math.floor(digLeft.naturalWidth / digFrameCount);
+  const digRightSourceFrameWidth = Math.floor(digRight.naturalWidth / digFrameCount);
+  const powerRunFrameCount = 12;
+  const powerRunSourceFrameWidth = Math.floor(powerRunRight.naturalWidth / powerRunFrameCount);
+  const powerFrontFrameCount = 1;
+  const powerFrontSourceFrameWidth = Math.floor(powerFront.naturalWidth / powerFrontFrameCount);
+  const powerPickupFrameCount = 8;
+  const powerPickupSourceFrameWidth = Math.floor(powerPickup.naturalWidth / powerPickupFrameCount);
 
   return {
     runRight: {
@@ -74,10 +94,10 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
     },
     idle: {
       image: idle,
-      frameWidth: Math.floor(idle.naturalWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameWidth: Math.floor(idleSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
       frameHeight: Math.floor(idle.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
-      frameCount: 1,
-      sourceFrameWidth: idle.naturalWidth,
+      frameCount: idleFrameCount,
+      sourceFrameWidth: idleSourceFrameWidth,
       sourceFrameHeight: idle.naturalHeight,
     },
     climb: {
@@ -98,34 +118,84 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
     },
     digLeft: {
       image: digLeft,
-      frameWidth: Math.floor(digLeft.naturalWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameWidth: Math.floor(digLeftSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
       frameHeight: Math.floor(digLeft.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
-      frameCount: 1,
-      sourceFrameWidth: digLeft.naturalWidth,
+      frameCount: digFrameCount,
+      sourceFrameWidth: digLeftSourceFrameWidth,
       sourceFrameHeight: digLeft.naturalHeight,
     },
     digRight: {
       image: digRight,
-      frameWidth: Math.floor(digRight.naturalWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameWidth: Math.floor(digRightSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
       frameHeight: Math.floor(digRight.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
-      frameCount: 1,
-      sourceFrameWidth: digRight.naturalWidth,
+      frameCount: digFrameCount,
+      sourceFrameWidth: digRightSourceFrameWidth,
       sourceFrameHeight: digRight.naturalHeight,
+    },
+    powerRunRight: {
+      image: powerRunRight,
+      frameWidth: Math.floor(powerRunSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerRunRight.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerRunFrameCount,
+      sourceFrameWidth: powerRunSourceFrameWidth,
+      sourceFrameHeight: powerRunRight.naturalHeight,
+    },
+    powerRunLeft: {
+      image: powerRunLeft,
+      frameWidth: Math.floor(powerRunSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerRunLeft.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerRunFrameCount,
+      sourceFrameWidth: powerRunSourceFrameWidth,
+      sourceFrameHeight: powerRunLeft.naturalHeight,
+    },
+    powerFront: {
+      image: powerFront,
+      frameWidth: Math.floor(powerFrontSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerFront.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerFrontFrameCount,
+      sourceFrameWidth: powerFrontSourceFrameWidth,
+      sourceFrameHeight: powerFront.naturalHeight,
+    },
+    powerPickup: {
+      image: powerPickup,
+      frameWidth: powerPickupSourceFrameWidth,
+      frameHeight: powerPickup.naturalHeight,
+      frameCount: powerPickupFrameCount,
+      sourceFrameWidth: powerPickupSourceFrameWidth,
+      sourceFrameHeight: powerPickup.naturalHeight,
     },
   };
 }
 
 export async function loadDuckSprites(): Promise<DuckSprites> {
   const base = '/assets/sprites/';
+  const version = 'duck-v2';
 
-  const [right, left, front, back] = await Promise.all([
-    loadImage(base + 'duck-right.png'),
-    loadImage(base + 'duck-left.png'),
-    loadImage(base + 'duck-front.png'),
-    loadImage(base + 'duck-back.png'),
+  const [right, left, front, back, death] = await Promise.all([
+    loadImage(base + 'duck-right.png?v=' + version),
+    loadImage(base + 'duck-left.png?v=' + version),
+    loadImage(base + 'duck-front.png?v=' + version),
+    loadImage(base + 'duck-back.png?v=' + version),
+    loadImage(base + 'duck-death.png?v=' + version),
   ]);
 
-  return { right, left, front, back };
+  const deathFrameCount = 8;
+  const deathSourceFrameWidth = Math.floor(death.naturalWidth / deathFrameCount);
+
+  return {
+    right,
+    left,
+    front,
+    back,
+    death: {
+      image: death,
+      frameWidth: deathSourceFrameWidth,
+      frameHeight: death.naturalHeight,
+      frameCount: deathFrameCount,
+      sourceFrameWidth: deathSourceFrameWidth,
+      sourceFrameHeight: death.naturalHeight,
+    },
+  };
 }
 
 export function drawFrame(

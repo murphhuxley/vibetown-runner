@@ -1,5 +1,6 @@
-import { TileType, Position, Direction, WeatherType, Hole } from '@/types';
+import { TileType, Position, Direction, WeatherType, Hole, ProjectileState } from '@/types';
 import { VibeMeterState } from '@/game/VibeMeter';
+import { DuckDeathEffect, DUCK_DEATH_FRAME_MS } from '@/game/DuckDeath';
 import { ConfettiPiece } from '@/game/Confetti';
 import { getWeatherEffects, WeatherEffects } from '@/game/Weather';
 import { SpriteSet, DuckSprites, drawFrame } from '@/engine/SpriteSheet';
@@ -12,15 +13,23 @@ export class Renderer {
   private sandTile: HTMLImageElement | null = null;
   private coralTile: HTMLImageElement | null = null;
   private badgeSprite: HTMLImageElement | null = null;
+  private badgeFrameCount = 1;
+  private badgeSourceFrameWidth = 64;
   sprites: SpriteSet | null = null;
   duckSprites: DuckSprites | null = null;
   private animFrame = 0;
   private animAccum = 0;
-  private animState: 'run-left' | 'run-right' | 'climb' | 'rope' | null = null;
-  private readonly ANIM_FRAME_MS = 80;
+  private animState: 'run-left' | 'run-right' | 'climb' | 'rope' | 'idle' | 'dig-left' | 'dig-right' | null = null;
+  private readonly RUN_FRAME_MS = 80;
+  private readonly CLIMB_FRAME_MS = 90;
+  private readonly ROPE_FRAME_MS = 90;
+  private readonly IDLE_FRAME_MS = 160;
+  private readonly DIG_FRAME_MS = 58;
+  private readonly WORLD_PIXEL = 1;
   private readonly ROPE_LINE_OFFSET_Y = 13;
   private readonly ROPE_HAND_ANCHOR_Y = 6;
   private readonly BADGE_SCALE = 0.72;
+  private readonly DROP_SCALE = 0.72;
   private readonly PLAYER_SCALE = 1;
   private bgTime = 0;
   private weather: WeatherType = WeatherType.None;
@@ -33,6 +42,8 @@ export class Renderer {
   playerClimbing = false;
   playerUsingRope = false;
   playerDigging = false;
+  playerIdling = false;
+  playerPowerActive = false;
 
   private pixelCanvas: HTMLCanvasElement;
   private pixelCtx: CanvasRenderingContext2D;
@@ -40,8 +51,13 @@ export class Renderer {
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
     const badgeImg = new Image();
-    badgeImg.onload = () => { this.badgeSprite = badgeImg; };
-    badgeImg.src = '/assets/sprites/badge.png';
+    badgeImg.onload = () => {
+      this.badgeSprite = badgeImg;
+      const frameCount = Math.max(1, Math.round(badgeImg.naturalWidth / badgeImg.naturalHeight));
+      this.badgeFrameCount = frameCount;
+      this.badgeSourceFrameWidth = Math.floor(badgeImg.naturalWidth / frameCount);
+    };
+    badgeImg.src = '/assets/sprites/money-bag.png?v=money-bag-v1';
 
     // Offscreen canvas for pixelated text rendering
     this.pixelCanvas = document.createElement('canvas');
@@ -118,18 +134,22 @@ export class Renderer {
   }
 
   updateAnimation(dt: number): void {
-    if (!this.playerMoving && !this.playerClimbing && !this.playerUsingRope) {
+    if (!this.playerMoving && !this.playerClimbing && !this.playerUsingRope && !this.playerDigging && !this.playerIdling) {
       this.animAccum = 0;
       this.animFrame = 0;
       this.animState = null;
       return;
     }
 
-    const nextAnimState = this.playerUsingRope
+    const nextAnimState = this.playerDigging
+      ? (this.playerFacing === Direction.Left ? 'dig-left' : 'dig-right')
+      : this.playerUsingRope
       ? 'rope'
       : this.playerClimbing
       ? 'climb'
-      : (this.playerFacing === Direction.Left ? 'run-left' : 'run-right');
+      : this.playerMoving
+      ? (this.playerFacing === Direction.Left ? 'run-left' : 'run-right')
+      : 'idle';
     if (this.animState !== nextAnimState) {
       this.animAccum = 0;
       this.animFrame = 0;
@@ -137,9 +157,28 @@ export class Renderer {
     }
 
     this.animAccum += dt;
-    if (this.animAccum >= this.ANIM_FRAME_MS) {
-      this.animAccum -= this.ANIM_FRAME_MS;
+    const frameMs = this.getAnimationFrameMs(nextAnimState);
+    if (this.animAccum >= frameMs) {
+      this.animAccum -= frameMs;
       this.animFrame++;
+    }
+  }
+
+  private getAnimationFrameMs(state: Exclude<Renderer['animState'], null>): number {
+    switch (state) {
+      case 'idle':
+        return this.IDLE_FRAME_MS;
+      case 'climb':
+        return this.CLIMB_FRAME_MS;
+      case 'rope':
+        return this.ROPE_FRAME_MS;
+      case 'dig-left':
+      case 'dig-right':
+        return this.DIG_FRAME_MS;
+      case 'run-left':
+      case 'run-right':
+      default:
+        return this.RUN_FRAME_MS;
     }
   }
 
@@ -231,6 +270,7 @@ export class Renderer {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
+    this.drawBackdropPixelTexture(W, H);
 
     // Shimmer: golden twinkling particles
     if (style === 'shimmer') {
@@ -275,6 +315,158 @@ export class Renderer {
       ctx.fillStyle = grad2;
       ctx.fillRect(0, 0, W, H);
     }
+
+    // ── Parallax depth layers ──
+    this.drawParallaxLayers(W, H, t);
+
+    // Pixel noise texture — breaks up the smooth gradient, matches sprite grain
+    if (!this.noisePattern) {
+      this.noisePattern = this.createNoisePattern();
+    }
+    if (this.noisePattern) {
+      ctx.save();
+      ctx.globalAlpha = 0.04;
+      ctx.fillStyle = this.noisePattern;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+
+  private noisePattern: CanvasPattern | null = null;
+
+  private createNoisePattern(): CanvasPattern | null {
+    const size = 64;
+    const noiseCanvas = document.createElement('canvas');
+    noiseCanvas.width = size;
+    noiseCanvas.height = size;
+    const nctx = noiseCanvas.getContext('2d')!;
+    const imageData = nctx.createImageData(size, size);
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const v = Math.random() * 255;
+      imageData.data[i] = v;
+      imageData.data[i + 1] = v;
+      imageData.data[i + 2] = v;
+      imageData.data[i + 3] = 255;
+    }
+    nctx.putImageData(imageData, 0, 0);
+    return this.ctx.createPattern(noiseCanvas, 'repeat');
+  }
+
+  private drawParallaxLayers(W: number, H: number, t: number): void {
+    const ctx = this.ctx;
+
+    // ── Drifting clouds ──
+    ctx.save();
+    for (let i = 0; i < 5; i++) {
+      const speed = 6 + i * 4;
+      const cloudX = ((i * 197 + t * speed) % (W + 200)) - 100;
+      const cloudY = 20 + (i * 67) % (H * 0.3);
+      const cloudW = 60 + (i * 31) % 50;
+      const cloudH = 16 + (i * 13) % 12;
+      ctx.globalAlpha = 0.06 + (i % 3) * 0.02;
+      ctx.fillStyle = '#FFFFFF';
+      // Blobby cloud shape — overlapping ellipses
+      ctx.beginPath();
+      ctx.ellipse(cloudX, cloudY, cloudW * 0.5, cloudH * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cloudX - cloudW * 0.25, cloudY + 2, cloudW * 0.35, cloudH * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cloudX + cloudW * 0.3, cloudY + 1, cloudW * 0.3, cloudH * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // ── Layer 1: Distant mountains ──
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.fillStyle = this.theme.sandFill;
+    const mtOffset = t * 3;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = -40; x <= W + 40; x += 8) {
+      const baseY = H * 0.3;
+      const peak = Math.sin((x + mtOffset) * 0.012) * H * 0.18
+                 + Math.sin((x + mtOffset) * 0.025) * H * 0.1
+                 + Math.sin((x + mtOffset) * 0.05) * H * 0.04;
+      ctx.lineTo(x, baseY - peak);
+    }
+    ctx.lineTo(W + 40, H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // ── Layer 2: Mid-ground hills ──
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = this.theme.coralFill;
+    const hillOffset = t * 8;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = -40; x <= W + 40; x += 6) {
+      const baseY = H * 0.5;
+      const hill = Math.sin((x + hillOffset) * 0.02) * H * 0.12
+                 + Math.sin((x + hillOffset) * 0.045) * H * 0.06;
+      ctx.lineTo(x, baseY - hill);
+    }
+    ctx.lineTo(W + 40, H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // ── Layer 3: Foreground silhouettes ──
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = this.theme.sandShadow;
+    const bushOffset = t * 15;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = -40; x <= W + 40; x += 4) {
+      const baseY = H * 0.72;
+      const bush = Math.sin((x + bushOffset) * 0.035) * H * 0.07
+                 + Math.cos((x + bushOffset) * 0.08) * H * 0.04
+                 + Math.sin((x + bushOffset) * 0.15) * H * 0.02;
+      ctx.lineTo(x, baseY - Math.abs(bush));
+    }
+    ctx.lineTo(W + 40, H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // ── Vignette — dark edges to frame the scene ──
+    ctx.save();
+    const vigW = W * 0.7;
+    const vigH = H * 0.7;
+    const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(vigW, vigH) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.7);
+    vig.addColorStop(0, 'transparent');
+    vig.addColorStop(1, 'rgba(0,0,0,0.15)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  private drawBackdropPixelTexture(width: number, height: number): void {
+    const ctx = this.ctx;
+    const cell = this.WORLD_PIXEL * 2;
+    const cols = Math.ceil(width / cell);
+    const rows = Math.ceil(height / cell);
+
+    ctx.save();
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const pattern = (row * 3 + col * 5) % 7;
+        if (pattern > 2) continue;
+        const x = col * cell;
+        const y = row * cell;
+
+        ctx.fillStyle = pattern === 0
+          ? 'rgba(255,255,255,0.018)'
+          : 'rgba(0,0,0,0.014)';
+        ctx.fillRect(x, y, cell, cell);
+      }
+    }
+    ctx.restore();
   }
 
   drawWeather(): void {
@@ -393,50 +585,65 @@ export class Renderer {
     const ctx = this.ctx;
     const t = this.theme;
     const S = TILE_SIZE;
+    const mortar = this.WORLD_PIXEL;
+    const rowY = [0, 8, 16, 24];
+    const brickH = 7;
+    const brickW = 7;
+    const evenBrickXs = [0, 8, 16, 24];
+    const oddBrickXs = [-4, 4, 12, 20, 28];
 
-    ctx.fillStyle = t.sandFill;
+    // Mortar background first, then textured bricks on top.
+    ctx.fillStyle = t.sandLine;
     ctx.fillRect(px, py, S, S);
 
-    // 4-wide × 3-tall brick mortar pattern (classic Lode Runner style)
-    ctx.strokeStyle = t.sandLine;
-    ctx.lineWidth = 1;
+    let brickIdx = 0;
+    for (let row = 0; row < rowY.length; row++) {
+      const y = py + rowY[row];
+      const brickXs = row % 2 === 0 ? evenBrickXs : oddBrickXs;
 
-    // 3 horizontal mortar lines (creating 3 rows of bricks)
-    const rowH = S / 3;
-    for (let r = 1; r <= 2; r++) {
-      const ly = py + Math.round(rowH * r);
-      ctx.beginPath();
-      ctx.moveTo(px, ly);
-      ctx.lineTo(px + S, ly);
-      ctx.stroke();
-    }
+      for (const bx of brickXs) {
+        const drawX = px + bx;
+        const visibleX = Math.max(px, drawX);
+        const visibleW = Math.min(px + S, drawX + brickW) - visibleX;
+        if (visibleW <= 0) continue;
 
-    // Vertical mortar lines — staggered per row
-    const brickW = S / 4;
-    for (let r = 0; r < 3; r++) {
-      const ry = py + Math.round(rowH * r);
-      const rh = Math.round(rowH);
-      const offset = (r % 2 === 0) ? 0 : brickW / 2;
-      for (let c = 1; c <= 3; c++) {
-        const lx = px + Math.round(offset + brickW * c);
-        if (lx > px && lx < px + S) {
-          ctx.beginPath();
-          ctx.moveTo(lx, ry);
-          ctx.lineTo(lx, ry + rh);
-          ctx.stroke();
+        // Per-brick color variation using deterministic hash
+        const hash = ((px + bx) * 7 + (py + row) * 13 + brickIdx * 31) & 0xFF;
+        const variation = (hash % 5 - 2) * 3; // -6 to +6 brightness shift
+
+        // Base brick fill with variation
+        ctx.fillStyle = t.sandFill;
+        ctx.fillRect(visibleX, y, visibleW, brickH);
+
+        // Apply brightness variation
+        if (variation > 0) {
+          ctx.fillStyle = `rgba(255,255,255,${variation * 0.015})`;
+          ctx.fillRect(visibleX, y, visibleW, brickH);
+        } else if (variation < 0) {
+          ctx.fillStyle = `rgba(0,0,0,${-variation * 0.015})`;
+          ctx.fillRect(visibleX, y, visibleW, brickH);
         }
+
+        // Top highlight edge
+        ctx.fillStyle = t.sandHighlight;
+        ctx.fillRect(visibleX, y, visibleW, mortar);
+
+        // Bottom shadow edge
+        ctx.fillStyle = t.sandShadow;
+        ctx.fillRect(visibleX, y + brickH - mortar, visibleW, mortar);
+
+        // Surface grain — scattered pixels for texture
+        const grainSeed = hash;
+        for (let g = 0; g < 3; g++) {
+          const gx = visibleX + ((grainSeed + g * 17) % Math.max(1, visibleW - 2)) + 1;
+          const gy = y + ((grainSeed + g * 23) % (brickH - 3)) + 1;
+          ctx.fillStyle = g % 2 === 0 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
+          ctx.fillRect(gx, gy, 1, 1);
+        }
+
+        brickIdx++;
       }
     }
-
-    // Subtle highlight on top edge of each brick row
-    ctx.fillStyle = t.sandHighlight;
-    ctx.fillRect(px, py, S, 1);
-    ctx.fillRect(px, py + Math.round(rowH), S, 1);
-    ctx.fillRect(px, py + Math.round(rowH * 2), S, 1);
-
-    // Bottom shadow
-    ctx.fillStyle = t.sandShadow;
-    ctx.fillRect(px, py + S - 1, S, 1);
   }
 
   private drawCoral(px: number, py: number): void {
@@ -448,30 +655,49 @@ export class Renderer {
     const ctx = this.ctx;
     const t = this.theme;
     const S = TILE_SIZE;
+    const bandH = 8;
+    const divider = this.WORLD_PIXEL;
 
-    // Solid fill — visually distinct from sand (no mortar pattern)
     ctx.fillStyle = t.coralFill;
     ctx.fillRect(px, py, S, S);
 
-    // Subtle horizontal score lines for texture (not brick mortar — this is solid/indestructible)
-    ctx.strokeStyle = t.coralShadow;
-    ctx.lineWidth = 1;
-    const rowH = S / 3;
-    for (let r = 1; r <= 2; r++) {
-      const ly = py + Math.round(rowH * r);
-      ctx.beginPath();
-      ctx.moveTo(px, ly);
-      ctx.lineTo(px + S, ly);
-      ctx.stroke();
+    // Horizontal bands with variation
+    for (let band = 0; band < 4; band++) {
+      const by = py + band * bandH;
+      const hash = ((px * 11 + by * 7 + band * 19) & 0xFF);
+      const shift = (hash % 3 - 1) * 2;
+
+      // Subtle per-band color variation
+      if (shift > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${shift * 0.02})`;
+        ctx.fillRect(px, by, S, bandH);
+      } else if (shift < 0) {
+        ctx.fillStyle = `rgba(0,0,0,${-shift * 0.02})`;
+        ctx.fillRect(px, by, S, bandH);
+      }
+
+      // Surface grain pixels
+      for (let g = 0; g < 4; g++) {
+        const gx = px + ((hash + g * 13) % (S - 2)) + 1;
+        const gy = by + ((hash + g * 7) % (bandH - 2)) + 1;
+        ctx.fillStyle = g % 2 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        ctx.fillRect(gx, gy, 1, 1);
+      }
     }
 
-    // Top highlight
-    ctx.fillStyle = t.coralHighlight;
-    ctx.fillRect(px, py, S, 1);
+    // Divider lines between bands
+    for (const y of [py + bandH, py + bandH * 2, py + bandH * 3]) {
+      ctx.fillStyle = t.coralShadow;
+      ctx.fillRect(px, y, S, divider);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(px, y - divider, S, divider);
+    }
 
-    // Bottom shadow
+    // Top highlight + bottom shadow
+    ctx.fillStyle = t.coralHighlight;
+    ctx.fillRect(px, py, S, divider);
     ctx.fillStyle = t.coralShadow;
-    ctx.fillRect(px, py + S - 1, S, 1);
+    ctx.fillRect(px, py + S - divider, S, divider);
   }
 
   private drawLadder(px: number, py: number): void {
@@ -480,9 +706,9 @@ export class Renderer {
     const S = TILE_SIZE;
 
     // Dark outline for contrast against any background
-    const railW = 4;
-    const rungH = 3;
-    const railL = px + 5;
+    const railW = 3;
+    const rungH = 2;
+    const railL = px + 7;
     const railR = px + S - 5 - railW;
 
     // Shadow/outline layer
@@ -496,13 +722,15 @@ export class Renderer {
     ctx.fillRect(railR, py, railW, S);
 
     // 4 horizontal rungs (evenly spaced)
-    const rungCount = 4;
+    const rungCount = 5;
     for (let i = 1; i <= rungCount; i++) {
-      const ry = py + Math.round((S / (rungCount + 1)) * i) - 1;
+      const ry = py + Math.round((S / (rungCount + 1)) * i);
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(railL + 1, ry + 1, railR + railW - railL, rungH);
       ctx.fillStyle = color;
       ctx.fillRect(railL, ry, railR + railW - railL, rungH);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(railL, ry, railR + railW - railL, 1);
     }
   }
 
@@ -512,11 +740,11 @@ export class Renderer {
     const midY = py + this.ROPE_LINE_OFFSET_Y;
     const startX = px;
     const endX = px + TILE_SIZE;
-    const ropeH = 6;
+    const ropeH = 5;
     const top = midY - ropeH / 2;
 
     // Dark shadow for contrast
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fillRect(startX, top + 2, TILE_SIZE, ropeH);
 
     // Main rope body
@@ -533,11 +761,11 @@ export class Renderer {
 
     // Rope texture — vertical hash marks every 6px for a twisted rope look
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    for (let x = startX + 3; x < endX; x += 6) {
+    for (let x = startX + 2; x < endX; x += 4) {
       ctx.fillRect(x, top + 1, 1, ropeH - 2);
     }
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    for (let x = startX + 5; x < endX; x += 6) {
+    for (let x = startX + 4; x < endX; x += 4) {
       ctx.fillRect(x, top + 1, 1, ropeH - 2);
     }
   }
@@ -698,7 +926,18 @@ export class Renderer {
     const badgeSize = Math.floor(TILE_SIZE * this.BADGE_SCALE);
     const badgeOffset = Math.floor((TILE_SIZE - badgeSize) / 2);
     if (this.badgeSprite) {
-      this.ctx.drawImage(this.badgeSprite, px + badgeOffset, py + badgeOffset, badgeSize, badgeSize);
+      const frameIndex = this.getBadgeFrameIndex();
+      this.ctx.drawImage(
+        this.badgeSprite,
+        frameIndex * this.badgeSourceFrameWidth,
+        0,
+        this.badgeSourceFrameWidth,
+        this.badgeSprite.naturalHeight,
+        px + badgeOffset,
+        py + badgeOffset,
+        badgeSize,
+        badgeSize,
+      );
       return;
     }
 
@@ -729,6 +968,87 @@ export class Renderer {
     ctx.fillText('B', cx, cy + 1);
   }
 
+  drawMoneyDrop(pos: Position): void {
+    const px = pos.x * TILE_SIZE;
+    const py = pos.y * TILE_SIZE;
+    const size = Math.floor(TILE_SIZE * this.DROP_SCALE);
+    const offset = Math.floor((TILE_SIZE - size) / 2);
+
+    if (this.badgeSprite) {
+      const frameIndex = this.getBadgeFrameIndex();
+      this.ctx.drawImage(
+        this.badgeSprite,
+        frameIndex * this.badgeSourceFrameWidth,
+        0,
+        this.badgeSourceFrameWidth,
+        this.badgeSprite.naturalHeight,
+        px + offset,
+        py + offset,
+        size,
+        size,
+      );
+      return;
+    }
+
+    const ctx = this.ctx;
+    const cx = px + TILE_SIZE / 2;
+    const cy = py + TILE_SIZE / 2;
+    ctx.fillStyle = COLORS.vibestrGold;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.black;
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('$', cx, cy);
+  }
+
+  private getBadgeFrameIndex(): number {
+    return Math.floor(this.bgTime / 0.15) % this.badgeFrameCount;
+  }
+
+  drawPowerHelmetPickup(pos: Position): void {
+    const px = pos.x * TILE_SIZE;
+    const py = pos.y * TILE_SIZE;
+
+    if (this.sprites?.powerPickup) {
+      const anim = this.sprites.powerPickup;
+      const frameIndex = Math.floor(this.bgTime / 0.11) % anim.frameCount;
+      const offsetX = Math.floor((TILE_SIZE - anim.frameWidth) / 2);
+      const offsetY = Math.floor((TILE_SIZE - anim.frameHeight) / 2);
+      drawFrame(this.ctx, anim, frameIndex, px + offsetX, py + offsetY);
+      return;
+    }
+
+    this.ctx.fillStyle = '#C62828';
+    this.ctx.fillRect(px + 8, py + 8, 16, 16);
+  }
+
+  drawProjectiles(projectiles: ProjectileState[]): void {
+    const ctx = this.ctx;
+
+    for (const projectile of projectiles) {
+      const dir = projectile.direction === Direction.Right ? 1 : -1;
+      const headX = Math.round(projectile.pos.x * TILE_SIZE);
+      const headY = Math.round(projectile.pos.y * TILE_SIZE);
+      const bodyW = 10;
+      const bodyH = 4;
+
+      ctx.fillStyle = 'rgba(58, 12, 12, 0.65)';
+      ctx.fillRect(headX - (dir < 0 ? 0 : bodyW), headY - 1, bodyW + 3, bodyH + 2);
+
+      ctx.fillStyle = '#F74B4B';
+      ctx.fillRect(headX - (dir < 0 ? 0 : bodyW), headY, bodyW, bodyH);
+
+      ctx.fillStyle = '#FFD6D6';
+      ctx.fillRect(headX - (dir < 0 ? -2 : bodyW - 2), headY + 1, 3, 2);
+
+      ctx.fillStyle = '#FF8B8B';
+      ctx.fillRect(headX - dir * 2, headY - 2, 2, 8);
+    }
+  }
+
   drawPlayer(pos: Position, isLFV: boolean): void {
     const ctx = this.ctx;
     const px = pos.x * TILE_SIZE;
@@ -753,7 +1073,14 @@ export class Renderer {
 
       // Pick the correct pre-mirrored strip or idle sprite
       const isDigging = this.playerDigging;
-      const anim = isDigging
+      const usePowerGroundSprites = this.playerPowerActive && !isUsingLadder && !isUsingRope;
+      const anim = usePowerGroundSprites
+        ? (
+          (isMoving || isDigging)
+            ? (facing === Direction.Left ? this.sprites.powerRunLeft : this.sprites.powerRunRight)
+            : this.sprites.powerFront
+        )
+        : isDigging
         ? (facing === Direction.Left ? this.sprites.digLeft : this.sprites.digRight)
         : isUsingLadder
         ? this.sprites.climb
@@ -762,7 +1089,7 @@ export class Renderer {
         : isMoving
         ? (facing === Direction.Left ? this.sprites.runLeft : this.sprites.runRight)
         : this.sprites.idle;
-      const frameIndex = (isMoving || isClimbing || isUsingRope) ? this.animFrame : 0;
+      const frameIndex = this.animFrame;
       const drawWidth = Math.floor(anim.frameWidth * this.PLAYER_SCALE);
       const drawHeight = Math.floor(anim.frameHeight * this.PLAYER_SCALE);
       const offsetY = TILE_SIZE - drawHeight;
@@ -823,6 +1150,21 @@ export class Renderer {
     ctx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 8);
     ctx.fillStyle = '#E87B35';
     ctx.fillRect(px + TILE_SIZE - 6, py + 12, 6, 4);
+  }
+
+  drawDuckDeaths(effects: DuckDeathEffect[]): void {
+    if (!this.duckSprites) return;
+
+    const death = this.duckSprites.death;
+    for (const effect of effects) {
+      const frameIndex = Math.min(
+        death.frameCount - 1,
+        Math.floor(effect.elapsed / DUCK_DEATH_FRAME_MS),
+      );
+      const drawX = effect.pos.x * TILE_SIZE + (TILE_SIZE - death.frameWidth) / 2;
+      const drawY = effect.pos.y * TILE_SIZE + (TILE_SIZE - death.frameHeight) / 2;
+      drawFrame(this.ctx, death, frameIndex, drawX, drawY);
+    }
   }
 
   drawConfetti(pieces: ConfettiPiece[]): void {

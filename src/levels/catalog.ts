@@ -12,6 +12,7 @@ interface RawLevel {
   theme: string;
   weather: string;
   exitColumn?: number;
+  powerHelmet?: { x: number; y: number };
   npcs: [];
   grid: number[][];
 }

@@ -2,24 +2,30 @@ export class InputManager {
   private keys = new Set<string>();
   private justPressedKeys = new Set<string>();
 
+  private normalizeKey(key: string): string {
+    return key.length === 1 ? key.toLowerCase() : key;
+  }
+
   handleKeyDown(key: string): void {
-    if (!this.keys.has(key)) {
-      this.justPressedKeys.add(key);
+    const normalizedKey = this.normalizeKey(key);
+    if (!this.keys.has(normalizedKey)) {
+      this.justPressedKeys.add(normalizedKey);
     }
-    this.keys.add(key);
+    this.keys.add(normalizedKey);
   }
 
   handleKeyUp(key: string): void {
-    this.keys.delete(key);
+    this.keys.delete(this.normalizeKey(key));
   }
 
   isDown(key: string): boolean {
-    return this.keys.has(key);
+    return this.keys.has(this.normalizeKey(key));
   }
 
   justPressed(key: string): boolean {
-    if (this.justPressedKeys.has(key)) {
-      this.justPressedKeys.delete(key);
+    const normalizedKey = this.normalizeKey(key);
+    if (this.justPressedKeys.has(normalizedKey)) {
+      this.justPressedKeys.delete(normalizedKey);
       return true;
     }
     return false;

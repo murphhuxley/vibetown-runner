@@ -74,6 +74,13 @@ export interface DuckState {
   trapTimer: number;
 }
 
+export interface ProjectileState {
+  pos: { x: number; y: number };
+  prevPos: { x: number; y: number };
+  direction: Direction.Left | Direction.Right;
+  ttl: number;
+}
+
 export interface NPCData {
   name: string;
   pos: Position;
@@ -90,6 +97,7 @@ export interface LevelData {
   par?: number;
   exitColumn?: number;
   theme?: string;
+  powerHelmet?: Position;
 }
 
 export interface GameState {
@@ -108,4 +116,8 @@ export interface GameState {
   lfvTimer: number;
   currentLevel: number;
   weather: WeatherType;
+  powerHelmetPos: Position | null;
+  powerHelmetCollected: boolean;
+  powerHelmetActive: boolean;
+  powerHelmetShots: number;
 }

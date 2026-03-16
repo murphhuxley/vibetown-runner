@@ -2,7 +2,7 @@ import { TileType, WeatherType, LevelData, Position } from '@/types';
 import { GRID_COLS, GRID_ROWS } from '@/constants';
 
 export function parseLevel(raw: any): LevelData {
-  const { id, name, grid, weather, npcs, theme, exitColumn } = raw;
+  const { id, name, grid, weather, npcs, theme, exitColumn, powerHelmet } = raw;
 
   if (!grid || grid.length !== GRID_ROWS) {
     throw new Error(`Level grid must have ${GRID_ROWS} rows, got ${grid?.length}`);
@@ -29,6 +29,11 @@ export function parseLevel(raw: any): LevelData {
     npcs: npcs ?? [],
     exitColumn: typeof exitColumn === 'number' ? exitColumn : undefined,
     theme: theme ?? 'beach',
+    powerHelmet: (
+      typeof powerHelmet?.x === 'number' && typeof powerHelmet?.y === 'number'
+        ? { x: powerHelmet.x, y: powerHelmet.y }
+        : undefined
+    ),
   };
 }
 

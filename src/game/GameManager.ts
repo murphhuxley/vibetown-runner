@@ -1,14 +1,16 @@
-import { GameState, GamePhase, TileType, Direction, DuckState } from '@/types';
-import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM } from '@/constants';
+import { GameState, GamePhase, TileType, Direction, DuckState, ProjectileState } from '@/types';
+import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS } from '@/constants';
 import { parseLevel, countBadges, findSpawnPosition, findAllSpawnPositions, cloneGrid, ensureHiddenExit } from '@/game/Level';
 import { createPlayer, movePlayer, canClimb, canTraverseRope } from '@/game/Player';
 import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck, respawnDuck } from '@/game/Duck';
 import { isSupported, getTile } from '@/game/Physics';
 import { canDig, getDigTarget, createHole, updateHoles } from '@/game/Dig';
 import { createVibeMeter, addVibe, activateLFV, updateLFV, isLFVActive, isLFVReady, VibeMeterState } from '@/game/VibeMeter';
-import { createDrop, collectDrop, updateDrops, VibestrDrop } from '@/game/Vibestr';
+import { collectDrop, updateDrops, VibestrDrop } from '@/game/Vibestr';
+import { createDuckDeathEffect, updateDuckDeathEffects, DuckDeathEffect } from '@/game/DuckDeath';
 import { createConfettiBurst, updateConfetti, ConfettiPiece } from '@/game/Confetti';
 import { getSpeedMultiplier } from '@/game/Weather';
+import { createProjectile, isProjectileExpired, projectileCrossesDuck, projectileHitsSolid, updateProjectile } from '@/game/Projectile';
 import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
 import { InputManager } from '@/engine/Input';
 import { LEVELS } from '@/levels/catalog';
@@ -18,7 +20,9 @@ export class GameManager {
   scoring!: ScoringState;
   vibeMeter!: VibeMeterState;
   drops: VibestrDrop[] = [];
+  duckDeaths: DuckDeathEffect[] = [];
   confetti: ConfettiPiece[] = [];
+  projectiles: ProjectileState[] = [];
   input: InputManager;
 
   // SFX callbacks — set from outside to avoid coupling audio into game logic
@@ -100,10 +104,16 @@ export class GameManager {
       lfvTimer: 0,
       currentLevel: index + 1,
       weather: level.weather,
+      powerHelmetPos: level.powerHelmet ?? null,
+      powerHelmetCollected: false,
+      powerHelmetActive: false,
+      powerHelmetShots: 0,
     };
 
     this.drops = [];
+    this.duckDeaths = [];
     this.confetti = [];
+    this.projectiles = [];
     this.playerMoveAccum = 0;
     this.duckMoveAccum = 0;
     this.playerRenderFrom = { ...playerSpawn };
@@ -166,8 +176,10 @@ export class GameManager {
       digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
     }
 
-    // LFV activation (spacebar) — also every frame
-    if (this.input.justPressed(' ') && isLFVReady(this.vibeMeter)) {
+    this.handlePowerHelmetInput();
+
+    // LFV activation (spacebar) — only when the helmet blaster is not active
+    if (!this.state.powerHelmetActive && this.input.justPressed(' ') && isLFVReady(this.vibeMeter)) {
       activateLFV(this.vibeMeter);
       this.usedLFVThisLevel = true;
       this.onLFV?.();
@@ -218,6 +230,9 @@ export class GameManager {
     // Update trapped ducks
     this.updateTrappedDucks(dt);
 
+    // Update power projectiles
+    this.updateProjectiles(dt);
+
     // Update holes (regeneration timers and lifecycle)
     const holeUpdate = updateHoles(this.state.holes, this.state.grid, dt);
     this.state.holes = holeUpdate.holes;
@@ -231,6 +246,7 @@ export class GameManager {
 
     // Update $VIBESTR drops
     this.drops = updateDrops(this.drops);
+    this.duckDeaths = updateDuckDeathEffects(this.duckDeaths, dt);
     this.confetti = updateConfetti(this.confetti, dt);
 
     // Sync scoring state → game state
@@ -289,6 +305,8 @@ export class GameManager {
         this.onVibestr?.();
       }
 
+      this.checkPowerHelmetCollection();
+
       this.checkPlayerCollisions();
 
       if (this.state.badgesCollected >= this.state.badgesTotal) {
@@ -323,6 +341,8 @@ export class GameManager {
       scoreVibestr(this.scoring);
       this.onVibestr?.();
     }
+
+    this.checkPowerHelmetCollection();
 
     // Player-duck collision
     this.checkPlayerCollisions();
@@ -398,9 +418,6 @@ export class GameManager {
           if (hadBadge) {
             // Drop the badge above the hole so the player can collect it
             this.state.grid[duck.pos.y - 1][duck.pos.x] = TileType.Badge;
-          } else {
-            // Spawn $VIBESTR drop above the hole
-            this.drops.push(createDrop({ x: duck.pos.x, y: duck.pos.y - 1 }));
           }
           scoreTrap(this.scoring);
           addVibe(this.vibeMeter, 'trap');
@@ -425,6 +442,19 @@ export class GameManager {
     }
   }
 
+  private checkPowerHelmetCollection(): void {
+    if (!this.state.powerHelmetPos || this.state.powerHelmetCollected) return;
+
+    const { player, powerHelmetPos } = this.state;
+    if (player.pos.x === powerHelmetPos.x && player.pos.y === powerHelmetPos.y) {
+      this.state.powerHelmetCollected = true;
+      this.state.powerHelmetActive = true;
+      this.state.powerHelmetShots = POWER_HELMET_SHOTS;
+      this.state.powerHelmetPos = null;
+      this.onCollect?.();
+    }
+  }
+
   private checkPlayerCollisions(): void {
     for (const duck of this.state.ducks) {
       if (duck.isTrapped) continue;
@@ -440,18 +470,72 @@ export class GameManager {
       if (!duck.isTrapped) continue;
       const tile = getTile(this.state.grid, duck.pos);
       if (tile === TileType.Sand || tile === TileType.TrapSand) {
-        this.confetti.push(...createConfettiBurst(duck.pos));
-        if (duck.carryingBadge) {
-          // Drop badge above the closed hole
-          this.state.grid[duck.pos.y - 1][duck.pos.x] = TileType.Badge;
-        }
-        scoreKill(this.scoring);
-        this.onKill?.();
-        // Classic feel: killed ducks re-enter from the top rather than
-        // immediately reappearing at the hole they just died in.
-        respawnDuck(duck, this.state.grid);
+        this.killDuck(duck);
       }
     }
+  }
+
+  private handlePowerHelmetInput(): void {
+    if (!this.input.justPressed(' ')) return;
+    if (!this.state.powerHelmetActive) return;
+
+    if (this.state.powerHelmetShots <= 0) return;
+
+    const facing = this.state.player.facing === Direction.Left
+      ? Direction.Left
+      : Direction.Right;
+
+    this.projectiles.push(createProjectile(this.state.player.pos, facing));
+    this.state.powerHelmetShots--;
+
+    if (this.state.powerHelmetShots <= 0) {
+      this.state.powerHelmetActive = false;
+      this.state.powerHelmetCollected = false;
+    }
+  }
+
+  private updateProjectiles(dt: number): void {
+    const remaining: ProjectileState[] = [];
+
+    for (const projectile of this.projectiles) {
+      updateProjectile(projectile, dt);
+
+      if (isProjectileExpired(projectile) || projectileHitsSolid(projectile, this.state.grid)) {
+        continue;
+      }
+
+      let hitDuck: DuckState | null = null;
+      for (const duck of this.state.ducks) {
+        if (duck.isTrapped) continue;
+        if (projectileCrossesDuck(projectile, duck.pos)) {
+          hitDuck = duck;
+          break;
+        }
+      }
+
+      if (hitDuck) {
+        this.killDuck(hitDuck);
+        continue;
+      }
+
+      remaining.push(projectile);
+    }
+
+    this.projectiles = remaining;
+  }
+
+  private killDuck(duck: DuckState): void {
+    this.duckDeaths.push(createDuckDeathEffect(duck.pos));
+    this.confetti.push(...createConfettiBurst(duck.pos));
+
+    if (duck.carryingBadge) {
+      const dropY = duck.pos.y > 0 ? duck.pos.y - 1 : duck.pos.y;
+      this.state.grid[dropY][duck.pos.x] = TileType.Badge;
+    }
+
+    scoreKill(this.scoring);
+    this.onKill?.();
+    respawnDuck(duck, this.state.grid);
   }
 
   private updateTrappedDucks(dt: number): void {

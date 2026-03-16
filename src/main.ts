@@ -116,6 +116,13 @@ const loop = new GameLoop(
     renderer.playerMoving = isPlaying && !usingLadder && !usingRope && movingHorizontally;
     renderer.playerFacing = game.state.player.facing;
     renderer.playerDigging = isPlaying && game.state.player.isDigging;
+    renderer.playerPowerActive = isPlaying && game.state.powerHelmetActive;
+    renderer.playerIdling = isPlaying
+      && !game.state.player.isDigging
+      && !usingLadder
+      && !usingRope
+      && !movingHorizontally
+      && !movingVertically;
     renderer.updateAnimation(dt);
 
     // Fall sound — play while falling, stop on land
@@ -134,19 +141,13 @@ const loop = new GameLoop(
     renderer.drawHoles(game.state.holes);
     renderer.drawWeather();
 
+    if (game.state.powerHelmetPos && !game.state.powerHelmetCollected && !game.state.powerHelmetActive) {
+      renderer.drawPowerHelmetPickup(game.state.powerHelmetPos);
+    }
+
     // Draw $VIBESTR drops
     for (const drop of game.drops) {
-      const px = drop.pos.x * TILE_SIZE + TILE_SIZE / 2;
-      const py = drop.pos.y * TILE_SIZE + TILE_SIZE / 2;
-      ctx.fillStyle = COLORS.vibestrGold;
-      ctx.beginPath();
-      ctx.arc(px, py, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = COLORS.black;
-      ctx.font = 'bold 7px monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('$', px, py);
+      renderer.drawMoneyDrop(drop.pos);
     }
 
     // Draw ducks (with smooth interpolation)
@@ -155,10 +156,13 @@ const loop = new GameLoop(
       renderer.drawDuck(renderPos, duck.isTrapped, duck.facing, duck.isOnLadder);
     }
 
+    renderer.drawProjectiles(game.projectiles);
+
     // Draw player
     renderer.drawPlayer(playerRenderPos, game.state.player.isLFV);
 
-    // Duck kill confetti
+    // Duck kill animation
+    renderer.drawDuckDeaths(game.duckDeaths);
     renderer.drawConfetti(game.confetti);
 
     // Draw HUD
