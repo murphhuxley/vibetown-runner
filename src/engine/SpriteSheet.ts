@@ -20,6 +20,8 @@ export interface SpriteSet {
   powerRunRight: SpriteAnimation;
   powerRunLeft: SpriteAnimation;
   powerFront: SpriteAnimation;
+  powerClimb: SpriteAnimation;
+  powerRope: SpriteAnimation;
   powerPickup: SpriteAnimation;
 }
 
@@ -42,9 +44,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function loadPlayerSprites(): Promise<SpriteSet> {
   const base = '/assets/sprites/';
-  const version = 'gif-run-v8';
+  const version = 'gif-run-v10';
 
-  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerPickup] = await Promise.all([
+  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerClimb, powerRope, powerPickup] = await Promise.all([
     loadImage(base + 'player-run-right.png?v=' + version),
     loadImage(base + 'player-run-left.png?v=' + version),
     loadImage(base + 'player-idle.png?v=' + version),
@@ -55,6 +57,8 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
     loadImage(base + 'player-power-run-right.png?v=' + version),
     loadImage(base + 'player-power-run-left.png?v=' + version),
     loadImage(base + 'player-power-front.png?v=' + version),
+    loadImage(base + 'player-power-climb.png?v=' + version),
+    loadImage(base + 'player-power-rope.png?v=' + version),
     loadImage(base + 'power-helmet.png?v=' + version),
   ]);
   const runFrameCount = 8;
@@ -72,6 +76,10 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
   const powerRunSourceFrameWidth = Math.floor(powerRunRight.naturalWidth / powerRunFrameCount);
   const powerFrontFrameCount = 1;
   const powerFrontSourceFrameWidth = Math.floor(powerFront.naturalWidth / powerFrontFrameCount);
+  const powerClimbFrameCount = 8;
+  const powerClimbSourceFrameWidth = Math.floor(powerClimb.naturalWidth / powerClimbFrameCount);
+  const powerRopeFrameCount = 8;
+  const powerRopeSourceFrameWidth = Math.floor(powerRope.naturalWidth / powerRopeFrameCount);
   const powerPickupFrameCount = 8;
   const powerPickupSourceFrameWidth = Math.floor(powerPickup.naturalWidth / powerPickupFrameCount);
 
@@ -155,6 +163,22 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
       frameCount: powerFrontFrameCount,
       sourceFrameWidth: powerFrontSourceFrameWidth,
       sourceFrameHeight: powerFront.naturalHeight,
+    },
+    powerClimb: {
+      image: powerClimb,
+      frameWidth: Math.floor(powerClimbSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerClimb.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerClimbFrameCount,
+      sourceFrameWidth: powerClimbSourceFrameWidth,
+      sourceFrameHeight: powerClimb.naturalHeight,
+    },
+    powerRope: {
+      image: powerRope,
+      frameWidth: Math.floor(powerRopeSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerRope.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerRopeFrameCount,
+      sourceFrameWidth: powerRopeSourceFrameWidth,
+      sourceFrameHeight: powerRope.naturalHeight,
     },
     powerPickup: {
       image: powerPickup,

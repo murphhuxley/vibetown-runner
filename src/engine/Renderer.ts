@@ -98,6 +98,7 @@ export class Renderer {
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
+    ctx.imageSmoothingEnabled = false;
     const badgeImg = new Image();
     badgeImg.onload = () => {
       this.badgeSprite = badgeImg;
@@ -1148,8 +1149,12 @@ export class Renderer {
 
       // Pick the correct pre-mirrored strip or idle sprite
       const isDigging = this.playerDigging;
-      const usePowerGroundSprites = this.playerPowerActive && !isUsingLadder && !isUsingRope;
-      const anim = usePowerGroundSprites
+      const usePowerSprites = this.playerPowerActive;
+      const anim = usePowerSprites && isUsingLadder
+        ? this.sprites.powerClimb
+        : usePowerSprites && isUsingRope
+        ? this.sprites.powerRope
+        : usePowerSprites && !isUsingLadder && !isUsingRope
         ? (
           (isMoving || isDigging)
             ? (facing === Direction.Left ? this.sprites.powerRunLeft : this.sprites.powerRunRight)
