@@ -1,7 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS } from '@/levels/catalog';
+import { LEVELS, MASTER_LEVELS, randomizeLevels } from '@/levels/catalog';
 import { parseLevel, countBadges, findSpawnPosition } from '@/game/Level';
 import { TileType } from '@/types';
+
+function countTile(grid: number[][], tile: TileType): number {
+  let count = 0;
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell === tile) count++;
+    }
+  }
+  return count;
+}
+
+const EXPECTED_BADGES = new Map([
+  [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
+  [6, 7], [7, 7], [8, 7], [9, 8], [10, 8],
+  [11, 8], [12, 8], [13, 8], [14, 9], [15, 9],
+  [16, 9], [17, 9], [18, 9], [19, 9], [20, 10],
+  [21, 10], [22, 10], [23, 10], [24, 11], [25, 12],
+]);
+
+const EXPECTED_DUCKS = new Map([
+  [1, 1], [2, 1], [3, 1], [4, 1], [5, 1],
+  [6, 2], [7, 2], [8, 2], [9, 2], [10, 2],
+  [11, 2], [12, 2], [13, 2], [14, 3], [15, 3],
+  [16, 3], [17, 3], [18, 3], [19, 3], [20, 4],
+  [21, 3], [22, 3], [23, 3], [24, 4], [25, 4],
+]);
 
 describe('Level pack', () => {
   it('contains at least 25 levels', () => {
@@ -30,6 +56,50 @@ describe('Level pack', () => {
         }
       }
       expect(duckCount, `duck pressure too low in level ${rawLevel.id}`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('keeps the onboarding levels at one duck each', () => {
+    for (const rawLevel of LEVELS.filter((level) => level.id <= 5)) {
+      let duckCount = 0;
+      for (const row of rawLevel.grid) {
+        for (const cell of row) {
+          if (cell === TileType.DuckSpawn) duckCount++;
+        }
+      }
+      expect(duckCount, `opening level ${rawLevel.id} should only teach one duck at a time`).toBe(1);
+    }
+  });
+
+  it('keeps the campaign geometry and dynamic item placement authored', () => {
+    randomizeLevels();
+
+    for (let i = 0; i < LEVELS.length; i++) {
+      expect(LEVELS[i].grid).toEqual(MASTER_LEVELS[i].grid);
+      expect(LEVELS[i].grid).not.toBe(MASTER_LEVELS[i].grid);
+    }
+  });
+
+  it('keeps the curated badge and duck counts on every restart', () => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      randomizeLevels();
+
+      for (const level of LEVELS) {
+        expect(countTile(level.grid, TileType.Badge), `badge count drifted in level ${level.id}`).toBe(EXPECTED_BADGES.get(level.id));
+        expect(countTile(level.grid, TileType.DuckSpawn), `duck count drifted in level ${level.id}`).toBe(EXPECTED_DUCKS.get(level.id));
+      }
+    }
+  });
+
+  it('keeps the authored level 3 helmet tile free for the pickup', () => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      randomizeLevels();
+
+      const levelThree = LEVELS.find((level) => level.id === 3);
+      expect(levelThree).toBeDefined();
+      expect(levelThree?.powerHelmet).toEqual({ x: 13, y: 7 });
+      expect(levelThree?.grid[7][13]).not.toBe(TileType.Badge);
+      expect(levelThree?.grid[7][13]).not.toBe(TileType.DuckSpawn);
     }
   });
 });

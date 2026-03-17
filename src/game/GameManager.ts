@@ -13,7 +13,7 @@ import { getSpeedMultiplier } from '@/game/Weather';
 import { createProjectile, isProjectileExpired, projectileCrossesDuck, projectileHitsSolid, updateProjectile } from '@/game/Projectile';
 import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
 import { InputManager } from '@/engine/Input';
-import { LEVELS } from '@/levels/catalog';
+import { LEVELS, randomizeLevels } from '@/levels/catalog';
 
 export class GameManager {
   state!: GameState;
@@ -104,7 +104,7 @@ export class GameManager {
       lfvTimer: 0,
       currentLevel: index + 1,
       weather: level.weather,
-      powerHelmetPos: level.powerHelmet ?? null,
+      powerHelmetPos: this.resolvePowerHelmetSpawn(level.id, grid, playerSpawn, level.powerHelmet),
       powerHelmetCollected: false,
       powerHelmetActive: false,
       powerHelmetShots: 0,
@@ -176,10 +176,11 @@ export class GameManager {
       digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
     }
 
-    this.handlePowerHelmetInput();
+    const spacePressed = this.input.justPressed(' ');
+    this.handlePowerHelmetInput(spacePressed);
 
-    // LFV activation (spacebar) — only when the helmet blaster is not active
-    if (!this.state.powerHelmetActive && this.input.justPressed(' ') && isLFVReady(this.vibeMeter)) {
+    // LFV is disabled while the helmet power-up is active.
+    if (spacePressed && !this.state.powerHelmetActive && isLFVReady(this.vibeMeter)) {
       activateLFV(this.vibeMeter);
       this.usedLFVThisLevel = true;
       this.onLFV?.();
@@ -451,6 +452,9 @@ export class GameManager {
       this.state.powerHelmetActive = true;
       this.state.powerHelmetShots = POWER_HELMET_SHOTS;
       this.state.powerHelmetPos = null;
+      this.vibeMeter.lfvTimer = 0;
+      this.vibeMeter.meter = 0;
+      this.state.player.isLFV = false;
       this.onCollect?.();
     }
   }
@@ -475,8 +479,8 @@ export class GameManager {
     }
   }
 
-  private handlePowerHelmetInput(): void {
-    if (!this.input.justPressed(' ')) return;
+  private handlePowerHelmetInput(spacePressed: boolean): void {
+    if (!spacePressed) return;
     if (!this.state.powerHelmetActive) return;
 
     if (this.state.powerHelmetShots <= 0) return;
@@ -525,17 +529,45 @@ export class GameManager {
   }
 
   private killDuck(duck: DuckState): void {
-    this.duckDeaths.push(createDuckDeathEffect(duck.pos));
-    this.confetti.push(...createConfettiBurst(duck.pos));
+    const impactPos = { ...duck.pos };
+    this.duckDeaths.push(createDuckDeathEffect(impactPos));
+    this.confetti.push(...createConfettiBurst(impactPos));
 
     if (duck.carryingBadge) {
-      const dropY = duck.pos.y > 0 ? duck.pos.y - 1 : duck.pos.y;
-      this.state.grid[dropY][duck.pos.x] = TileType.Badge;
+      const dropY = impactPos.y > 0 ? impactPos.y - 1 : impactPos.y;
+      this.state.grid[dropY][impactPos.x] = TileType.Badge;
     }
 
     scoreKill(this.scoring);
     this.onKill?.();
-    respawnDuck(duck, this.state.grid);
+    respawnDuck(duck, this.state.grid, this.state.player.pos);
+    this.duckRenderFrom.set(duck.id, { ...duck.pos });
+    this.duckRenderTo.set(duck.id, { ...duck.pos });
+  }
+
+  private resolvePowerHelmetSpawn(
+    levelId: number,
+    grid: TileType[][],
+    playerSpawn: { x: number; y: number },
+    authored: { x: number; y: number } | undefined,
+  ): { x: number; y: number } | null {
+    if (authored) return authored;
+    if (levelId <= 3) return null;
+
+    const candidates: { x: number; y: number }[] = [];
+    for (let y = 1; y < GRID_ROWS - 1; y++) {
+      for (let x = 0; x < GRID_COLS; x++) {
+        if (grid[y][x] !== TileType.Empty) continue;
+        if (x === playerSpawn.x && y === playerSpawn.y) continue;
+
+        const pos = { x, y };
+        if (!isSupported(grid, pos, canClimb(grid, pos), canTraverseRope(grid, pos))) continue;
+        candidates.push(pos);
+      }
+    }
+
+    if (candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
   }
 
   private updateTrappedDucks(dt: number): void {
@@ -593,6 +625,7 @@ export class GameManager {
   }
 
   restart(): void {
+    randomizeLevels(); // Fresh layouts every playthrough
     this.scoring = createScoring();
     this.vibeMeter = createVibeMeter();
     this.loadLevel(0);

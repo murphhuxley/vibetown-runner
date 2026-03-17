@@ -42,7 +42,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function loadPlayerSprites(): Promise<SpriteSet> {
   const base = '/assets/sprites/';
-  const version = 'gif-run-v7';
+  const version = 'gif-run-v8';
 
   const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerPickup] = await Promise.all([
     loadImage(base + 'player-run-right.png?v=' + version),

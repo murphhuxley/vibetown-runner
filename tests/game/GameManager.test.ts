@@ -123,5 +123,68 @@ describe('GameManager', () => {
     expect(game.projectiles).toHaveLength(0);
     expect(game.duckDeaths).toHaveLength(1);
     expect(game.confetti.length).toBeGreaterThan(0);
+    expect(game.getDuckRenderPos(duck.id)).toEqual(duck.pos);
+  });
+
+  it('does not let projectiles kill trapped ducks in holes', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 5 };
+    duck.isTrapped = true;
+    duck.carryingBadge = false;
+
+    game.projectiles = [createProjectile(game.state.player.pos, Direction.Right)];
+
+    (game as any).updateProjectiles(220);
+
+    expect(game.duckDeaths).toHaveLength(0);
+    expect(game.confetti).toHaveLength(0);
+    expect(duck.isTrapped).toBe(true);
+  });
+
+  it('blocks LFV while the helmet power-up is active', () => {
+    game.state.powerHelmetCollected = true;
+    game.state.powerHelmetActive = true;
+    game.state.powerHelmetShots = 3;
+    game.vibeMeter.meter = 100;
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+
+    input.handleKeyDown(' ');
+    game.update(16);
+
+    expect(game.projectiles).toHaveLength(1);
+    expect(game.state.powerHelmetShots).toBe(2);
+    expect(game.vibeMeter.lfvTimer).toBe(0);
+  });
+
+  it('cancels active LFV when the helmet is collected', () => {
+    game.loadLevel(2);
+    game.startGame();
+    game.vibeMeter.lfvTimer = 1000;
+    game.state.player.isLFV = true;
+
+    game.state.player.pos = { x: 13, y: 7 };
+    (game as any).checkPowerHelmetCollection();
+
+    expect(game.state.powerHelmetActive).toBe(true);
+    expect(game.vibeMeter.lfvTimer).toBe(0);
+    expect(game.state.player.isLFV).toBe(false);
+  });
+
+  it('spawns the helmet randomly on levels after 3', () => {
+    game.loadLevel(3);
+    game.startGame();
+
+    expect(game.state.currentLevel).toBe(4);
+    expect(game.state.powerHelmetPos).not.toBeNull();
   });
 });

@@ -7,6 +7,54 @@ import { SpriteSet, DuckSprites, drawFrame } from '@/engine/SpriteSheet';
 import { LevelTheme, getTheme } from '@/engine/Themes';
 import { TILE_SIZE, GRID_COLS, GRID_ROWS, CANVAS_WIDTH, COLORS, VIBE_MAX, HOLE_OPEN_ANIM, HOLE_CLOSE_ANIM } from '@/constants';
 
+/** Shift a hex color's hue by a given number of degrees */
+function shiftColor(hex: string, degrees: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  // RGB to HSL
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  let h = 0, s = 0;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+    else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+    else h = ((rn - gn) / d + 4) / 6;
+  }
+
+  // Shift hue
+  h = ((h * 360 + degrees) % 360 + 360) % 360 / 360;
+
+  // HSL to RGB
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+
+  let ro: number, go: number, bo: number;
+  if (s === 0) {
+    ro = go = bo = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    ro = hue2rgb(p, q, h + 1/3);
+    go = hue2rgb(p, q, h);
+    bo = hue2rgb(p, q, h - 1/3);
+  }
+
+  const toHex = (v: number) => Math.round(v * 255).toString(16).padStart(2, '0');
+  return `#${toHex(ro)}${toHex(go)}${toHex(bo)}`;
+}
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private theme: LevelTheme = getTheme('beach');
@@ -108,7 +156,19 @@ export class Renderer {
   }
 
   setTheme(theme: LevelTheme, themeKey: string): void {
-    this.theme = theme;
+    // Shift brick colors slightly based on theme key for per-level variation
+    const hash = themeKey.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
+    const hueShift = (hash % 30) - 15; // -15 to +15 degrees
+    this.theme = {
+      ...theme,
+      sandFill: shiftColor(theme.sandFill, hueShift),
+      sandLine: shiftColor(theme.sandLine, hueShift),
+      sandHighlight: shiftColor(theme.sandHighlight, hueShift),
+      sandShadow: shiftColor(theme.sandShadow, hueShift),
+      coralFill: shiftColor(theme.coralFill, hueShift),
+      coralHighlight: shiftColor(theme.coralHighlight, hueShift),
+      coralShadow: shiftColor(theme.coralShadow, hueShift),
+    };
     this.sandTile = null;
     this.coralTile = null;
     this.loadTileSprites(themeKey);
@@ -846,7 +906,7 @@ export class Renderer {
 
     // Fiery brick chunk debris — ember-colored pieces with gravity arc
     const t = progress;
-    const fireColors = ['#FF4020', '#FF8020', '#FFD040', '#FFF080'];
+    const fireColors = ['#FF40A0', '#FF70C0', '#FFB0D8', '#FFE0F0'];
     for (let i = 0; i < speckSets[frame].length; i++) {
       const [sx, sy] = speckSets[frame][i];
       const gravity = t * t * 20;
@@ -864,7 +924,7 @@ export class Renderer {
       ctx.fillRect(Math.round(finalX) + 1, Math.round(finalY) + 1, size - 1, size - 1);
       // Tiny ember glow around each chunk
       ctx.globalAlpha = alpha * 0.3;
-      ctx.fillStyle = '#FF6030';
+      ctx.fillStyle = '#FF60B0';
       ctx.fillRect(Math.round(finalX) - 1, Math.round(finalY) - 1, size + 2, size + 2);
     }
     ctx.globalAlpha = 1;
@@ -873,8 +933,8 @@ export class Renderer {
     ctx.save();
     ctx.translate(mapX(burst.x), py + burst.y);
     ctx.scale(burstDir * burst.scale, burst.scale);
-    ctx.fillStyle = '#FFD040';
-    ctx.strokeStyle = '#FF6020';
+    ctx.fillStyle = '#FFB0D8';
+    ctx.strokeStyle = '#FF60A0';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(-6, 5);

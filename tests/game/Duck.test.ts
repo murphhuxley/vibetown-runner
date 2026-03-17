@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck } from '@/game/Duck';
+import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck, respawnDuck } from '@/game/Duck';
 import { TileType, Direction } from '@/types';
 import { GRID_COLS, GRID_ROWS, DUCK_TRAP_ESCAPE_TIME } from '@/constants';
 
@@ -109,5 +109,15 @@ describe('Duck', () => {
     duck.carryingBadge = true;
     trapDuck(duck);
     expect(duck.carryingBadge).toBe(false);
+  });
+
+  it('respawns as far from the player as possible on the top row', () => {
+    const grid = floorGrid();
+    const duck = createDuck(0, { x: 10, y: groundedY });
+
+    respawnDuck(duck, grid, { x: 13, y: groundedY });
+
+    expect(duck.pos.y).toBe(0);
+    expect([0, GRID_COLS - 1]).toContain(duck.pos.x);
   });
 });

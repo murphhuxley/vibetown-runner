@@ -1,24 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { getSpeedMultiplier, getWeatherEffects } from '@/game/Weather';
 import { WeatherType } from '@/types';
-import { SUNSHINE_SPEED_MULTIPLIER, RAIN_SPEED_MULTIPLIER } from '@/constants';
 
 describe('Weather', () => {
   it('no modifier for none weather', () => {
     expect(getSpeedMultiplier(WeatherType.None, 'player')).toBe(1);
   });
 
-  it('sunshine speeds up player', () => {
-    expect(getSpeedMultiplier(WeatherType.Sunshine, 'player')).toBe(SUNSHINE_SPEED_MULTIPLIER);
+  it('sunshine stays visual-only for player movement', () => {
+    expect(getSpeedMultiplier(WeatherType.Sunshine, 'player')).toBe(1);
   });
 
-  it('sunshine does not speed up ducks', () => {
+  it('sunshine stays visual-only for ducks too', () => {
     expect(getSpeedMultiplier(WeatherType.Sunshine, 'duck')).toBe(1);
   });
 
-  it('rain slows everyone', () => {
-    expect(getSpeedMultiplier(WeatherType.Rain, 'player')).toBe(RAIN_SPEED_MULTIPLIER);
-    expect(getSpeedMultiplier(WeatherType.Rain, 'duck')).toBe(RAIN_SPEED_MULTIPLIER);
+  it('rain stays visual-only for movement', () => {
+    expect(getSpeedMultiplier(WeatherType.Rain, 'player')).toBe(1);
+    expect(getSpeedMultiplier(WeatherType.Rain, 'duck')).toBe(1);
   });
 
   it('returns weather visual effects config', () => {

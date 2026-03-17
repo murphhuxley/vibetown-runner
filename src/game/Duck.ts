@@ -204,14 +204,29 @@ function posKey(pos: Position): string {
   return `${pos.x},${pos.y}`;
 }
 
-export function respawnDuck(duck: DuckState, grid: TileType[][]): void {
+export function respawnDuck(duck: DuckState, grid: TileType[][], playerPos: Position): void {
   const y = 0;
   const validXs: number[] = [];
   for (let x = 0; x < grid[0].length; x++) {
-    if (canMoveTo(grid, { x, y })) validXs.push(x);
+    if (!canMoveTo(grid, { x, y })) continue;
+    if (playerPos.y === y && playerPos.x === x) continue;
+    validXs.push(x);
   }
   if (validXs.length > 0) {
-    const x = validXs[Math.floor(Math.random() * validXs.length)];
+    let bestDistance = -1;
+    let bestXs: number[] = [];
+
+    for (const x of validXs) {
+      const distance = Math.abs(x - playerPos.x);
+      if (distance > bestDistance) {
+        bestDistance = distance;
+        bestXs = [x];
+      } else if (distance === bestDistance) {
+        bestXs.push(x);
+      }
+    }
+
+    const x = bestXs[Math.floor(Math.random() * bestXs.length)];
     duck.pos = { x, y };
   }
   duck.isTrapped = false;

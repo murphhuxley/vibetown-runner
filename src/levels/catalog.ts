@@ -157,7 +157,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 3, 12).sand(15, 15, 24);
     g.ladder(6, 2, 17).ladder(14, 9, 15).ladder(22, 2, 17);
     g.rope(5, 5, 22).rope(12, 6, 21);
-    g.badges(1, [5, 13, 22]).badges(8, [2, 14, 25]).badges(14, [4, 10, 18, 23]);
+    g.badges(1, [5, 22]).badges(8, [2, 14]).badges(14, [4, 17, 23]);
     g.ducks(14, [10, 18]);
     g.player(1, 17);
   }),
@@ -168,7 +168,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 0, 4).sand(15, 8, 12).sand(15, 16, 20).sand(15, 24, 27);
     g.ladder(5, 2, 17).ladder(13, 2, 15).ladder(22, 2, 17);
     g.rope(5, 4, 23).rope(10, 0, 27);
-    g.badges(1, [6, 13, 21]).badges(7, [1, 12, 26]).badges(12, [5, 20]).badges(14, [2, 10, 18, 25]);
+    g.badges(1, [6, 21]).badges(7, [1, 12]).badges(12, [5, 20, 25]);
     g.ducks(14, [9, 19]);
     g.player(1, 17);
   }),
@@ -179,7 +179,7 @@ const builtLevels: RawLevel[] = [
     g.coral(15, 9, 9).coral(15, 18, 18);
     g.ladder(6, 2, 17).ladder(14, 9, 17).ladder(22, 2, 17);
     g.rope(5, 3, 24);
-    g.badges(1, [4, 22]).badges(8, [1, 13, 26]).badges(14, [5, 13, 21, 24]);
+    g.badges(1, [4, 22]).badges(8, [1, 13]).badges(14, [5, 21, 24]);
     g.ducks(8, [9, 18]);
     g.player(1, 17);
   }),
@@ -190,7 +190,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 0, 6).sand(15, 10, 17).sand(15, 21, 27);
     g.ladder(4, 2, 17).ladder(14, 2, 15).ladder(23, 2, 17);
     g.rope(5, 3, 23).rope(9, 0, 27);
-    g.badges(1, [3, 12, 22]).badges(5, [1, 14, 25]).badges(9, [4, 18, 24]).badges(14, [2, 12, 23]);
+    g.badges(1, [3, 22]).badges(5, [1, 25]).badges(9, [4, 18]).badges(14, [12, 23]);
     g.ducks(14, [16]).ducks(8, [7]);
     g.player(1, 17);
   }),
@@ -202,7 +202,7 @@ const builtLevels: RawLevel[] = [
     g.coral(13, 12, 14);
     g.ladder(6, 2, 17).ladder(15, 2, 15).ladder(22, 2, 17);
     g.rope(5, 4, 23).rope(10, 1, 26);
-    g.badges(1, [5, 14, 22]).badges(7, [1, 9, 18, 26]).badges(12, [5, 20]).badges(14, [2, 10, 16, 24]);
+    g.badges(1, [5, 22]).badges(7, [1, 18]).badges(12, [5]).badges(14, [2, 10, 24]);
     g.ducks(14, [8, 19]);
     g.player(1, 17);
   }),
@@ -215,7 +215,7 @@ const builtLevels: RawLevel[] = [
     g.coral(11, 9, 10).coral(11, 18, 19);
     g.ladder(4, 2, 17).ladder(13, 2, 17).ladder(22, 2, 17);
     g.rope(5, 2, 25).rope(9, 4, 23);
-    g.badges(1, [3, 22]).badges(6, [1, 12, 26]).badges(10, [5, 15, 23]).badges(14, [2, 7, 13, 21, 25]);
+    g.badges(1, [3, 22]).badges(6, [1, 12]).badges(10, [5, 15]).badges(14, [2, 25]);
     g.ducks(8, [13]).ducks(14, [19]);
     g.player(1, 17);
   }),
@@ -226,7 +226,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 5, 22);
     g.ladder(6, 3, 17).ladder(13, 8, 15).ladder(21, 3, 17);
     g.rope(10, 0, 27);
-    g.badges(2, [2, 10, 24]).badges(7, [1, 13, 26]).badges(11, [4, 12, 20, 23]).badges(14, [8, 18]);
+    g.badges(2, [2, 24]).badges(7, [1, 13]).badges(11, [4, 20]).badges(14, [8, 18]);
     g.ducks(14, [9, 17]);
     g.player(1, 17);
   }),
@@ -237,7 +237,7 @@ const builtLevels: RawLevel[] = [
     g.coral(15, 6, 7).coral(15, 13, 14).coral(15, 20, 21);
     g.ladder(4, 2, 17).ladder(9, 9, 17).ladder(18, 2, 17).ladder(23, 9, 17);
     g.rope(5, 2, 25).rope(12, 4, 23);
-    g.badges(1, [3, 8, 18, 24]).badges(8, [1, 12, 22, 26]).badges(14, [2, 10, 17, 25]);
+    g.badges(1, [3, 24]).badges(8, [1, 13, 22]).badges(14, [2, 17, 25]);
     g.ducks(8, [12]).ducks(14, [22]);
     g.player(1, 17);
   }),
@@ -249,7 +249,7 @@ const builtLevels: RawLevel[] = [
     g.coral(13, 10, 11).coral(13, 16, 17);
     g.ladder(7, 2, 17).ladder(14, 2, 15).ladder(21, 2, 17);
     g.rope(6, 5, 22);
-    g.badges(1, [5, 13, 22]).badges(8, [1, 8, 17, 26]).badges(12, [4, 19]).badges(14, [2, 6, 13, 23]);
+    g.badges(1, [5, 22]).badges(8, [1, 17]).badges(12, [4, 19]).badges(14, [2, 6, 23]);
     g.ducks(14, [9, 24]).ducks(8, [18]);
     g.player(1, 17);
   }),
@@ -259,7 +259,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 2, 25);
     g.ladder(3, 2, 17).ladder(13, 2, 17).ladder(24, 2, 17);
     g.rope(5, 0, 27).rope(11, 0, 27);
-    g.badges(1, [2, 13, 24]).badges(8, [4, 13, 21]).badges(14, [5, 10, 17, 22]);
+    g.badges(1, [2, 13, 24]).badges(8, [4, 21]).badges(14, [5, 10, 17, 23]);
     g.ducks(14, [6, 22]).ducks(8, [14]);
     g.player(1, 17);
   }),
@@ -270,8 +270,8 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 0, 6).sand(15, 9, 18).sand(15, 21, 27);
     g.ladder(5, 2, 15).ladder(13, 6, 17).ladder(22, 2, 17);
     g.rope(13, 4, 23);
-    g.badges(1, [4, 13, 22]).badges(5, [1, 12, 26]).badges(9, [6, 18, 23]).badges(14, [2, 11, 24]);
-    g.ducks(14, [10]).ducks(8, [20]);
+    g.badges(1, [4, 13, 22]).badges(5, [1, 12]).badges(9, [6, 18]).badges(14, [2, 11]);
+    g.ducks(14, [10, 23]).ducks(8, [20]);
     g.player(1, 17);
   }),
   createBuiltLevel(17, 'Bridge Bait', 'flower-2', WeatherType.None, 13, (g) => {
@@ -281,8 +281,8 @@ const builtLevels: RawLevel[] = [
     g.coral(15, 9, 10).coral(15, 17, 18);
     g.ladder(6, 2, 15).ladder(13, 2, 17).ladder(21, 2, 15);
     g.rope(5, 5, 22).rope(11, 0, 27);
-    g.badges(1, [4, 13, 22]).badges(7, [1, 9, 15, 26]).badges(14, [4, 8, 19, 23]);
-    g.ducks(14, [8, 20]);
+    g.badges(1, [4, 13, 22]).badges(7, [1, 9, 26]).badges(14, [4, 19, 23]);
+    g.ducks(14, [8, 20]).ducks(8, [15]);
     g.player(1, 17);
   }),
   createBuiltLevel(18, 'Midnight Run', 'flower-3', WeatherType.None, 6, (g) => {
@@ -292,7 +292,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 3, 24);
     g.ladder(5, 2, 17).ladder(13, 9, 15).ladder(22, 2, 17);
     g.rope(6, 2, 25);
-    g.badges(1, [2, 8, 23]).badges(8, [1, 6, 14, 24, 26]).badges(12, [2, 13, 24]).badges(14, [5, 18]);
+    g.badges(1, [2, 8, 23]).badges(8, [1, 14, 26]).badges(12, [13, 24]).badges(14, [5]);
     g.ducks(8, [6, 23]).ducks(14, [14]);
     g.player(1, 17);
   }),
@@ -303,8 +303,8 @@ const builtLevels: RawLevel[] = [
     g.coral(15, 8, 9).coral(15, 18, 19);
     g.ladder(6, 2, 17).ladder(20, 2, 17);
     g.rope(5, 0, 27).rope(12, 4, 23);
-    g.badges(1, [3, 8, 18, 24]).badges(8, [2, 11, 17, 25]).badges(14, [2, 6, 13, 16, 22, 25]);
-    g.ducks(8, [11]).ducks(14, [22]);
+    g.badges(1, [3, 8, 24]).badges(8, [2, 12, 25]).badges(14, [2, 13, 23]);
+    g.ducks(8, [11]).ducks(14, [6, 22]);
     g.player(1, 17);
   }),
   createBuiltLevel(20, 'Crowded House', 'future-2', WeatherType.None, 13, (g) => {
@@ -313,7 +313,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 0, 8).sand(15, 11, 17).sand(15, 20, 27);
     g.ladder(6, 2, 17).ladder(13, 2, 17).ladder(20, 2, 17);
     g.rope(5, 2, 25).rope(12, 0, 27);
-    g.badges(1, [5, 13, 22]).badges(8, [1, 7, 14, 20, 26]).badges(14, [1, 4, 12, 16, 21, 25]);
+    g.badges(1, [5, 13, 22]).badges(8, [1, 14, 20, 26]).badges(14, [1, 12, 16]);
     g.ducks(14, [5, 17]).ducks(8, [10, 23]);
     g.player(1, 17);
   }),
@@ -325,7 +325,7 @@ const builtLevels: RawLevel[] = [
     g.coral(12, 9, 10).coral(12, 18, 19);
     g.ladder(3, 3, 17).ladder(13, 3, 15).ladder(24, 3, 17);
     g.rope(6, 0, 27).rope(10, 4, 23);
-    g.badges(2, [2, 13, 24]).badges(7, [3, 9, 18, 23]).badges(11, [1, 13, 26]).badges(14, [6, 12, 21]);
+    g.badges(2, [2, 13, 24]).badges(7, [3, 18, 23]).badges(11, [1, 13]).badges(14, [6, 12]);
     g.ducks(14, [7, 19]).ducks(8, [13]);
     g.player(1, 17);
   }),
@@ -336,7 +336,7 @@ const builtLevels: RawLevel[] = [
     g.sand(15, 0, 6).sand(15, 9, 18).sand(15, 21, 27);
     g.ladder(5, 2, 15).ladder(13, 7, 17).ladder(22, 2, 17);
     g.rope(5, 0, 27).rope(10, 2, 25);
-    g.badges(1, [3, 8, 17, 24]).badges(6, [1, 13, 25]).badges(12, [4, 11, 19, 24]).badges(14, [2, 15, 23]);
+    g.badges(1, [3, 8, 24]).badges(6, [1, 13]).badges(12, [4, 19, 24]).badges(14, [2, 15]);
     g.ducks(8, [8, 18]).ducks(14, [24]);
     g.player(1, 17);
   }),
@@ -347,8 +347,8 @@ const builtLevels: RawLevel[] = [
     g.coral(15, 10, 11).coral(15, 16, 17);
     g.ladder(4, 2, 17).ladder(15, 2, 15).ladder(24, 2, 17);
     g.rope(6, 1, 18).rope(12, 9, 27);
-    g.badges(1, [2, 13, 24]).badges(8, [1, 5, 15, 25]).badges(14, [4, 8, 19, 23]);
-    g.ducks(14, [10]).ducks(8, [20]);
+    g.badges(1, [2, 13, 24]).badges(8, [1, 15, 25]).badges(14, [4, 8, 19, 23]);
+    g.ducks(14, [10, 24]).ducks(8, [20]);
     g.player(1, 17);
   }),
   createBuiltLevel(24, 'Badge Storm', 'cosmic-1', WeatherType.None, 13, (g) => {
@@ -358,7 +358,7 @@ const builtLevels: RawLevel[] = [
     g.coral(8, 9, 10).coral(8, 18, 19).coral(14, 5, 6).coral(14, 15, 16).coral(14, 25, 26);
     g.ladder(3, 2, 17).ladder(8, 2, 17).ladder(13, 2, 17).ladder(18, 2, 17).ladder(23, 2, 17);
     g.rope(5, 0, 27).rope(11, 0, 27);
-    g.badges(1, [2, 7, 13, 19, 25]).badges(7, [1, 5, 12, 16, 21, 26]).badges(13, [2, 8, 12, 18, 22, 24]);
+    g.badges(1, [2, 13, 25]).badges(7, [1, 12, 21, 26]).badges(13, [2, 12, 18, 24]);
     g.ducks(14, [6, 18]).ducks(8, [12, 24]);
     g.player(1, 17);
   }),
@@ -370,13 +370,17 @@ const builtLevels: RawLevel[] = [
     g.coral(10, 8, 9).coral(10, 18, 19).coral(15, 7, 8).coral(15, 18, 19);
     g.ladder(4, 2, 17).ladder(13, 2, 17).ladder(22, 2, 17);
     g.rope(4, 0, 27).rope(8, 3, 24).rope(13, 1, 26);
-    g.badges(1, [3, 8, 18, 24]).badges(5, [1, 6, 13, 22, 26]).badges(9, [4, 12, 16, 23]).badges(14, [2, 5, 11, 15, 22, 25]);
+    g.badges(1, [3, 8, 24]).badges(5, [1, 13, 26]).badges(9, [4, 16, 23]).badges(14, [2, 11, 15]);
     g.ducks(14, [5, 17]).ducks(8, [10, 22]);
     g.player(1, 17);
   }),
 ];
 
-export const LEVELS: RawLevel[] = [
+// ── Master level list: hand-crafted structures with controlled remixing ──
+
+// These are the authored campaign screens. We only remix dynamic items inside
+// the existing level geometry so the puzzle language still feels intentional.
+export const MASTER_LEVELS: RawLevel[] = [
   levelData01 as RawLevel,
   levelData02 as RawLevel,
   levelData03 as RawLevel,
@@ -384,3 +388,59 @@ export const LEVELS: RawLevel[] = [
   levelData05 as RawLevel,
   ...builtLevels,
 ];
+
+function cloneLevel(level: RawLevel): RawLevel {
+  return {
+    ...level,
+    grid: level.grid.map((row) => [...row]),
+    powerHelmet: level.powerHelmet ? { ...level.powerHelmet } : undefined,
+  };
+}
+
+import { generateLevel } from '@/game/LevelGenerator';
+
+const BLUEPRINTS: { id: number; name: string; theme: string; weather: string }[] = [
+  { id: 1,  name: 'Vibetown Grove',  theme: 'nature-1', weather: 'none' },
+  { id: 2,  name: 'Emerald Canopy',  theme: 'nature-2', weather: 'none' },
+  { id: 3,  name: 'Golden Meadow',   theme: 'nature-3', weather: 'none' },
+  { id: 4,  name: 'Beach Boardwalk', theme: 'beach-1',  weather: 'sunshine' },
+  { id: 5,  name: 'Turquoise Cove',  theme: 'beach-2',  weather: 'none' },
+  { id: 6,  name: 'Coral Sunset',    theme: 'beach-3',  weather: 'trade-winds' },
+  { id: 7,  name: 'Urban Dusk',      theme: 'city-1',   weather: 'none' },
+  { id: 8,  name: 'Neon Alley',      theme: 'city-2',   weather: 'rain' },
+  { id: 9,  name: 'Violet District', theme: 'city-3',   weather: 'none' },
+  { id: 10, name: 'Warm Spectrum',   theme: 'rainbow-1', weather: 'none' },
+  { id: 11, name: 'Cool Spectrum',   theme: 'rainbow-2', weather: 'none' },
+  { id: 12, name: 'Full Spectrum',   theme: 'rainbow-3', weather: 'none' },
+  { id: 13, name: 'Silver Fog',      theme: 'gray-1',   weather: 'rain' },
+  { id: 14, name: 'Charcoal Depths', theme: 'gray-2',   weather: 'none' },
+  { id: 15, name: 'Steel Twilight',  theme: 'gray-3',   weather: 'rain' },
+  { id: 16, name: 'Rose Garden',     theme: 'flower-1',  weather: 'sunshine' },
+  { id: 17, name: 'Lavender Fields', theme: 'flower-2',  weather: 'none' },
+  { id: 18, name: 'Magenta Bloom',   theme: 'flower-3',  weather: 'none' },
+  { id: 19, name: 'Neon Core',       theme: 'future-1',  weather: 'none' },
+  { id: 20, name: 'Synth Grid',      theme: 'future-2',  weather: 'none' },
+  { id: 21, name: 'Electric Dawn',   theme: 'future-3',  weather: 'trade-winds' },
+  { id: 22, name: 'Grand Ballroom',  theme: 'gold-1',    weather: 'none' },
+  { id: 23, name: 'Amber Vault',     theme: 'gold-2',    weather: 'sunshine' },
+  { id: 24, name: 'Nebula Gate',     theme: 'cosmic-1',  weather: 'none' },
+  { id: 25, name: 'Event Horizon',   theme: 'cosmic-2',  weather: 'none' },
+];
+
+export const LEVELS: RawLevel[] = [];
+
+export function randomizeLevels(): void {
+  LEVELS.length = 0;
+  for (let i = 0; i < BLUEPRINTS.length; i++) {
+    const bp = BLUEPRINTS[i];
+    const difficulty = i / (BLUEPRINTS.length - 1);
+    const gen = generateLevel(difficulty);
+    LEVELS.push({
+      id: bp.id, name: bp.name, theme: bp.theme,
+      weather: bp.weather, exitColumn: gen.exitColumn,
+      npcs: [], grid: gen.grid,
+    });
+  }
+}
+
+randomizeLevels();

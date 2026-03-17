@@ -1,5 +1,4 @@
 import { WeatherType } from '@/types';
-import { SUNSHINE_SPEED_MULTIPLIER, RAIN_SPEED_MULTIPLIER } from '@/constants';
 
 export interface WeatherEffects {
   particles: boolean;
@@ -9,17 +8,13 @@ export interface WeatherEffects {
 }
 
 export function getSpeedMultiplier(
-  weather: WeatherType,
+  _weather: WeatherType,
   entity: 'player' | 'duck'
 ): number {
-  switch (weather) {
-    case WeatherType.Sunshine:
-      return entity === 'player' ? SUNSHINE_SPEED_MULTIPLIER : 1;
-    case WeatherType.Rain:
-      return RAIN_SPEED_MULTIPLIER;
-    default:
-      return 1;
-  }
+  void entity;
+  // Original Lode Runner raises difficulty through level design and enemy
+  // pressure, not by changing the movement rules from screen to screen.
+  return 1;
 }
 
 export function getWeatherEffects(weather: WeatherType): WeatherEffects {
