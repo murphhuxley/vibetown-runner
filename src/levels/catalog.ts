@@ -397,49 +397,15 @@ function cloneLevel(level: RawLevel): RawLevel {
   };
 }
 
-import { generateLevel } from '@/game/LevelGenerator';
-
-const BLUEPRINTS: { id: number; name: string; theme: string; weather: string }[] = [
-  { id: 1,  name: 'Vibetown Grove',  theme: 'nature-1', weather: 'none' },
-  { id: 2,  name: 'Emerald Canopy',  theme: 'nature-2', weather: 'none' },
-  { id: 3,  name: 'Golden Meadow',   theme: 'nature-3', weather: 'none' },
-  { id: 4,  name: 'Beach Boardwalk', theme: 'beach-1',  weather: 'sunshine' },
-  { id: 5,  name: 'Turquoise Cove',  theme: 'beach-2',  weather: 'none' },
-  { id: 6,  name: 'Coral Sunset',    theme: 'beach-3',  weather: 'trade-winds' },
-  { id: 7,  name: 'Urban Dusk',      theme: 'city-1',   weather: 'none' },
-  { id: 8,  name: 'Neon Alley',      theme: 'city-2',   weather: 'rain' },
-  { id: 9,  name: 'Violet District', theme: 'city-3',   weather: 'none' },
-  { id: 10, name: 'Warm Spectrum',   theme: 'rainbow-1', weather: 'none' },
-  { id: 11, name: 'Cool Spectrum',   theme: 'rainbow-2', weather: 'none' },
-  { id: 12, name: 'Full Spectrum',   theme: 'rainbow-3', weather: 'none' },
-  { id: 13, name: 'Silver Fog',      theme: 'gray-1',   weather: 'rain' },
-  { id: 14, name: 'Charcoal Depths', theme: 'gray-2',   weather: 'none' },
-  { id: 15, name: 'Steel Twilight',  theme: 'gray-3',   weather: 'rain' },
-  { id: 16, name: 'Rose Garden',     theme: 'flower-1',  weather: 'sunshine' },
-  { id: 17, name: 'Lavender Fields', theme: 'flower-2',  weather: 'none' },
-  { id: 18, name: 'Magenta Bloom',   theme: 'flower-3',  weather: 'none' },
-  { id: 19, name: 'Neon Core',       theme: 'future-1',  weather: 'none' },
-  { id: 20, name: 'Synth Grid',      theme: 'future-2',  weather: 'none' },
-  { id: 21, name: 'Electric Dawn',   theme: 'future-3',  weather: 'trade-winds' },
-  { id: 22, name: 'Grand Ballroom',  theme: 'gold-1',    weather: 'none' },
-  { id: 23, name: 'Amber Vault',     theme: 'gold-2',    weather: 'sunshine' },
-  { id: 24, name: 'Nebula Gate',     theme: 'cosmic-1',  weather: 'none' },
-  { id: 25, name: 'Event Horizon',   theme: 'cosmic-2',  weather: 'none' },
-];
-
 export const LEVELS: RawLevel[] = [];
 
+// Rebuild the live level list from the curated master set.
+// We clone so runtime mutations never touch the authored campaign data.
 export function randomizeLevels(): void {
   LEVELS.length = 0;
-  for (let i = 0; i < BLUEPRINTS.length; i++) {
-    const bp = BLUEPRINTS[i];
-    const difficulty = i / (BLUEPRINTS.length - 1);
-    const gen = generateLevel(difficulty);
-    LEVELS.push({
-      id: bp.id, name: bp.name, theme: bp.theme,
-      weather: bp.weather, exitColumn: gen.exitColumn,
-      npcs: [], grid: gen.grid,
-    });
+
+  for (const level of MASTER_LEVELS) {
+    LEVELS.push(cloneLevel(level));
   }
 }
 

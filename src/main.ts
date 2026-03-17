@@ -108,7 +108,8 @@ const loop = new GameLoop(
     const movingHorizontally = dx > 0.001;
     const movingVertically = dy > 0.001;
     const usingRope = isPlaying && game.state.player.isOnRope;
-    const usingLadder = isPlaying && game.state.player.isOnLadder && !usingRope;
+    const onLadder = isPlaying && game.state.player.isOnLadder && !usingRope;
+    const usingLadder = onLadder && !movingHorizontally;
 
     renderer.playerUsingRope = usingRope;
     renderer.playerUsingLadder = usingLadder;

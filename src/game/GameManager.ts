@@ -534,8 +534,10 @@ export class GameManager {
     this.confetti.push(...createConfettiBurst(impactPos));
 
     if (duck.carryingBadge) {
-      const dropY = impactPos.y > 0 ? impactPos.y - 1 : impactPos.y;
-      this.state.grid[dropY][impactPos.x] = TileType.Badge;
+      const dropPos = this.resolveDuckBadgeDropPosition(impactPos);
+      if (dropPos) {
+        this.state.grid[dropPos.y][dropPos.x] = TileType.Badge;
+      }
     }
 
     scoreKill(this.scoring);
@@ -543,6 +545,27 @@ export class GameManager {
     respawnDuck(duck, this.state.grid, this.state.player.pos);
     this.duckRenderFrom.set(duck.id, { ...duck.pos });
     this.duckRenderTo.set(duck.id, { ...duck.pos });
+  }
+
+  private resolveDuckBadgeDropPosition(origin: { x: number; y: number }): { x: number; y: number } | null {
+    const searchOrders: TileType[][] = [
+      [TileType.Empty],
+      [TileType.Empty, TileType.Rope, TileType.Ladder],
+    ];
+
+    for (const allowedTiles of searchOrders) {
+      for (let y = origin.y; y < GRID_ROWS; y++) {
+        const pos = { x: origin.x, y };
+        const tile = getTile(this.state.grid, pos);
+
+        if (!allowedTiles.includes(tile)) continue;
+        if (!isSupported(this.state.grid, pos, tile === TileType.Ladder, tile === TileType.Rope)) continue;
+
+        return pos;
+      }
+    }
+
+    return null;
   }
 
   private resolvePowerHelmetSpawn(
@@ -625,7 +648,7 @@ export class GameManager {
   }
 
   restart(): void {
-    randomizeLevels(); // Fresh layouts every playthrough
+    randomizeLevels(); // Reset the live campaign from the authored level set.
     this.scoring = createScoring();
     this.vibeMeter = createVibeMeter();
     this.loadLevel(0);

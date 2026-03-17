@@ -126,6 +126,27 @@ describe('GameManager', () => {
     expect(game.getDuckRenderPos(duck.id)).toEqual(duck.pos);
   });
 
+  it('drops a carried bag onto a collectible floor tile when a projectile kills a duck', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    game.state.grid[6][5] = TileType.Sand;
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 5 };
+    duck.isTrapped = false;
+    duck.carryingBadge = true;
+
+    game.projectiles = [createProjectile(game.state.player.pos, Direction.Right)];
+
+    (game as any).updateProjectiles(220);
+
+    expect(game.state.grid[5][5]).toBe(TileType.Badge);
+    expect(game.state.grid[4][5]).toBe(TileType.Empty);
+  });
+
   it('does not let projectiles kill trapped ducks in holes', () => {
     game.state.grid = Array.from({ length: game.state.grid.length }, () => (
       Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)

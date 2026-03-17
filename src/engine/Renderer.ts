@@ -890,9 +890,10 @@ export class Renderer {
         : px + x
     );
 
+    // Draw the cavity as a dark hole shape (visible crumbling brick)
     const shape = cavityShapes[frame];
     ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(255, 100, 160, 0.6)';
     ctx.beginPath();
     ctx.moveTo(mapX(shape[0][0]), py + shape[0][1]);
     for (const [x, y] of shape.slice(1)) {
@@ -902,6 +903,11 @@ export class Renderer {
     ctx.lineTo(mapX(4), py + 3);
     ctx.closePath();
     ctx.fill();
+
+    // Inner highlight edge for depth
+    ctx.strokeStyle = this.theme.sandShadow;
+    ctx.lineWidth = 1;
+    ctx.stroke();
     ctx.restore();
 
     // Fiery brick chunk debris — ember-colored pieces with gravity arc
