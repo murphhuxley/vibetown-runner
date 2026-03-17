@@ -1081,14 +1081,23 @@ export class Renderer {
     if (this.sprites?.powerPickup) {
       const anim = this.sprites.powerPickup;
       const frameIndex = Math.floor(this.bgTime / 0.11) % anim.frameCount;
-      const offsetX = Math.floor((TILE_SIZE - anim.frameWidth) / 2);
-      const offsetY = Math.floor((TILE_SIZE - anim.frameHeight) / 2);
-      drawFrame(this.ctx, anim, frameIndex, px + offsetX, py + offsetY);
+      const fi = frameIndex % anim.frameCount;
+      const srcW = anim.sourceFrameWidth ?? anim.frameWidth;
+      const srcH = anim.sourceFrameHeight ?? anim.frameHeight;
+      // Draw at 64x64 so it really stands out
+      const drawSize = 64;
+      const offsetX = Math.floor((TILE_SIZE - drawSize) / 2);
+      const offsetY = Math.floor((TILE_SIZE - drawSize) / 2);
+      this.ctx.drawImage(
+        anim.image,
+        fi * srcW, 0, srcW, srcH,
+        px + offsetX, py + offsetY, drawSize, drawSize,
+      );
       return;
     }
 
     this.ctx.fillStyle = '#C62828';
-    this.ctx.fillRect(px + 8, py + 8, 16, 16);
+    this.ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
   }
 
   drawProjectiles(projectiles: ProjectileState[]): void {

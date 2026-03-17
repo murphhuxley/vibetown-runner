@@ -149,6 +149,139 @@ function validateBuiltLevel(level: RawLevel): void {
   }
 }
 
+function withPowerHelmet(level: RawLevel, powerHelmet: { x: number; y: number }): RawLevel {
+  return {
+    ...level,
+    powerHelmet,
+  };
+}
+
+const levelOneVariants: RawLevel[] = [
+  levelData01 as RawLevel,
+  createBuiltLevel(1, 'Welcome to Vibetown', 'nature-1', WeatherType.None, 20, (g) => {
+    g.sand(2, 2, 25);
+    g.sand(9, 0, 27);
+    g.sand(15, 2, 25);
+    g.ladder(6, 2, 17).ladder(20, 2, 17);
+    g.rope(5, 4, 23);
+    g.badges(1, [3, 24]).badges(8, [1, 13]).badges(14, [5, 22]);
+    g.ducks(8, [18]);
+    g.player(1, 17);
+  }),
+  createBuiltLevel(1, 'Welcome to Vibetown', 'nature-1', WeatherType.None, 20, (g) => {
+    g.sand(2, 1, 10).sand(2, 14, 26);
+    g.sand(9, 0, 9).sand(9, 12, 27);
+    g.sand(15, 3, 24);
+    g.ladder(5, 2, 17).ladder(20, 2, 17);
+    g.rope(5, 3, 24);
+    g.badges(1, [2, 18]).badges(8, [1, 14]).badges(14, [6, 21]);
+    g.ducks(8, [23]);
+    g.player(1, 17);
+  }),
+];
+
+const levelTwoVariants: RawLevel[] = [
+  levelData02 as RawLevel,
+  createBuiltLevel(2, 'Rope Tricks', 'nature-2', WeatherType.None, 20, (g) => {
+    g.sand(2, 0, 27);
+    g.sand(9, 0, 8).sand(9, 11, 17).sand(9, 20, 27);
+    g.sand(15, 0, 27);
+    g.ladder(6, 2, 17).ladder(20, 2, 17);
+    g.rope(5, 0, 27).rope(12, 4, 23);
+    g.badges(1, [2, 25]).badges(8, [1, 13]).badges(14, [5, 22]);
+    g.ducks(8, [24]);
+    g.player(1, 17);
+  }),
+  createBuiltLevel(2, 'Rope Tricks', 'nature-2', WeatherType.None, 13, (g) => {
+    g.sand(2, 3, 24);
+    g.sand(9, 0, 10).sand(9, 13, 17).sand(9, 20, 27);
+    g.sand(15, 2, 25);
+    g.ladder(5, 2, 17).ladder(13, 2, 17).ladder(21, 2, 17);
+    g.rope(5, 3, 24).rope(12, 6, 21);
+    g.badges(1, [4, 22]).badges(8, [1, 15]).badges(14, [6, 19]);
+    g.ducks(8, [23]);
+    g.player(1, 17);
+  }),
+];
+
+const levelThreeVariants: RawLevel[] = [
+  levelData03 as RawLevel,
+  withPowerHelmet(
+    createBuiltLevel(3, 'Dig Deep', 'nature-3', WeatherType.None, 13, (g) => {
+      g.sand(2, 1, 8).sand(2, 11, 15).sand(2, 19, 26);
+      g.sand(5, 10, 16);
+      g.sand(13, 6, 20);
+      g.ladder(5, 2, 17).ladder(13, 2, 17).ladder(22, 2, 17);
+      g.rope(9, 5, 22);
+      g.badges(1, [3, 24]).badges(4, [10, 16]).badges(12, [8, 18]);
+      g.ducks(4, [13]);
+      g.player(1, 17);
+    }),
+    { x: 13, y: 7 },
+  ),
+  withPowerHelmet(
+    createBuiltLevel(3, 'Dig Deep', 'nature-3', WeatherType.None, 13, (g) => {
+      g.sand(2, 3, 24);
+      g.sand(5, 8, 18);
+      g.sand(13, 4, 12).sand(13, 14, 22);
+      g.ladder(6, 2, 17).ladder(13, 2, 17).ladder(20, 2, 17);
+      g.rope(9, 3, 24);
+      g.badges(1, [4, 22]).badges(4, [10, 16]).badges(12, [6, 19]);
+      g.ducks(4, [13]);
+      g.player(1, 17);
+    }),
+    { x: 13, y: 7 },
+  ),
+];
+
+const levelFourVariants: RawLevel[] = [
+  levelData04 as RawLevel,
+  createBuiltLevel(4, 'Sunny Side', 'beach-1', WeatherType.Sunshine, 14, (g) => {
+    g.sand(2, 4, 27);
+    g.sand(9, 0, 27);
+    g.sand(15, 3, 24);
+    g.ladder(7, 2, 17).ladder(14, 2, 17).ladder(21, 2, 17);
+    g.rope(5, 2, 25);
+    g.badges(1, [5, 22]).badges(8, [1, 25]).badges(14, [4, 22]);
+    g.ducks(8, [14]);
+    g.player(1, 17);
+  }),
+  createBuiltLevel(4, 'Sunny Side', 'beach-1', WeatherType.Sunshine, 14, (g) => {
+    g.sand(2, 4, 11).sand(2, 13, 18).sand(2, 20, 27);
+    g.sand(9, 0, 12).sand(9, 15, 27);
+    g.sand(15, 2, 25);
+    g.ladder(7, 2, 17).ladder(14, 2, 17).ladder(21, 2, 17);
+    g.rope(5, 3, 9).rope(5, 18, 24);
+    g.badges(1, [5, 21]).badges(8, [1, 17]).badges(14, [4, 23]);
+    g.ducks(8, [11]);
+    g.player(1, 17);
+  }),
+];
+
+const levelFiveVariants: RawLevel[] = [
+  levelData05 as RawLevel,
+  createBuiltLevel(5, 'Rainy Daze', 'beach-2', WeatherType.Rain, 14, (g) => {
+    g.sand(2, 0, 27);
+    g.sand(9, 0, 8).sand(9, 19, 27);
+    g.sand(15, 0, 27);
+    g.ladder(3, 2, 17).ladder(14, 2, 17).ladder(24, 2, 17);
+    g.rope(5, 0, 9).rope(5, 18, 27).rope(11, 8, 19);
+    g.badges(1, [1, 13, 25]).badges(14, [1, 11, 17]);
+    g.ducks(8, [21]);
+    g.player(1, 17);
+  }),
+  createBuiltLevel(5, 'Rainy Daze', 'beach-2', WeatherType.Rain, 14, (g) => {
+    g.sand(2, 2, 11).sand(2, 14, 25);
+    g.sand(9, 0, 9).sand(9, 18, 27);
+    g.sand(15, 2, 25);
+    g.ladder(4, 2, 17).ladder(14, 2, 17).ladder(24, 2, 17);
+    g.rope(5, 1, 10).rope(5, 17, 26).rope(11, 6, 21);
+    g.badges(1, [3, 16, 24]).badges(14, [1, 10, 21]);
+    g.ducks(8, [19]);
+    g.player(1, 17);
+  }),
+];
+
 const builtLevels: RawLevel[] = [
   // Act II: teach one new wrinkle at a time.
   createBuiltLevel(6, 'Rope Lesson', 'beach-3', WeatherType.None, 14, (g) => {
@@ -376,18 +509,17 @@ const builtLevels: RawLevel[] = [
   }),
 ];
 
-// ── Master level list: hand-crafted structures with controlled remixing ──
-
-// These are the authored campaign screens. We only remix dynamic items inside
-// the existing level geometry so the puzzle language still feels intentional.
-export const MASTER_LEVELS: RawLevel[] = [
-  levelData01 as RawLevel,
-  levelData02 as RawLevel,
-  levelData03 as RawLevel,
-  levelData04 as RawLevel,
-  levelData05 as RawLevel,
-  ...builtLevels,
+export const LEVEL_VARIANT_SLOTS: RawLevel[][] = [
+  levelOneVariants,
+  levelTwoVariants,
+  levelThreeVariants,
+  levelFourVariants,
+  levelFiveVariants,
+  ...builtLevels.map((level) => [level]),
 ];
+
+// Canonical A-path campaign, useful for tests and any future "classic route" mode.
+export const MASTER_LEVELS: RawLevel[] = LEVEL_VARIANT_SLOTS.map((slot) => slot[0]);
 
 function cloneLevel(level: RawLevel): RawLevel {
   return {
@@ -399,13 +531,17 @@ function cloneLevel(level: RawLevel): RawLevel {
 
 export const LEVELS: RawLevel[] = [];
 
-// Rebuild the live level list from the curated master set.
+// Rebuild the live level list from the curated variant slots.
 // We clone so runtime mutations never touch the authored campaign data.
-export function randomizeLevels(): void {
+export function randomizeLevels(rng: () => number = Math.random): void {
   LEVELS.length = 0;
 
-  for (const level of MASTER_LEVELS) {
-    LEVELS.push(cloneLevel(level));
+  for (const slot of LEVEL_VARIANT_SLOTS) {
+    const variantIndex = Math.min(
+      slot.length - 1,
+      Math.floor(rng() * slot.length),
+    );
+    LEVELS.push(cloneLevel(slot[variantIndex]));
   }
 }
 

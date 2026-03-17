@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LEVELS, MASTER_LEVELS, randomizeLevels } from '@/levels/catalog';
+import { LEVELS, LEVEL_VARIANT_SLOTS, MASTER_LEVELS, randomizeLevels } from '@/levels/catalog';
 import { parseLevel, countBadges, findSpawnPosition } from '@/game/Level';
 import { TileType } from '@/types';
 
@@ -71,12 +71,23 @@ describe('Level pack', () => {
     }
   });
 
-  it('keeps the campaign geometry and dynamic item placement authored', () => {
-    randomizeLevels();
+  it('draws each restart from the curated variant slots', () => {
+    randomizeLevels(() => 0);
 
     for (let i = 0; i < LEVELS.length; i++) {
       expect(LEVELS[i].grid).toEqual(MASTER_LEVELS[i].grid);
       expect(LEVELS[i].grid).not.toBe(MASTER_LEVELS[i].grid);
+    }
+  });
+
+  it('can choose alternate curated variants for the early campaign slots', () => {
+    randomizeLevels(() => 0.999999);
+
+    for (let i = 0; i < 5; i++) {
+      const slot = LEVEL_VARIANT_SLOTS[i];
+      expect(slot.length, `level slot ${i + 1} should have multiple curated variants`).toBeGreaterThan(1);
+      expect(LEVELS[i].grid).toEqual(slot[slot.length - 1].grid);
+      expect(LEVELS[i].grid).not.toEqual(MASTER_LEVELS[i].grid);
     }
   });
 
