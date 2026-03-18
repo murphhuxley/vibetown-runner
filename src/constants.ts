@@ -3,7 +3,7 @@ export const GRID_ROWS = 20;
 export const TILE_SIZE = 32;
 export const DISPLAY_SCALE = 2;
 export const RENDER_SCALE = 2;
-export const PLAYER_SPRITE_SOURCE_SCALE = 2;
+export const PLAYER_SPRITE_SOURCE_SCALE = 1.75;
 
 export const CANVAS_WIDTH = GRID_COLS * TILE_SIZE;
 export const CANVAS_HEIGHT = (GRID_ROWS + 1) * TILE_SIZE;
@@ -11,6 +11,7 @@ export const CANVAS_HEIGHT = (GRID_ROWS + 1) * TILE_SIZE;
 export const HOLE_REGEN_TIME = 6_000;
 export const HOLE_OPEN_ANIM = 520;
 export const HOLE_CLOSE_ANIM = 300;
+export const DUCK_HOLE_KILL_LEAD_MS = 150;
 export const LFV_DURATION = 5_000;
 export const DUCK_TRAP_ESCAPE_TIME = 3_000;
 export const DUCK_TRAP_SUPPORT_DELAY = 250;

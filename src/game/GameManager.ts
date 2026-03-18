@@ -1,5 +1,5 @@
 import { GameState, GamePhase, TileType, Direction, DuckState, ProjectileState } from '@/types';
-import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS } from '@/constants';
+import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS, DUCK_HOLE_KILL_LEAD_MS } from '@/constants';
 import { parseLevel, countBadges, findSpawnPosition, findAllSpawnPositions, cloneGrid, ensureHiddenExit } from '@/game/Level';
 import { createPlayer, movePlayer, canClimb, canTraverseRope } from '@/game/Player';
 import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck, respawnDuck } from '@/game/Duck';
@@ -152,6 +152,7 @@ export class GameManager {
     // Update LFV timer
     updateLFV(this.vibeMeter, dt);
     this.state.player.isLFV = isLFVActive(this.vibeMeter);
+    this.suppressLFVWhilePowerHelmetActive();
 
     // Tick down dig animation timer
     if (this.digTimer > 0) {
@@ -169,10 +170,10 @@ export class GameManager {
     }
 
     // Digging — checked every frame so justPressed isn't missed
-    if (!digLockedThisFrame && this.input.justPressed('z')) {
+    if (!this.state.powerHelmetActive && !digLockedThisFrame && this.input.justPressed('z')) {
       digLockedThisFrame = this.tryDig(Direction.Left) || digLockedThisFrame;
     }
-    if (!digLockedThisFrame && (this.input.justPressed('x') || this.input.justPressed('c'))) {
+    if (!this.state.powerHelmetActive && !digLockedThisFrame && (this.input.justPressed('x') || this.input.justPressed('c'))) {
       digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
     }
 
@@ -249,6 +250,7 @@ export class GameManager {
     this.drops = updateDrops(this.drops);
     this.duckDeaths = updateDuckDeathEffects(this.duckDeaths, dt);
     this.confetti = updateConfetti(this.confetti, dt);
+    this.suppressLFVWhilePowerHelmetActive();
 
     // Sync scoring state → game state
     this.state.score = this.scoring.score;
@@ -367,6 +369,7 @@ export class GameManager {
 
   private tryDig(direction: Direction): boolean {
     const { player, grid } = this.state;
+    if (this.state.powerHelmetActive) return false;
     if (player.isDigging) return false;
     const target = getDigTarget(player.pos, direction);
     if (!target) return false;
@@ -452,11 +455,18 @@ export class GameManager {
       this.state.powerHelmetActive = true;
       this.state.powerHelmetShots = POWER_HELMET_SHOTS;
       this.state.powerHelmetPos = null;
-      this.vibeMeter.lfvTimer = 0;
-      this.vibeMeter.meter = 0;
-      this.state.player.isLFV = false;
+      this.digTimer = 0;
+      this.state.player.isDigging = false;
+      this.suppressLFVWhilePowerHelmetActive();
       this.onCollect?.();
     }
+  }
+
+  private suppressLFVWhilePowerHelmetActive(): void {
+    if (!this.state.powerHelmetActive) return;
+    this.vibeMeter.lfvTimer = 0;
+    this.vibeMeter.meter = 0;
+    this.state.player.isLFV = false;
   }
 
   private checkPlayerCollisions(): void {
@@ -472,6 +482,11 @@ export class GameManager {
   private checkHoleKills(): void {
     for (const duck of this.state.ducks) {
       if (!duck.isTrapped) continue;
+      const containingHole = this.state.holes.find((hole) => hole.x === duck.pos.x && hole.y === duck.pos.y);
+      if (containingHole && containingHole.phase === 'closing' && containingHole.timer <= DUCK_HOLE_KILL_LEAD_MS) {
+        this.killDuck(duck);
+        continue;
+      }
       const tile = getTile(this.state.grid, duck.pos);
       if (tile === TileType.Sand || tile === TileType.TrapSand) {
         this.killDuck(duck);

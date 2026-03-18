@@ -22,7 +22,7 @@ function syncCanvasDisplaySize(): void {
     window.innerWidth / CANVAS_WIDTH,
     window.innerHeight / CANVAS_HEIGHT,
   );
-  const appliedScale = Math.max(scale, 1);
+  const appliedScale = scale;
 
   canvas.style.width = `${Math.floor(CANVAS_WIDTH * appliedScale)}px`;
   canvas.style.height = `${Math.floor(CANVAS_HEIGHT * appliedScale)}px`;

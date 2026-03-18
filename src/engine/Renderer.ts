@@ -72,6 +72,7 @@ export class Renderer {
   private readonly CLIMB_FRAME_MS = 90;
   private readonly ROPE_FRAME_MS = 90;
   private readonly IDLE_FRAME_MS = 160;
+  private readonly POWER_IDLE_FRAME_MS = 220;
   private readonly DIG_FRAME_MS = 58;
   private readonly WORLD_PIXEL = 1;
   private readonly ROPE_LINE_OFFSET_Y = 13;
@@ -79,6 +80,8 @@ export class Renderer {
   private readonly BADGE_SCALE = 0.72;
   private readonly DROP_SCALE = 0.72;
   private readonly PLAYER_SCALE = 1;
+  private readonly DUCK_SCALE = 1.1;
+  private readonly BASE_TILE_SIZE = 32;
   private bgTime = 0;
   private weather: WeatherType = WeatherType.None;
   private weatherEffects: WeatherEffects = getWeatherEffects(WeatherType.None);
@@ -111,6 +114,24 @@ export class Renderer {
     // Offscreen canvas for pixelated text rendering
     this.pixelCanvas = document.createElement('canvas');
     this.pixelCtx = this.pixelCanvas.getContext('2d')!;
+  }
+
+  private scaleToTile(value: number): number {
+    const scaled = Math.round((value * TILE_SIZE) / this.BASE_TILE_SIZE);
+    if (scaled === 0 && value !== 0) {
+      return value > 0 ? 1 : -1;
+    }
+    return scaled;
+  }
+
+  private withSpriteSmoothing(draw: () => void): void {
+    const prevEnabled = this.ctx.imageSmoothingEnabled;
+    const prevQuality = this.ctx.imageSmoothingQuality;
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+    draw();
+    this.ctx.imageSmoothingEnabled = prevEnabled;
+    this.ctx.imageSmoothingQuality = prevQuality;
   }
 
   /** Draw text with a chunky pixel-art feel by rendering small then scaling up */
@@ -183,6 +204,7 @@ export class Renderer {
 
   private loadTileSprites(themeKey: string): void {
     const base = '/assets/tiles/';
+    const district = themeKey.replace(/-\d+$/, '');
     const tryLoad = (src: string): Promise<HTMLImageElement | null> =>
       new Promise((resolve) => {
         const img = new Image();
@@ -190,8 +212,8 @@ export class Renderer {
         img.onerror = () => resolve(null);
         img.src = src;
       });
-    tryLoad(base + themeKey + '-sand.png').then(img => { this.sandTile = img; });
-    tryLoad(base + themeKey + '-coral.png').then(img => { this.coralTile = img; });
+    tryLoad(base + district + '-sand.png').then(img => { this.sandTile = img; });
+    tryLoad(base + district + '-coral.png').then(img => { this.coralTile = img; });
   }
 
   updateAnimation(dt: number): void {
@@ -228,7 +250,7 @@ export class Renderer {
   private getAnimationFrameMs(state: Exclude<Renderer['animState'], null>): number {
     switch (state) {
       case 'idle':
-        return this.IDLE_FRAME_MS;
+        return this.playerPowerActive ? this.POWER_IDLE_FRAME_MS : this.IDLE_FRAME_MS;
       case 'climb':
         return this.CLIMB_FRAME_MS;
       case 'rope':
@@ -646,12 +668,14 @@ export class Renderer {
     const ctx = this.ctx;
     const t = this.theme;
     const S = TILE_SIZE;
-    const mortar = this.WORLD_PIXEL;
-    const rowY = [0, 8, 16, 24];
-    const brickH = 7;
-    const brickW = 7;
-    const evenBrickXs = [0, 8, 16, 24];
-    const oddBrickXs = [-4, 4, 12, 20, 28];
+    const mortar = this.scaleToTile(1);
+    const step = this.scaleToTile(8);
+    const brickH = Math.max(2, step - mortar);
+    const brickW = Math.max(2, step - mortar);
+    const rowY = Array.from({ length: Math.ceil(S / step) }, (_, index) => index * step);
+    const brickCols = Math.ceil(S / step) + 1;
+    const evenBrickXs = Array.from({ length: brickCols }, (_, index) => index * step);
+    const oddBrickXs = Array.from({ length: brickCols }, (_, index) => index * step - Math.floor(step / 2));
 
     // Mortar background first, then textured bricks on top.
     ctx.fillStyle = t.sandLine;
@@ -716,14 +740,15 @@ export class Renderer {
     const ctx = this.ctx;
     const t = this.theme;
     const S = TILE_SIZE;
-    const bandH = 8;
-    const divider = this.WORLD_PIXEL;
+    const bandH = this.scaleToTile(8);
+    const divider = this.scaleToTile(1);
+    const bandCount = Math.ceil(S / bandH);
 
     ctx.fillStyle = t.coralFill;
     ctx.fillRect(px, py, S, S);
 
     // Horizontal bands with variation
-    for (let band = 0; band < 4; band++) {
+    for (let band = 0; band < bandCount; band++) {
       const by = py + band * bandH;
       const hash = ((px * 11 + by * 7 + band * 19) & 0xFF);
       const shift = (hash % 3 - 1) * 2;
@@ -747,7 +772,8 @@ export class Renderer {
     }
 
     // Divider lines between bands
-    for (const y of [py + bandH, py + bandH * 2, py + bandH * 3]) {
+    for (let band = 1; band < bandCount; band++) {
+      const y = py + bandH * band;
       ctx.fillStyle = t.coralShadow;
       ctx.fillRect(px, y, S, divider);
       ctx.fillStyle = 'rgba(255,255,255,0.06)';
@@ -767,10 +793,10 @@ export class Renderer {
     const S = TILE_SIZE;
 
     // Dark outline for contrast against any background
-    const railW = 3;
-    const rungH = 2;
-    const railL = px + 7;
-    const railR = px + S - 5 - railW;
+    const railW = this.scaleToTile(3);
+    const rungH = this.scaleToTile(2);
+    const railL = px + this.scaleToTile(7);
+    const railR = px + S - this.scaleToTile(5) - railW;
 
     // Shadow/outline layer
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -783,9 +809,8 @@ export class Renderer {
     ctx.fillRect(railR, py, railW, S);
 
     // 4 horizontal rungs (evenly spaced)
-    const rungCount = 5;
-    for (let i = 1; i <= rungCount; i++) {
-      const ry = py + Math.round((S / (rungCount + 1)) * i);
+    const rungGap = this.scaleToTile(6);
+    for (let ry = py + rungGap; ry < py + S - rungH; ry += rungGap) {
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(railL + 1, ry + 1, railR + railW - railL, rungH);
       ctx.fillStyle = color;
@@ -798,15 +823,15 @@ export class Renderer {
   private drawRope(px: number, py: number): void {
     const ctx = this.ctx;
     const color = this.theme.rope;
-    const midY = py + this.ROPE_LINE_OFFSET_Y;
+    const midY = py + this.scaleToTile(this.ROPE_LINE_OFFSET_Y);
     const startX = px;
     const endX = px + TILE_SIZE;
-    const ropeH = 5;
+    const ropeH = this.scaleToTile(5);
     const top = midY - ropeH / 2;
 
     // Dark shadow for contrast
     ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(startX, top + 2, TILE_SIZE, ropeH);
+    ctx.fillRect(startX, top + this.scaleToTile(2), TILE_SIZE, ropeH);
 
     // Main rope body
     ctx.fillStyle = color;
@@ -814,20 +839,20 @@ export class Renderer {
 
     // Top highlight (lighter)
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(startX, top, TILE_SIZE, 2);
+    ctx.fillRect(startX, top, TILE_SIZE, this.scaleToTile(2));
 
     // Bottom shadow edge (darker)
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(startX, top + ropeH - 1, TILE_SIZE, 1);
+    ctx.fillRect(startX, top + ropeH - this.scaleToTile(1), TILE_SIZE, this.scaleToTile(1));
 
-    // Rope texture — vertical hash marks every 6px for a twisted rope look
+    // Rope texture — vertical hash marks for a twisted rope look
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    for (let x = startX + 2; x < endX; x += 4) {
-      ctx.fillRect(x, top + 1, 1, ropeH - 2);
+    for (let x = startX + this.scaleToTile(2); x < endX; x += this.scaleToTile(4)) {
+      ctx.fillRect(x, top + this.scaleToTile(1), this.scaleToTile(1), ropeH - this.scaleToTile(2));
     }
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    for (let x = startX + 4; x < endX; x += 4) {
-      ctx.fillRect(x, top + 1, 1, ropeH - 2);
+    for (let x = startX + this.scaleToTile(4); x < endX; x += this.scaleToTile(4)) {
+      ctx.fillRect(x, top + this.scaleToTile(1), this.scaleToTile(1), ropeH - this.scaleToTile(2));
     }
   }
 
@@ -857,6 +882,7 @@ export class Renderer {
   ): void {
     const ctx = this.ctx;
     const frame = Math.min(6, Math.max(0, Math.floor(progress * 7)));
+    const s = (value: number): number => this.scaleToTile(value);
     const cavityShapes = [
       [[4, 3], [6, 4], [5, 7], [4, 7]],
       [[4, 3], [8, 4], [10, 8], [7, 12], [4, 10]],
@@ -896,12 +922,12 @@ export class Renderer {
     ctx.save();
     ctx.fillStyle = 'rgba(255, 100, 160, 0.6)';
     ctx.beginPath();
-    ctx.moveTo(mapX(shape[0][0]), py + shape[0][1]);
+    ctx.moveTo(mapX(s(shape[0][0])), py + s(shape[0][1]));
     for (const [x, y] of shape.slice(1)) {
-      ctx.lineTo(mapX(x), py + y);
+      ctx.lineTo(mapX(s(x)), py + s(y));
     }
-    ctx.lineTo(mapX(4), py + TILE_SIZE);
-    ctx.lineTo(mapX(4), py + 3);
+    ctx.lineTo(mapX(s(4)), py + TILE_SIZE);
+    ctx.lineTo(mapX(s(4)), py + s(3));
     ctx.closePath();
     ctx.fill();
 
@@ -918,10 +944,10 @@ export class Renderer {
       const [sx, sy] = speckSets[frame][i];
       const gravity = t * t * 20;
       const drift = (sx - 6) * t * 2;
-      const finalX = mapX(sx) + drift;
-      const finalY = py + sy - (1 - t) * 8 + gravity;
+      const finalX = mapX(s(sx)) + s(drift);
+      const finalY = py + s(sy) - s((1 - t) * 8) + s(gravity);
       const alpha = Math.max(0, 1 - t * 0.5);
-      const size = 3 + Math.floor((1 - t) * 2);
+      const size = s(3 + (1 - t) * 2);
       // Hot core (yellow/white) fading to orange/red as it cools
       const colorIdx = Math.min(fireColors.length - 1, Math.floor(t * fireColors.length));
       ctx.globalAlpha = alpha;
@@ -932,29 +958,29 @@ export class Renderer {
       // Tiny ember glow around each chunk
       ctx.globalAlpha = alpha * 0.3;
       ctx.fillStyle = '#FF60B0';
-      ctx.fillRect(Math.round(finalX) - 1, Math.round(finalY) - 1, size + 2, size + 2);
+      ctx.fillRect(Math.round(finalX) - s(1), Math.round(finalY) - s(1), size + s(2), size + s(2));
     }
     ctx.globalAlpha = 1;
 
     const burst = burstAnchors[frame];
     ctx.save();
-    ctx.translate(mapX(burst.x), py + burst.y);
+    ctx.translate(mapX(s(burst.x)), py + s(burst.y));
     ctx.scale(burstDir * burst.scale, burst.scale);
     ctx.fillStyle = '#FFB0D8';
     ctx.strokeStyle = '#FF60A0';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = s(1);
     ctx.beginPath();
-    ctx.moveTo(-6, 5);
-    ctx.lineTo(-4, -1);
-    ctx.lineTo(-2, 2);
-    ctx.lineTo(0, -5);
-    ctx.lineTo(2, 1);
-    ctx.lineTo(5, -6);
-    ctx.lineTo(3, -9);
-    ctx.lineTo(0, -7);
-    ctx.lineTo(-2, -10);
-    ctx.lineTo(-4, -5);
-    ctx.lineTo(-6, -7);
+    ctx.moveTo(-s(6), s(5));
+    ctx.lineTo(-s(4), -s(1));
+    ctx.lineTo(-s(2), s(2));
+    ctx.lineTo(0, -s(5));
+    ctx.lineTo(s(2), s(1));
+    ctx.lineTo(s(5), -s(6));
+    ctx.lineTo(s(3), -s(9));
+    ctx.lineTo(0, -s(7));
+    ctx.lineTo(-s(2), -s(10));
+    ctx.lineTo(-s(4), -s(5));
+    ctx.lineTo(-s(6), -s(7));
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -965,13 +991,13 @@ export class Renderer {
     const ctx = this.ctx;
     if (closingProgress <= 0) return;
 
-    const left = px + 4;
-    const width = TILE_SIZE - 8;
-    const height = TILE_SIZE - 6;
+    const left = px + this.scaleToTile(4);
+    const width = TILE_SIZE - this.scaleToTile(8);
+    const height = TILE_SIZE - this.scaleToTile(6);
     const fillHeight = Math.max(3, Math.floor(height * closingProgress));
     const fillTop = py + TILE_SIZE - fillHeight;
     const segmentW = Math.max(3, Math.floor(width / 4));
-    const lipDepths = [1, 3, 0, 2].map((depth) => Math.floor(depth * (1 - closingProgress)));
+    const lipDepths = [1, 3, 0, 2].map((depth) => Math.floor(this.scaleToTile(depth) * (1 - closingProgress)));
 
     ctx.fillStyle = this.theme.sandFill;
     ctx.beginPath();
@@ -993,18 +1019,21 @@ export class Renderer {
     const badgeSize = Math.floor(TILE_SIZE * this.BADGE_SCALE);
     const badgeOffset = Math.floor((TILE_SIZE - badgeSize) / 2);
     if (this.badgeSprite) {
+      const badgeSprite = this.badgeSprite;
       const frameIndex = this.getBadgeFrameIndex();
-      this.ctx.drawImage(
-        this.badgeSprite,
-        frameIndex * this.badgeSourceFrameWidth,
-        0,
-        this.badgeSourceFrameWidth,
-        this.badgeSprite.naturalHeight,
-        px + badgeOffset,
-        py + badgeOffset,
-        badgeSize,
-        badgeSize,
-      );
+      this.withSpriteSmoothing(() => {
+        this.ctx.drawImage(
+          badgeSprite,
+          frameIndex * this.badgeSourceFrameWidth,
+          0,
+          this.badgeSourceFrameWidth,
+          badgeSprite.naturalHeight,
+          px + badgeOffset,
+          py + badgeOffset,
+          badgeSize,
+          badgeSize,
+        );
+      });
       return;
     }
 
@@ -1042,18 +1071,21 @@ export class Renderer {
     const offset = Math.floor((TILE_SIZE - size) / 2);
 
     if (this.badgeSprite) {
+      const badgeSprite = this.badgeSprite;
       const frameIndex = this.getBadgeFrameIndex();
-      this.ctx.drawImage(
-        this.badgeSprite,
-        frameIndex * this.badgeSourceFrameWidth,
-        0,
-        this.badgeSourceFrameWidth,
-        this.badgeSprite.naturalHeight,
-        px + offset,
-        py + offset,
-        size,
-        size,
-      );
+      this.withSpriteSmoothing(() => {
+        this.ctx.drawImage(
+          badgeSprite,
+          frameIndex * this.badgeSourceFrameWidth,
+          0,
+          this.badgeSourceFrameWidth,
+          badgeSprite.naturalHeight,
+          px + offset,
+          py + offset,
+          size,
+          size,
+        );
+      });
       return;
     }
 
@@ -1085,15 +1117,16 @@ export class Renderer {
       const fi = frameIndex % anim.frameCount;
       const srcW = anim.sourceFrameWidth ?? anim.frameWidth;
       const srcH = anim.sourceFrameHeight ?? anim.frameHeight;
-      // Draw at 64x64 so it really stands out
-      const drawSize = 64;
+      const drawSize = Math.floor(TILE_SIZE * 1.3);
       const offsetX = Math.floor((TILE_SIZE - drawSize) / 2);
       const offsetY = Math.floor((TILE_SIZE - drawSize) / 2);
-      this.ctx.drawImage(
-        anim.image,
-        fi * srcW, 0, srcW, srcH,
-        px + offsetX, py + offsetY, drawSize, drawSize,
-      );
+      this.withSpriteSmoothing(() => {
+        this.ctx.drawImage(
+          anim.image,
+          fi * srcW, 0, srcW, srcH,
+          px + offsetX, py + offsetY, drawSize, drawSize,
+        );
+      });
       return;
     }
 
@@ -1103,25 +1136,33 @@ export class Renderer {
 
   drawProjectiles(projectiles: ProjectileState[]): void {
     const ctx = this.ctx;
+    const bodyW = this.scaleToTile(10);
+    const bodyH = this.scaleToTile(4);
+    const shadowOutset = this.scaleToTile(1);
+    const shadowW = this.scaleToTile(3);
+    const noseW = this.scaleToTile(3);
+    const noseOffset = this.scaleToTile(2);
+    const highlightY = this.scaleToTile(1);
+    const beamW = this.scaleToTile(2);
+    const beamH = this.scaleToTile(8);
+    const beamOffset = this.scaleToTile(2);
 
     for (const projectile of projectiles) {
       const dir = projectile.direction === Direction.Right ? 1 : -1;
       const headX = Math.round(projectile.pos.x * TILE_SIZE);
       const headY = Math.round(projectile.pos.y * TILE_SIZE);
-      const bodyW = 10;
-      const bodyH = 4;
 
       ctx.fillStyle = 'rgba(58, 12, 12, 0.65)';
-      ctx.fillRect(headX - (dir < 0 ? 0 : bodyW), headY - 1, bodyW + 3, bodyH + 2);
+      ctx.fillRect(headX - (dir < 0 ? 0 : bodyW), headY - shadowOutset, bodyW + shadowW, bodyH + shadowOutset * 2);
 
       ctx.fillStyle = '#F74B4B';
       ctx.fillRect(headX - (dir < 0 ? 0 : bodyW), headY, bodyW, bodyH);
 
       ctx.fillStyle = '#FFD6D6';
-      ctx.fillRect(headX - (dir < 0 ? -2 : bodyW - 2), headY + 1, 3, 2);
+      ctx.fillRect(headX - (dir < 0 ? -noseOffset : bodyW - noseOffset), headY + highlightY, noseW, this.scaleToTile(2));
 
       ctx.fillStyle = '#FF8B8B';
-      ctx.fillRect(headX - dir * 2, headY - 2, 2, 8);
+      ctx.fillRect(headX - dir * beamOffset, headY - beamOffset, beamW, beamH);
     }
   }
 
@@ -1178,23 +1219,25 @@ export class Renderer {
       const drawY = Math.max(
         0,
         isUsingRope
-          ? py + this.ROPE_LINE_OFFSET_Y - this.ROPE_HAND_ANCHOR_Y
+          ? py + this.scaleToTile(this.ROPE_LINE_OFFSET_Y) - this.scaleToTile(this.ROPE_HAND_ANCHOR_Y)
           : py + offsetY
       );
       const fi = frameIndex % anim.frameCount;
       const sourceFrameWidth = anim.sourceFrameWidth ?? anim.frameWidth;
       const sourceFrameHeight = anim.sourceFrameHeight ?? anim.frameHeight;
-      ctx.drawImage(
-        anim.image,
-        fi * sourceFrameWidth,
-        0,
-        sourceFrameWidth,
-        sourceFrameHeight,
-        drawX,
-        drawY,
-        drawWidth,
-        drawHeight,
-      );
+      this.withSpriteSmoothing(() => {
+        ctx.drawImage(
+          anim.image,
+          fi * sourceFrameWidth,
+          0,
+          sourceFrameWidth,
+          sourceFrameHeight,
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight,
+        );
+      });
       return;
     }
 
@@ -1214,14 +1257,36 @@ export class Renderer {
 
     if (this.duckSprites) {
       let img: HTMLImageElement;
+      let crop: { x: number; y: number; w: number; h: number };
       if (isTrapped) {
         img = this.duckSprites.front;
+        crop = { x: 37, y: 33, w: 46, h: 55 };
       } else if (isOnLadder) {
         img = this.duckSprites.back;
+        crop = { x: 37, y: 33, w: 47, h: 56 };
       } else {
         img = facing === Direction.Left ? this.duckSprites.left : this.duckSprites.right;
+        crop = facing === Direction.Left
+          ? { x: 30, y: 32, w: 59, h: 56 }
+          : { x: 31, y: 32, w: 59, h: 56 };
       }
-      ctx.drawImage(img, px, py, TILE_SIZE, TILE_SIZE);
+      const drawHeight = Math.floor(TILE_SIZE * this.DUCK_SCALE);
+      const drawWidth = Math.round((crop.w / crop.h) * drawHeight);
+      const offsetX = Math.floor((TILE_SIZE - drawWidth) / 2);
+      const offsetY = TILE_SIZE - drawHeight;
+      this.withSpriteSmoothing(() => {
+        ctx.drawImage(
+          img,
+          crop.x,
+          crop.y,
+          crop.w,
+          crop.h,
+          px + offsetX,
+          py + offsetY,
+          drawWidth,
+          drawHeight,
+        );
+      });
       return;
     }
 
@@ -1243,7 +1308,9 @@ export class Renderer {
       );
       const drawX = effect.pos.x * TILE_SIZE + (TILE_SIZE - death.frameWidth) / 2;
       const drawY = effect.pos.y * TILE_SIZE + (TILE_SIZE - death.frameHeight) / 2;
-      drawFrame(this.ctx, death, frameIndex, drawX, drawY);
+      this.withSpriteSmoothing(() => {
+        drawFrame(this.ctx, death, frameIndex, drawX, drawY);
+      });
     }
   }
 

@@ -44,7 +44,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function loadPlayerSprites(): Promise<SpriteSet> {
   const base = '/assets/sprites/';
-  const version = 'gif-run-v10';
+  const version = 'craig-pack-v6';
 
   const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerClimb, powerRope, powerPickup] = await Promise.all([
     loadImage(base + 'player-run-right.png?v=' + version),
@@ -63,22 +63,22 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
   ]);
   const runFrameCount = 8;
   const runSourceFrameWidth = Math.floor(runRight.naturalWidth / runFrameCount);
-  const idleFrameCount = 4;
+  const idleFrameCount = 1;
   const idleSourceFrameWidth = Math.floor(idle.naturalWidth / idleFrameCount);
-  const climbFrameCount = 7;
+  const climbFrameCount = 4;
   const climbSourceFrameWidth = Math.floor(climb.naturalWidth / climbFrameCount);
-  const ropeFrameCount = 7;
+  const ropeFrameCount = 4;
   const ropeSourceFrameWidth = Math.floor(rope.naturalWidth / ropeFrameCount);
-  const digFrameCount = 9;
+  const digFrameCount = 10;
   const digLeftSourceFrameWidth = Math.floor(digLeft.naturalWidth / digFrameCount);
   const digRightSourceFrameWidth = Math.floor(digRight.naturalWidth / digFrameCount);
-  const powerRunFrameCount = 12;
+  const powerRunFrameCount = 8;
   const powerRunSourceFrameWidth = Math.floor(powerRunRight.naturalWidth / powerRunFrameCount);
   const powerFrontFrameCount = 1;
   const powerFrontSourceFrameWidth = Math.floor(powerFront.naturalWidth / powerFrontFrameCount);
-  const powerClimbFrameCount = 8;
+  const powerClimbFrameCount = 5;
   const powerClimbSourceFrameWidth = Math.floor(powerClimb.naturalWidth / powerClimbFrameCount);
-  const powerRopeFrameCount = 8;
+  const powerRopeFrameCount = 5;
   const powerRopeSourceFrameWidth = Math.floor(powerRope.naturalWidth / powerRopeFrameCount);
   const powerPickupFrameCount = 8;
   const powerPickupSourceFrameWidth = Math.floor(powerPickup.naturalWidth / powerPickupFrameCount);
@@ -193,7 +193,7 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
 
 export async function loadDuckSprites(): Promise<DuckSprites> {
   const base = '/assets/sprites/';
-  const version = 'duck-v2';
+  const version = 'duck-v4';
 
   const [right, left, front, back, death] = await Promise.all([
     loadImage(base + 'duck-right.png?v=' + version),
@@ -203,7 +203,7 @@ export async function loadDuckSprites(): Promise<DuckSprites> {
     loadImage(base + 'duck-death.png?v=' + version),
   ]);
 
-  const deathFrameCount = 8;
+  const deathFrameCount = 9;
   const deathSourceFrameWidth = Math.floor(death.naturalWidth / deathFrameCount);
 
   return {

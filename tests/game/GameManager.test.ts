@@ -3,6 +3,7 @@ import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
 import { Direction, TileType } from '@/types';
 import { createProjectile } from '@/game/Projectile';
+import { DUCK_HOLE_KILL_LEAD_MS } from '@/constants';
 
 describe('GameManager', () => {
   let input: InputManager;
@@ -168,6 +169,32 @@ describe('GameManager', () => {
     expect(duck.isTrapped).toBe(true);
   });
 
+  it('starts duck death slightly before the hole fully closes', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 5 };
+    duck.isTrapped = true;
+    duck.carryingBadge = false;
+
+    game.state.holes = [{
+      x: 5,
+      y: 5,
+      timer: DUCK_HOLE_KILL_LEAD_MS - 1,
+      phase: 'closing',
+      fillTile: TileType.Sand,
+      direction: Direction.Left,
+    }];
+
+    (game as any).checkHoleKills();
+
+    expect(game.duckDeaths).toHaveLength(1);
+    expect(game.confetti.length).toBeGreaterThan(0);
+    expect(duck.isTrapped).toBe(false);
+  });
+
   it('blocks LFV while the helmet power-up is active', () => {
     game.state.powerHelmetCollected = true;
     game.state.powerHelmetActive = true;
@@ -185,6 +212,21 @@ describe('GameManager', () => {
     expect(game.projectiles).toHaveLength(1);
     expect(game.state.powerHelmetShots).toBe(2);
     expect(game.vibeMeter.lfvTimer).toBe(0);
+    expect(game.vibeMeter.meter).toBe(0);
+  });
+
+  it('prevents digging while the helmet power-up is active', () => {
+    const startPos = { ...game.state.player.pos };
+    game.state.powerHelmetCollected = true;
+    game.state.powerHelmetActive = true;
+    game.state.powerHelmetShots = 3;
+
+    input.handleKeyDown('x');
+    game.update(16);
+
+    expect(game.state.player.isDigging).toBe(false);
+    expect(game.state.holes).toHaveLength(0);
+    expect(game.state.player.pos).toEqual(startPos);
   });
 
   it('cancels active LFV when the helmet is collected', () => {
@@ -197,6 +239,20 @@ describe('GameManager', () => {
     (game as any).checkPowerHelmetCollection();
 
     expect(game.state.powerHelmetActive).toBe(true);
+    expect(game.vibeMeter.lfvTimer).toBe(0);
+    expect(game.vibeMeter.meter).toBe(0);
+    expect(game.state.player.isLFV).toBe(false);
+  });
+
+  it('drains any new LFV gain while the helmet power-up remains active', () => {
+    game.state.powerHelmetCollected = true;
+    game.state.powerHelmetActive = true;
+    game.state.powerHelmetShots = 3;
+    game.vibeMeter.meter = 80;
+
+    game.update(16);
+
+    expect(game.vibeMeter.meter).toBe(0);
     expect(game.vibeMeter.lfvTimer).toBe(0);
     expect(game.state.player.isLFV).toBe(false);
   });
