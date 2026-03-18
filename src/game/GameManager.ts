@@ -600,7 +600,14 @@ export class GameManager {
         if (x === playerSpawn.x && y === playerSpawn.y) continue;
 
         const pos = { x, y };
-        if (!isSupported(grid, pos, canClimb(grid, pos), canTraverseRope(grid, pos))) continue;
+        const belowTile = getTile(grid, { x, y: y + 1 });
+        const onPlatform =
+          belowTile === TileType.Sand ||
+          belowTile === TileType.Coral ||
+          belowTile === TileType.TrapSand;
+
+        if (!onPlatform) continue;
+        if (!isSupported(grid, pos, false, false)) continue;
         candidates.push(pos);
       }
     }

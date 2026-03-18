@@ -307,4 +307,17 @@ describe('GameManager', () => {
     expect(game.state.currentLevel).toBe(4);
     expect(game.state.powerHelmetPos).not.toBeNull();
   });
+
+  it('spawns the helmet on a platform tile instead of a ladder or rope', () => {
+    game.loadLevel(3);
+    game.startGame();
+
+    const spawn = game.state.powerHelmetPos;
+    expect(spawn).not.toBeNull();
+    if (!spawn) return;
+
+    expect(game.state.grid[spawn.y][spawn.x]).toBe(TileType.Empty);
+    const below = game.state.grid[spawn.y + 1][spawn.x];
+    expect([TileType.Sand, TileType.Coral, TileType.TrapSand]).toContain(below);
+  });
 });

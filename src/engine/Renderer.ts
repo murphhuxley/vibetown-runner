@@ -1257,7 +1257,7 @@ export class Renderer {
       const fi = frameIndex % anim.frameCount;
       const srcW = anim.sourceFrameWidth ?? anim.frameWidth;
       const srcH = anim.sourceFrameHeight ?? anim.frameHeight;
-      const drawSize = Math.floor(TILE_SIZE * 1.3);
+      const drawSize = Math.floor(TILE_SIZE * 0.95);
       const offsetX = Math.floor((TILE_SIZE - drawSize) / 2);
       const offsetY = Math.floor((TILE_SIZE - drawSize) / 2);
       this.withSpriteSmoothing(() => {

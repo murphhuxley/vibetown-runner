@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { LEVELS, LEVEL_VARIANT_SLOTS, MASTER_LEVELS, randomizeLevels } from '@/levels/catalog';
 import { parseLevel, countBadges, findSpawnPosition } from '@/game/Level';
 import { TileType } from '@/types';
+import { GameManager } from '@/game/GameManager';
+import { InputManager } from '@/engine/Input';
 
 function countTile(grid: number[][], tile: TileType): number {
   let count = 0;
@@ -112,5 +114,22 @@ describe('Level pack', () => {
       expect(levelThree?.grid[7][13]).not.toBe(TileType.Badge);
       expect(levelThree?.grid[7][13]).not.toBe(TileType.DuckSpawn);
     }
+  });
+
+  it('can load every campaign level in sequence through the game manager', () => {
+    const game = new GameManager(new InputManager());
+
+    for (let index = 0; index < LEVELS.length; index++) {
+      expect(game.loadLevel(index), `failed to load campaign level ${index + 1}`).toBe(true);
+      expect(game.state.currentLevel).toBe(index + 1);
+      expect(game.state.badgesTotal, `level ${index + 1} should keep badges`).toBeGreaterThan(0);
+
+      const solidTiles = game.state.grid.flat().filter((tile) => (
+        tile === TileType.Sand || tile === TileType.Coral || tile === TileType.TrapSand
+      ));
+      expect(solidTiles.length, `level ${index + 1} should contain traversable geometry`).toBeGreaterThan(0);
+    }
+
+    expect(game.loadLevel(LEVELS.length)).toBe(false);
   });
 });
