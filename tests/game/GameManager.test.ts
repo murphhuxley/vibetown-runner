@@ -127,6 +127,49 @@ describe('GameManager', () => {
     expect(game.getDuckRenderPos(duck.id)).toEqual(duck.pos);
   });
 
+  it('registers a duck hit when the projectile clips the duck body before reaching center', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 5 };
+    duck.isTrapped = false;
+    duck.carryingBadge = false;
+
+    game.projectiles = [createProjectile(game.state.player.pos, Direction.Right)];
+
+    // This only reaches the duck's leading edge; the old center-point check missed it.
+    (game as any).updateProjectiles(120);
+
+    expect(game.projectiles).toHaveLength(0);
+    expect(game.duckDeaths).toHaveLength(1);
+  });
+
+  it('kills a duck before a later platform tile can swallow the projectile on upper rows', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    game.state.player.pos = { x: 2, y: 1 };
+    game.state.player.facing = Direction.Right;
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 1 };
+    duck.isTrapped = false;
+    duck.carryingBadge = false;
+
+    // Simulate a short upper platform segment that the projectile reaches in the same frame.
+    game.state.grid[1][6] = TileType.Sand;
+    game.projectiles = [createProjectile(game.state.player.pos, Direction.Right)];
+
+    (game as any).updateProjectiles(220);
+
+    expect(game.projectiles).toHaveLength(0);
+    expect(game.duckDeaths).toHaveLength(1);
+  });
+
   it('drops a carried bag onto a collectible floor tile when a projectile kills a duck', () => {
     game.state.grid = Array.from({ length: game.state.grid.length }, () => (
       Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)

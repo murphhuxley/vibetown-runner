@@ -10,7 +10,7 @@ import { collectDrop, updateDrops, VibestrDrop } from '@/game/Vibestr';
 import { createDuckDeathEffect, updateDuckDeathEffects, DuckDeathEffect } from '@/game/DuckDeath';
 import { createConfettiBurst, updateConfetti, ConfettiPiece } from '@/game/Confetti';
 import { getSpeedMultiplier } from '@/game/Weather';
-import { createProjectile, isProjectileExpired, projectileCrossesDuck, projectileHitsSolid, updateProjectile } from '@/game/Projectile';
+import { createProjectile, isProjectileExpired, traceProjectileImpact, updateProjectile } from '@/game/Projectile';
 import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
 import { InputManager } from '@/engine/Input';
 import { LEVELS, randomizeLevels } from '@/levels/catalog';
@@ -519,21 +519,22 @@ export class GameManager {
     for (const projectile of this.projectiles) {
       updateProjectile(projectile, dt);
 
-      if (isProjectileExpired(projectile) || projectileHitsSolid(projectile, this.state.grid)) {
+      if (isProjectileExpired(projectile)) {
         continue;
       }
 
-      let hitDuck: DuckState | null = null;
-      for (const duck of this.state.ducks) {
-        if (duck.isTrapped) continue;
-        if (projectileCrossesDuck(projectile, duck.pos)) {
-          hitDuck = duck;
-          break;
-        }
-      }
+      const { hitDuck, hitSolid } = traceProjectileImpact(
+        projectile,
+        this.state.ducks,
+        this.state.grid
+      );
 
       if (hitDuck) {
         this.killDuck(hitDuck);
+        continue;
+      }
+
+      if (hitSolid) {
         continue;
       }
 

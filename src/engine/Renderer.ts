@@ -60,6 +60,9 @@ export class Renderer {
   private theme: LevelTheme = getTheme('beach');
   private sandTile: HTMLImageElement | null = null;
   private coralTile: HTMLImageElement | null = null;
+  private ladderTile: HTMLImageElement | null = null;
+  private ropeTile: HTMLImageElement | null = null;
+  private bgImage: HTMLImageElement | null = null;
   private badgeSprite: HTMLImageElement | null = null;
   private badgeFrameCount = 1;
   private badgeSourceFrameWidth = 64;
@@ -77,8 +80,8 @@ export class Renderer {
   private readonly WORLD_PIXEL = 1;
   private readonly ROPE_LINE_OFFSET_Y = 13;
   private readonly ROPE_HAND_ANCHOR_Y = 6;
-  private readonly BADGE_SCALE = 0.72;
-  private readonly DROP_SCALE = 0.72;
+  private readonly BADGE_SCALE = 0.9;
+  private readonly DROP_SCALE = 0.9;
   private readonly PLAYER_SCALE = 1;
   private readonly DUCK_SCALE = 1.1;
   private readonly BASE_TILE_SIZE = 32;
@@ -109,7 +112,7 @@ export class Renderer {
       this.badgeFrameCount = frameCount;
       this.badgeSourceFrameWidth = Math.floor(badgeImg.naturalWidth / frameCount);
     };
-    badgeImg.src = '/assets/sprites/money-bag.png?v=money-bag-v1';
+    badgeImg.src = '/assets/sprites/money-bag.png?v=money-bag-v2';
 
     // Offscreen canvas for pixelated text rendering
     this.pixelCanvas = document.createElement('canvas');
@@ -193,6 +196,9 @@ export class Renderer {
     };
     this.sandTile = null;
     this.coralTile = null;
+    this.ladderTile = null;
+    this.ropeTile = null;
+    this.bgImage = null;
     this.loadTileSprites(themeKey);
   }
 
@@ -214,6 +220,9 @@ export class Renderer {
       });
     tryLoad(base + district + '-sand.png').then(img => { this.sandTile = img; });
     tryLoad(base + district + '-coral.png').then(img => { this.coralTile = img; });
+    tryLoad(base + district + '-ladder.png').then(img => { this.ladderTile = img; });
+    tryLoad(base + district + '-rope.png').then(img => { this.ropeTile = img; });
+    tryLoad('/assets/backgrounds/' + district + '-bg.png').then(img => { this.bgImage = img; });
   }
 
   updateAnimation(dt: number): void {
@@ -399,6 +408,16 @@ export class Renderer {
       ctx.fillRect(0, 0, W, H);
     }
 
+    // ── Scenic background image ──
+    if (this.bgImage) {
+      ctx.save();
+      ctx.globalAlpha = 0.6;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(this.bgImage, 0, 0, W, H);
+      ctx.restore();
+    }
+
     // ── Parallax depth layers ──
     this.drawParallaxLayers(W, H, t);
 
@@ -459,62 +478,6 @@ export class Renderer {
       ctx.ellipse(cloudX + cloudW * 0.3, cloudY + 1, cloudW * 0.3, cloudH * 0.35, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.restore();
-
-    // ── Layer 1: Distant mountains ──
-    ctx.save();
-    ctx.globalAlpha = 0.08;
-    ctx.fillStyle = this.theme.sandFill;
-    const mtOffset = t * 3;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    for (let x = -40; x <= W + 40; x += 8) {
-      const baseY = H * 0.3;
-      const peak = Math.sin((x + mtOffset) * 0.012) * H * 0.18
-                 + Math.sin((x + mtOffset) * 0.025) * H * 0.1
-                 + Math.sin((x + mtOffset) * 0.05) * H * 0.04;
-      ctx.lineTo(x, baseY - peak);
-    }
-    ctx.lineTo(W + 40, H);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    // ── Layer 2: Mid-ground hills ──
-    ctx.save();
-    ctx.globalAlpha = 0.07;
-    ctx.fillStyle = this.theme.coralFill;
-    const hillOffset = t * 8;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    for (let x = -40; x <= W + 40; x += 6) {
-      const baseY = H * 0.5;
-      const hill = Math.sin((x + hillOffset) * 0.02) * H * 0.12
-                 + Math.sin((x + hillOffset) * 0.045) * H * 0.06;
-      ctx.lineTo(x, baseY - hill);
-    }
-    ctx.lineTo(W + 40, H);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-
-    // ── Layer 3: Foreground silhouettes ──
-    ctx.save();
-    ctx.globalAlpha = 0.06;
-    ctx.fillStyle = this.theme.sandShadow;
-    const bushOffset = t * 15;
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    for (let x = -40; x <= W + 40; x += 4) {
-      const baseY = H * 0.72;
-      const bush = Math.sin((x + bushOffset) * 0.035) * H * 0.07
-                 + Math.cos((x + bushOffset) * 0.08) * H * 0.04
-                 + Math.sin((x + bushOffset) * 0.15) * H * 0.02;
-      ctx.lineTo(x, baseY - Math.abs(bush));
-    }
-    ctx.lineTo(W + 40, H);
-    ctx.closePath();
-    ctx.fill();
     ctx.restore();
 
     // ── Vignette — dark edges to frame the scene ──
@@ -791,32 +754,108 @@ export class Renderer {
     const ctx = this.ctx;
     const color = this.theme.ladder;
     const S = TILE_SIZE;
+    const s = (v: number) => this.scaleToTile(v);
+    const style = this.theme.animStyle;
 
-    // Dark outline for contrast against any background
-    const railW = this.scaleToTile(3);
-    const rungH = this.scaleToTile(2);
-    const railL = px + this.scaleToTile(7);
-    const railR = px + S - this.scaleToTile(5) - railW;
-
-    // Shadow/outline layer
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(railL + 1, py + 1, railW, S);
-    ctx.fillRect(railR + 1, py + 1, railW, S);
-
-    // Two solid vertical rails
-    ctx.fillStyle = color;
-    ctx.fillRect(railL, py, railW, S);
-    ctx.fillRect(railR, py, railW, S);
-
-    // 4 horizontal rungs (evenly spaced)
-    const rungGap = this.scaleToTile(6);
-    for (let ry = py + rungGap; ry < py + S - rungH; ry += rungGap) {
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
-      ctx.fillRect(railL + 1, ry + 1, railR + railW - railL, rungH);
-      ctx.fillStyle = color;
-      ctx.fillRect(railL, ry, railR + railW - railL, rungH);
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(railL, ry, railR + railW - railL, 1);
+    switch (style) {
+      case 'sweep': {
+        // Futuristic: glowing energy beam rails, no rungs — floating pads
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(px + s(10), py, s(12), S); // center glow
+        ctx.globalAlpha = 1;
+        ctx.fillRect(px + s(13), py, s(6), S); // bright core
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillRect(px + s(14), py, s(4), S); // white hot center
+        // Floating step pads
+        for (let ry = py + s(4); ry < py + S; ry += s(8)) {
+          ctx.fillStyle = color;
+          ctx.fillRect(px + s(8), ry, s(16), s(2));
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.fillRect(px + s(9), ry, s(14), s(1));
+        }
+        break;
+      }
+      case 'cosmic': {
+        // Cosmic: crystalline structure with sparkle dots
+        ctx.fillStyle = color;
+        ctx.fillRect(px + s(9), py, s(3), S);
+        ctx.fillRect(px + S - s(9) - s(3), py, s(3), S);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(px + s(10), py, s(1), S);
+        ctx.fillRect(px + S - s(10), py, s(1), S);
+        for (let ry = py + s(5); ry < py + S - s(2); ry += s(7)) {
+          ctx.fillStyle = color;
+          ctx.fillRect(px + s(9), ry, S - s(18), s(2));
+          // Sparkle dots on rungs
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(px + s(12), ry, s(1), s(1));
+          ctx.fillRect(px + S - s(13), ry, s(1), s(1));
+        }
+        break;
+      }
+      case 'shimmer': {
+        // Gold: ornate thick rails with decorative rungs
+        const railW = s(4);
+        const railL = px + s(6);
+        const railR = px + S - s(6) - railW;
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.fillRect(railL + 1, py + 1, railW, S);
+        ctx.fillRect(railR + 1, py + 1, railW, S);
+        ctx.fillStyle = color;
+        ctx.fillRect(railL, py, railW, S);
+        ctx.fillRect(railR, py, railW, S);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(railL, py, s(1), S);
+        ctx.fillRect(railR, py, s(1), S);
+        for (let ry = py + s(5); ry < py + S - s(2); ry += s(7)) {
+          ctx.fillStyle = color;
+          ctx.fillRect(railL, ry, railR + railW - railL, s(3));
+          ctx.fillStyle = 'rgba(255,255,255,0.25)';
+          ctx.fillRect(railL, ry, railR + railW - railL, s(1));
+        }
+        break;
+      }
+      case 'rainbow': {
+        // Rainbow: each rung a different color
+        const railL = px + s(8);
+        const railR = px + S - s(8) - s(2);
+        ctx.fillStyle = '#333333';
+        ctx.fillRect(railL, py, s(2), S);
+        ctx.fillRect(railR, py, s(2), S);
+        const colors = ['#FF4444', '#FF8800', '#FFDD00', '#44DD44', '#4488FF', '#AA44FF'];
+        let ci = 0;
+        for (let ry = py + s(4); ry < py + S - s(2); ry += s(5)) {
+          ctx.fillStyle = colors[ci % colors.length];
+          ctx.fillRect(railL, ry, railR + s(2) - railL, s(3));
+          ctx.fillStyle = 'rgba(255,255,255,0.3)';
+          ctx.fillRect(railL, ry, railR + s(2) - railL, s(1));
+          ci++;
+        }
+        break;
+      }
+      default: {
+        // Standard ladder: two rails + rungs (Nature, Beach, City, Gray, Flower)
+        const railW = s(3);
+        const railL = px + s(7);
+        const railR = px + S - s(5) - railW;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(railL + 1, py + 1, railW, S);
+        ctx.fillRect(railR + 1, py + 1, railW, S);
+        ctx.fillStyle = color;
+        ctx.fillRect(railL, py, railW, S);
+        ctx.fillRect(railR, py, railW, S);
+        const rungGap = s(6);
+        for (let ry = py + rungGap; ry < py + S - s(2); ry += rungGap) {
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(railL + 1, ry + 1, railR + railW - railL, s(2));
+          ctx.fillStyle = color;
+          ctx.fillRect(railL, ry, railR + railW - railL, s(2));
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(railL, ry, railR + railW - railL, 1);
+        }
+        break;
+      }
     }
   }
 
@@ -826,33 +865,134 @@ export class Renderer {
     const midY = py + this.scaleToTile(this.ROPE_LINE_OFFSET_Y);
     const startX = px;
     const endX = px + TILE_SIZE;
-    const ropeH = this.scaleToTile(5);
-    const top = midY - ropeH / 2;
+    const s = (v: number) => this.scaleToTile(v);
+    const style = this.theme.animStyle;
 
-    // Dark shadow for contrast
-    ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    ctx.fillRect(startX, top + this.scaleToTile(2), TILE_SIZE, ropeH);
-
-    // Main rope body
-    ctx.fillStyle = color;
-    ctx.fillRect(startX, top, TILE_SIZE, ropeH);
-
-    // Top highlight (lighter)
-    ctx.fillStyle = 'rgba(255,255,255,0.25)';
-    ctx.fillRect(startX, top, TILE_SIZE, this.scaleToTile(2));
-
-    // Bottom shadow edge (darker)
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.fillRect(startX, top + ropeH - this.scaleToTile(1), TILE_SIZE, this.scaleToTile(1));
-
-    // Rope texture — vertical hash marks for a twisted rope look
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    for (let x = startX + this.scaleToTile(2); x < endX; x += this.scaleToTile(4)) {
-      ctx.fillRect(x, top + this.scaleToTile(1), this.scaleToTile(1), ropeH - this.scaleToTile(2));
-    }
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
-    for (let x = startX + this.scaleToTile(4); x < endX; x += this.scaleToTile(4)) {
-      ctx.fillRect(x, top + this.scaleToTile(1), this.scaleToTile(1), ropeH - this.scaleToTile(2));
+    switch (style) {
+      case 'sweep': {
+        // Futuristic: neon laser beam with glow
+        const beamH = s(3);
+        const top = midY - beamH / 2;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(startX, top - s(3), TILE_SIZE, beamH + s(6)); // outer glow
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(startX, top - s(1), TILE_SIZE, beamH + s(2)); // mid glow
+        ctx.globalAlpha = 1;
+        ctx.fillRect(startX, top, TILE_SIZE, beamH); // core beam
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillRect(startX, top + s(1), TILE_SIZE, s(1)); // white hot center
+        break;
+      }
+      case 'cosmic': {
+        // Cosmic: wavy energy tether with dots
+        const ropeH = s(4);
+        const top = midY - ropeH / 2;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.35;
+        ctx.fillRect(startX, top - s(2), TILE_SIZE, ropeH + s(4));
+        ctx.globalAlpha = 1;
+        ctx.fillRect(startX, top, TILE_SIZE, ropeH);
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillRect(startX, top, TILE_SIZE, s(1));
+        // Sparkle dots along the tether
+        ctx.fillStyle = '#FFFFFF';
+        for (let x = startX + s(3); x < endX; x += s(6)) {
+          ctx.fillRect(x, top + s(1), s(1), s(1));
+        }
+        break;
+      }
+      case 'shimmer': {
+        // Gold: thick velvet cord with tassels
+        const ropeH = s(6);
+        const top = midY - ropeH / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(startX, top + s(2), TILE_SIZE, ropeH);
+        ctx.fillStyle = color;
+        ctx.fillRect(startX, top, TILE_SIZE, ropeH);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(startX, top, TILE_SIZE, s(2));
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        ctx.fillRect(startX, top + ropeH - s(1), TILE_SIZE, s(1));
+        // Gold accent stripe
+        ctx.fillStyle = '#E0B030';
+        ctx.fillRect(startX, top + s(2), TILE_SIZE, s(1));
+        break;
+      }
+      case 'rainbow': {
+        // Rainbow: multicolor gradient rope
+        const ropeH = s(5);
+        const top = midY - ropeH / 2;
+        const colors = ['#FF4444', '#FF8800', '#FFDD00', '#44DD44', '#4488FF', '#AA44FF'];
+        const segW = Math.ceil(TILE_SIZE / colors.length);
+        for (let i = 0; i < colors.length; i++) {
+          ctx.fillStyle = colors[i];
+          ctx.fillRect(startX + i * segW, top, segW, ropeH);
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(startX, top, TILE_SIZE, s(1));
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(startX, top + ropeH - s(1), TILE_SIZE, s(1));
+        break;
+      }
+      case 'pulse': {
+        // Grayscale: heavy chain links
+        const ropeH = s(5);
+        const top = midY - ropeH / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(startX, top + s(1), TILE_SIZE, ropeH);
+        // Chain link pattern: alternating thick/thin segments
+        for (let x = startX; x < endX; x += s(6)) {
+          ctx.fillStyle = color;
+          ctx.fillRect(x, top, s(4), ropeH);
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.fillRect(x, top, s(4), s(1));
+          // Thin connector
+          ctx.fillStyle = color;
+          ctx.fillRect(x + s(4), top + s(1), s(2), ropeH - s(2));
+        }
+        break;
+      }
+      case 'bloom': {
+        // Flower: green vine with tiny flower dots
+        const ropeH = s(4);
+        const top = midY - ropeH / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(startX, top + s(1), TILE_SIZE, ropeH);
+        ctx.fillStyle = color;
+        ctx.fillRect(startX, top, TILE_SIZE, ropeH);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(startX, top, TILE_SIZE, s(1));
+        // Small flower buds along vine
+        const budColors = ['#FF80A0', '#FFB0C0', '#FF60A0'];
+        for (let x = startX + s(4); x < endX; x += s(8)) {
+          ctx.fillStyle = budColors[Math.floor(x / s(8)) % budColors.length];
+          ctx.fillRect(x, top - s(1), s(2), s(2));
+        }
+        break;
+      }
+      default: {
+        // Standard rope (Nature, Beach, City)
+        const ropeH = s(5);
+        const top = midY - ropeH / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(startX, top + s(2), TILE_SIZE, ropeH);
+        ctx.fillStyle = color;
+        ctx.fillRect(startX, top, TILE_SIZE, ropeH);
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(startX, top, TILE_SIZE, s(2));
+        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.fillRect(startX, top + ropeH - s(1), TILE_SIZE, s(1));
+        ctx.fillStyle = 'rgba(0,0,0,0.15)';
+        for (let x = startX + s(2); x < endX; x += s(4)) {
+          ctx.fillRect(x, top + s(1), s(1), ropeH - s(2));
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        for (let x = startX + s(4); x < endX; x += s(4)) {
+          ctx.fillRect(x, top + s(1), s(1), ropeH - s(2));
+        }
+        break;
+      }
     }
   }
 
