@@ -67,6 +67,12 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-8px); }
     }
+    #menu-panel.hidden, #instructions-panel.hidden, #options-panel.hidden, #leaderboard-panel.hidden { display: none; }
+    #instructions-panel, #options-panel, #leaderboard-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
     #menu-panel {
       position: relative;
       width: 640px;
@@ -130,23 +136,38 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
     }
     #options-modal.hidden { display: none; }
     #options-box {
-      background: #1a1a1a;
-      border: 2px solid #F5D76E;
-      border-radius: 8px;
-      padding: 40px 50px;
-      max-width: 400px;
+      position: relative;
+      width: 968px;
+      height: 968px;
       text-align: center;
       color: white;
     }
-    #options-box h2 {
-      font-weight: 900;
-      font-size: 28px;
-      color: #F5D76E;
-      margin-bottom: 24px;
+    #options-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      z-index: 0;
+    }
+    #options-inner {
+      position: absolute;
+      top: 265px;
+      left: 240px;
+      right: 240px;
+      bottom: 144px;
+      background: rgba(0,0,0,0.75);
+      border-radius: 10px;
+      z-index: 1;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .option-row {
       display: flex;
@@ -154,77 +175,98 @@
       align-items: center;
       padding: 12px 0;
       font-size: 18px;
-      color: #ccc;
-    }
-    .toggle-btn {
-      padding: 8px 24px;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
-      font-size: 16px;
-      border: 2px solid #F5D76E;
-      border-radius: 4px;
-      background: rgba(245,215,110,0.15);
-      color: #F5D76E;
+      color: #ccc;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #options-close {
+      position: relative;
+      z-index: 2;
+      margin-top: 10px;
+    }
+    .toggle-btn {
+      padding: 0;
+      border: none;
+      background: transparent;
       cursor: pointer;
     }
-    .toggle-btn:hover {
-      background: rgba(245,215,110,0.3);
+    .toggle-btn img {
+      width: 48px;
+      height: 48px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
 
-    /* ── Leaderboard Modal ── */
-    #leaderboard-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(0,0,0,0.85);
-    }
-    #leaderboard-modal.hidden { display: none; }
+    /* ── Leaderboard Panel (inside menu) ── */
+    #leaderboard-panel.hidden { display: none; }
     #leaderboard-box {
-      background: #1a1a1a;
-      border: 2px solid #F5D76E;
-      border-radius: 8px;
-      padding: 30px 40px;
-      max-width: 520px;
-      width: 90%;
+      position: relative;
+      width: 968px;
+      height: 968px;
       text-align: center;
       color: white;
     }
-    #leaderboard-box h2 {
-      font-weight: 900;
-      font-size: 28px;
-      color: #F5D76E;
-      margin-bottom: 20px;
+    #leaderboard-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      z-index: 0;
+    }
+    #leaderboard-inner {
+      position: absolute;
+      top: 265px;
+      left: 240px;
+      right: 240px;
+      bottom: 144px;
+      background: rgba(0,0,0,0.75);
+      border-radius: 10px;
+      z-index: 1;
+      padding: 12px 14px;
+      overflow-y: auto;
     }
     #leaderboard-list {
       text-align: left;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 21px;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
     .lb-header, .lb-row {
       display: flex;
       padding: 6px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
     }
     .lb-header {
       color: #F5D76E;
-      font-size: 12px;
+      font-size: 11px;
       text-transform: uppercase;
+      position: sticky;
+      top: 0;
+      padding: 4px 0 6px;
+      z-index: 1;
+      border-bottom: 1px solid rgba(245,215,110,0.2);
+      margin-bottom: 2px;
     }
-    .lb-rank { width: 40px; text-align: center; }
+    .lb-row { color: #ddd; }
+    .lb-rank { width: 32px; text-align: center; }
     .lb-name { flex: 1; }
-    .lb-score { width: 80px; text-align: right; }
-    .lb-level { width: 50px; text-align: right; }
+    .lb-score { width: 72px; text-align: right; }
+    .lb-level { width: 44px; text-align: right; }
     .lb-row.highlight {
       color: #F5D76E;
       background: rgba(245,215,110,0.1);
+      border-radius: 4px;
+    }
+    #leaderboard-close {
+      position: relative;
+      z-index: 2;
+      margin-top: 10px;
     }
 
     /* ── Score Submission Modal ── */
@@ -291,44 +333,63 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
     }
     #instructions-modal.hidden { display: none; }
 
     #instructions-box {
-      background: #1a1a1a;
-      border: 2px solid #F5D76E;
-      border-radius: 8px;
-      padding: 40px 50px;
-      max-width: 500px;
+      position: relative;
+      width: 968px;
+      height: 968px;
       text-align: center;
       color: white;
     }
-
-    #instructions-box h2 {
-      font-weight: 900;
-      font-size: 28px;
-      color: #F5D76E;
-      margin-bottom: 24px;
+    #instructions-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      z-index: 0;
+    }
+    #instructions-inner {
+      position: absolute;
+      top: 265px;
+      left: 240px;
+      right: 240px;
+      bottom: 144px;
+      background: rgba(0,0,0,0.75);
+      border-radius: 10px;
+      z-index: 1;
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .instruction-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      font-size: 15px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 16px;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
     .instruction-row:last-child { border-bottom: none; }
 
     .instruction-key {
-      background: rgba(255,255,255,0.1);
+      background: rgba(245,215,110,0.15);
       padding: 4px 12px;
       border-radius: 3px;
       font-weight: 700;
       color: #F5D76E;
-      font-size: 13px;
+      font-size: 14px;
     }
 
     .instruction-desc {
@@ -336,8 +397,17 @@
       text-align: right;
     }
 
-    #instructions-close {
-      margin-top: 24px;
+    .back-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      margin-top: -55px;
+    }
+    .back-btn img {
+      height: 78px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
   </style>
 </head>
@@ -351,71 +421,80 @@
         <button class="menu-hit" id="btn-play" aria-label="Play"></button>
         <button class="menu-hit" id="btn-instructions" aria-label="Instructions"></button>
         <button class="menu-hit" id="btn-options" aria-label="Options"></button>
-        <button class="menu-hit" id="btn-quit" aria-label="Quit"></button>
+        <button class="menu-hit" id="btn-quit" aria-label="Leaderboard"></button>
       </div>
-    </div>
-  </div>
-
-  <!-- Instructions Modal -->
-  <div id="instructions-modal" class="hidden">
-    <div id="instructions-box">
-      <h2>HOW TO PLAY</h2>
-      <div class="instruction-row">
-        <span class="instruction-key">ARROW KEYS</span>
-        <span class="instruction-desc">Move & Climb</span>
-      </div>
-      <div class="instruction-row">
-        <span class="instruction-key">Z</span>
-        <span class="instruction-desc">Dig Left</span>
-      </div>
-      <div class="instruction-row">
-        <span class="instruction-key">C</span>
-        <span class="instruction-desc">Dig Right</span>
-      </div>
-      <div class="instruction-row">
-        <span class="instruction-key">SPACE</span>
-        <span class="instruction-desc">Activate LFV Mode</span>
-      </div>
-      <div class="instruction-row">
-        <span class="instruction-key">GOAL</span>
-        <span class="instruction-desc">Collect all money bags</span>
-      </div>
-      <div class="instruction-row">
-        <span class="instruction-key">ESCAPE</span>
-        <span class="instruction-desc">Climb the hidden ladder to the top</span>
-      </div>
-      <button class="menu-btn" id="instructions-close">GOT IT</button>
-    </div>
-  </div>
-
-  <!-- Options Modal -->
-  <div id="options-modal" class="hidden">
-    <div id="options-box">
-      <h2>OPTIONS</h2>
-      <div class="option-row">
-        <span>Sound</span>
-        <button class="toggle-btn" id="sound-toggle">ON</button>
-      </div>
-      <button class="menu-btn" id="options-close" style="margin-top:24px">BACK</button>
-    </div>
-  </div>
-
-  <!-- Leaderboard Modal -->
-  <div id="leaderboard-modal" class="hidden">
-    <div id="leaderboard-box">
-      <h2>LEADERBOARD</h2>
-      <div id="leaderboard-list">
-        <div class="lb-header">
-          <span class="lb-rank">#</span>
-          <span class="lb-name">NAME</span>
-          <span class="lb-score">SCORE</span>
-          <span class="lb-level">LVL</span>
+      <div id="instructions-panel" class="hidden">
+        <div id="instructions-box">
+          <img id="instructions-frame" src="/assets/backgrounds/instructions-frame.png" alt="">
+          <div id="instructions-inner">
+            <div class="instruction-row">
+              <span class="instruction-key">ARROWS</span>
+              <span class="instruction-desc">Move & Climb</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">Z</span>
+              <span class="instruction-desc">Dig Left</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">C</span>
+              <span class="instruction-desc">Dig Right</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">SPACE</span>
+              <span class="instruction-desc">Activate LFV Mode</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">GOAL</span>
+              <span class="instruction-desc">Collect all money bags</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">ESCAPE</span>
+              <span class="instruction-desc">Climb hidden ladder</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">HELMET</span>
+              <span class="instruction-desc">Shadow Funk Mode</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">X</span>
+              <span class="instruction-desc">Fire projectile</span>
+            </div>
+          </div>
         </div>
-        <div id="lb-entries"></div>
+        <button class="back-btn" id="instructions-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
       </div>
-      <button class="menu-btn" id="leaderboard-close" style="margin-top:20px">BACK</button>
+      <div id="options-panel" class="hidden">
+        <div id="options-box">
+          <img id="options-frame" src="/assets/backgrounds/options-frame.png" alt="">
+          <div id="options-inner">
+            <div class="option-row">
+              <span>Sound</span>
+              <button class="toggle-btn" id="sound-toggle"><img src="/assets/sprites/toggle-on.png" alt="ON"></button>
+            </div>
+          </div>
+        </div>
+        <button class="back-btn" id="options-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
+      </div>
+      <div id="leaderboard-panel" class="hidden">
+        <div id="leaderboard-box">
+          <img id="leaderboard-frame" src="/assets/backgrounds/leaderboard-frame.png" alt="">
+          <div id="leaderboard-inner">
+            <div id="leaderboard-list">
+              <div class="lb-header">
+                <span class="lb-rank">#</span>
+                <span class="lb-name">NAME</span>
+                <span class="lb-score">SCORE</span>
+                <span class="lb-level">LVL</span>
+              </div>
+              <div id="lb-entries"></div>
+            </div>
+          </div>
+        </div>
+        <button class="back-btn" id="leaderboard-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
+      </div>
     </div>
   </div>
+
 
   <!-- Score Submission Modal -->
   <div id="score-submit" class="hidden">

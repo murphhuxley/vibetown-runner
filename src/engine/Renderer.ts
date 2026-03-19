@@ -1562,5 +1562,8 @@ export class Renderer {
     } else {
       this.drawPixelText('VIBE', barX + barW / 2, midY, vibeFont, COLORS.cream, 'center', ps);
     }
+
+    // MENU button text
+    this.drawPixelText('MENU', CANVAS_WIDTH - 10, midY, hudFont, 'rgba(255,255,255,0.5)', 'right', ps);
   }
 }

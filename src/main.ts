@@ -53,7 +53,17 @@ game.onRevealLadders = sfxRevealLadders;
 
 // ── Main Menu UI ──
 const menuScreen = document.getElementById('menu-screen')!;
-const instructionsModal = document.getElementById('instructions-modal')!;
+const menuPanel = document.getElementById('menu-panel')!;
+const instructionsPanel = document.getElementById('instructions-panel')!;
+const optionsPanel = document.getElementById('options-panel')!;
+
+function showPanel(panel: HTMLElement): void {
+  menuPanel.classList.add('hidden');
+  instructionsPanel.classList.add('hidden');
+  optionsPanel.classList.add('hidden');
+  leaderboardPanel.classList.add('hidden');
+  panel.classList.remove('hidden');
+}
 
 function hideMenu(): void {
   menuScreen.classList.add('hidden');
@@ -61,26 +71,46 @@ function hideMenu(): void {
   canvas.focus();
 }
 
-const optionsModal = document.getElementById('options-modal')!;
+function showMenu(): void {
+  menuScreen.classList.remove('hidden');
+  showPanel(menuPanel);
+  game.state.phase = GamePhase.Menu;
+}
+
+// MENU click detection on canvas HUD area
+canvas.addEventListener('click', (e) => {
+  if (game.state.phase === GamePhase.Menu) return;
+  const rect = canvas.getBoundingClientRect();
+  const cx = ((e.clientX - rect.left) / rect.width) * CANVAS_WIDTH;
+  const cy = ((e.clientY - rect.top) / rect.height) * (CANVAS_HEIGHT);
+  const hudY = GRID_ROWS * TILE_SIZE;
+  // MENU text is at the right end of the HUD bar
+  if (cy >= hudY && cx >= CANVAS_WIDTH - 100) {
+    showMenu();
+  }
+});
+
 const soundToggle = document.getElementById('sound-toggle')!;
 let soundEnabled = true;
 
 document.getElementById('btn-play')!.addEventListener('click', hideMenu);
 document.getElementById('btn-instructions')!.addEventListener('click', () => {
-  instructionsModal.classList.remove('hidden');
+  showPanel(instructionsPanel);
 });
 document.getElementById('instructions-close')!.addEventListener('click', () => {
-  instructionsModal.classList.add('hidden');
+  showPanel(menuPanel);
 });
 document.getElementById('btn-options')!.addEventListener('click', () => {
-  optionsModal.classList.remove('hidden');
+  showPanel(optionsPanel);
 });
 document.getElementById('options-close')!.addEventListener('click', () => {
-  optionsModal.classList.add('hidden');
+  showPanel(menuPanel);
 });
 soundToggle.addEventListener('click', () => {
   soundEnabled = !soundEnabled;
-  soundToggle.textContent = soundEnabled ? 'ON' : 'OFF';
+  const toggleImg = soundToggle.querySelector('img')!;
+  toggleImg.src = soundEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
+  toggleImg.alt = soundEnabled ? 'ON' : 'OFF';
   // Mute/unmute all audio pools by toggling the master volume callbacks
   if (soundEnabled) {
     game.onDig = sfxDig;
@@ -107,7 +137,7 @@ soundToggle.addEventListener('click', () => {
   }
 });
 // ── Leaderboard ──
-const leaderboardModal = document.getElementById('leaderboard-modal')!;
+const leaderboardPanel = document.getElementById('leaderboard-panel')!;
 const lbEntries = document.getElementById('lb-entries')!;
 
 function renderLeaderboard(entries: LeaderboardEntry[], highlightId?: string): void {
@@ -153,7 +183,9 @@ async function showLeaderboard(highlightId?: string): Promise<void> {
   loading.style.cssText = 'color:#888;padding:20px;font-family:Brice,sans-serif';
   loading.textContent = 'Loading...';
   lbEntries.appendChild(loading);
-  leaderboardModal.classList.remove('hidden');
+  menuScreen.classList.remove('hidden');
+  showPanel(leaderboardPanel);
+  game.state.phase = GamePhase.Menu;
   try {
     const entries = await getTop25();
     renderLeaderboard(entries, highlightId);
@@ -166,44 +198,60 @@ document.getElementById('btn-quit')!.addEventListener('click', () => {
   showLeaderboard();
 });
 document.getElementById('leaderboard-close')!.addEventListener('click', () => {
-  leaderboardModal.classList.add('hidden');
+  showPanel(menuPanel);
 });
 
 // ── Score Submission ──
 const scoreSubmitModal = document.getElementById('score-submit')!;
 const scoreNameInput = document.getElementById('score-name-input') as HTMLInputElement;
 const submitScoreDisplay = document.getElementById('submit-score-display')!;
+const scoreSubmitBtn = document.getElementById('score-submit-btn') as HTMLButtonElement;
+const scoreSkipBtn = document.getElementById('score-skip-btn') as HTMLButtonElement;
 let hasSubmittedThisRun = false;
+let scoreSubmitInFlight = false;
+
+function setScoreSubmitPending(pending: boolean): void {
+  scoreSubmitInFlight = pending;
+  scoreSubmitBtn.disabled = pending;
+  scoreSkipBtn.disabled = pending;
+  scoreNameInput.disabled = pending;
+}
 
 function showScoreSubmit(): void {
   if (hasSubmittedThisRun) return;
   submitScoreDisplay.textContent = `Score: ${game.state.score.toLocaleString()}  |  Level: ${game.state.currentLevel}`;
   scoreNameInput.value = '';
+  setScoreSubmitPending(false);
   scoreSubmitModal.classList.remove('hidden');
   setTimeout(() => scoreNameInput.focus(), 100);
 }
 
-document.getElementById('score-submit-btn')!.addEventListener('click', async () => {
+scoreSubmitBtn.addEventListener('click', async () => {
+  if (scoreSubmitInFlight) return;
   const name = scoreNameInput.value.trim();
   if (!name) return;
+  setScoreSubmitPending(true);
   scoreSubmitModal.classList.add('hidden');
   hasSubmittedThisRun = true;
   try {
     const id = await submitScore(name, game.state.score, game.state.currentLevel);
-    showLeaderboard(id);
+    await showLeaderboard(id);
   } catch {
-    showLeaderboard();
+    await showLeaderboard();
+  } finally {
+    setScoreSubmitPending(false);
   }
 });
 
-document.getElementById('score-skip-btn')!.addEventListener('click', () => {
+scoreSkipBtn.addEventListener('click', () => {
+  if (scoreSubmitInFlight) return;
   scoreSubmitModal.classList.add('hidden');
   hasSubmittedThisRun = true;
 });
 
 scoreNameInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
-    document.getElementById('score-submit-btn')!.click();
+    scoreSubmitBtn.click();
   }
 });
 
