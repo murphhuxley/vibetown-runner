@@ -6,7 +6,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_ROWS, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
-import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop } from '@/engine/Audio';
+import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, musicStart, musicStop, musicSetMuted } from '@/engine/Audio';
 import { getTop25, submitScore, LeaderboardEntry } from '@/leaderboard';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -68,6 +68,7 @@ function showPanel(panel: HTMLElement): void {
 function hideMenu(): void {
   menuScreen.classList.add('hidden');
   game.startGame();
+  musicStart();
   canvas.focus();
 }
 
@@ -75,6 +76,7 @@ function showMenu(): void {
   menuScreen.classList.remove('hidden');
   showPanel(menuPanel);
   game.state.phase = GamePhase.Menu;
+  musicStart();
 }
 
 // MENU click detection on canvas HUD area
@@ -135,6 +137,17 @@ soundToggle.addEventListener('click', () => {
     game.onVibestr = undefined;
     game.onRevealLadders = undefined;
   }
+});
+
+// ── Music Toggle ──
+const musicToggle = document.getElementById('music-toggle')!;
+let musicEnabled = true;
+musicToggle.addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  const toggleImg = musicToggle.querySelector('img')!;
+  toggleImg.src = musicEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
+  toggleImg.alt = musicEnabled ? 'ON' : 'OFF';
+  musicSetMuted(!musicEnabled);
 });
 // ── Leaderboard ──
 const leaderboardPanel = document.getElementById('leaderboard-panel')!;
@@ -450,6 +463,11 @@ window.addEventListener('keydown', (e) => {
 });
 
 loop.start();
+
+// Start music on first user interaction (browser autoplay policy)
+menuScreen.addEventListener('click', () => {
+  if (musicEnabled) musicStart();
+}, { once: true });
 
 if (isDevHost) {
   // Debug export for playtesting

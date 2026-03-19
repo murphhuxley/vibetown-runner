@@ -83,3 +83,70 @@ export function sfxVibestr(): void { play('/assets/audio/collect.mp3', 0.3); }
 export function sfxRevealLadders(): void { play('/assets/audio/collect.mp3', 0.4); }
 
 export function resumeAudio(): void {}
+
+// ── Background Music ──
+// Two-track cycle: theme → vibegaming → theme → ...
+const musicTheme = new Audio('/assets/audio/viberunner-theme.mp3');
+const musicVibegaming = new Audio('/assets/audio/vibegaming.mp3');
+musicTheme.preload = 'auto';
+musicVibegaming.preload = 'auto';
+
+let musicMuted = false;
+let musicPlaying = false;
+
+function chainMusic(): void {
+  musicTheme.onended = () => {
+    if (!musicMuted && musicPlaying) {
+      musicVibegaming.currentTime = 0;
+      musicVibegaming.play().catch(() => {});
+    }
+  };
+  musicVibegaming.onended = () => {
+    if (!musicMuted && musicPlaying) {
+      musicTheme.currentTime = 0;
+      musicTheme.play().catch(() => {});
+    }
+  };
+}
+chainMusic();
+
+/** Start playing the theme from the beginning. Chains to vibegaming on end. */
+export function musicStart(): void {
+  musicPlaying = true;
+  musicVibegaming.pause();
+  musicVibegaming.currentTime = 0;
+  musicTheme.currentTime = 0;
+  musicTheme.volume = 0.4;
+  musicVibegaming.volume = 0.4;
+  if (!musicMuted) {
+    musicTheme.play().catch(() => {});
+  }
+}
+
+/** Stop all music. */
+export function musicStop(): void {
+  musicPlaying = false;
+  musicTheme.pause();
+  musicTheme.currentTime = 0;
+  musicVibegaming.pause();
+  musicVibegaming.currentTime = 0;
+}
+
+/** Mute/unmute music (for sound toggle). */
+export function musicSetMuted(muted: boolean): void {
+  musicMuted = muted;
+  if (muted) {
+    musicTheme.pause();
+    musicVibegaming.pause();
+  } else if (musicPlaying) {
+    // Resume whichever was active — if neither was mid-play, restart theme
+    if (musicTheme.currentTime > 0 && musicTheme.currentTime < musicTheme.duration) {
+      musicTheme.play().catch(() => {});
+    } else if (musicVibegaming.currentTime > 0 && musicVibegaming.currentTime < musicVibegaming.duration) {
+      musicVibegaming.play().catch(() => {});
+    } else {
+      musicTheme.currentTime = 0;
+      musicTheme.play().catch(() => {});
+    }
+  }
+}
