@@ -59,6 +59,8 @@ export class InputManager {
 
   bind(): void {
     window.addEventListener('keydown', (e) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       e.preventDefault();
       this.handleKeyDown(e.key);
     });
