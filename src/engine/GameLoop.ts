@@ -24,8 +24,12 @@ export class GameLoop {
     const dt = time - this.lastTime;
     this.lastTime = time;
     const cappedDt = Math.min(dt, 50);
-    this.updateFn(cappedDt);
-    this.renderFn();
+    try {
+      this.updateFn(cappedDt);
+      this.renderFn();
+    } catch (err) {
+      console.error('GameLoop crash:', err);
+    }
     requestAnimationFrame((t) => this.tick(t));
   }
 }
