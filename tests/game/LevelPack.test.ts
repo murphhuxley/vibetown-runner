@@ -104,6 +104,22 @@ describe('Level pack', () => {
     }
   });
 
+  it('keeps rope rows from sitting directly over standable platform tiles', () => {
+    const solidTiles = new Set([TileType.Sand, TileType.Coral, TileType.TrapSand]);
+
+    for (const level of LEVELS) {
+      for (let y = 0; y < level.grid.length - 1; y++) {
+        for (let x = 0; x < level.grid[y].length; x++) {
+          if (level.grid[y][x] !== TileType.Rope) continue;
+          expect(
+            solidTiles.has(level.grid[y + 1][x]),
+            `rope at (${x}, ${y}) in level ${level.id} is too close to the platform below`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
   it('keeps the authored level 3 helmet tile free for the pickup', () => {
     for (let attempt = 0; attempt < 10; attempt++) {
       randomizeLevels();

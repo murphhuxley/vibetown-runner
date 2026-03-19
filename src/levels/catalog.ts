@@ -318,13 +318,12 @@ const builtLevels: RawLevel[] = [
   }),
   createBuiltLevel(9, 'Rope Relay', 'city-3', WeatherType.None, 14, (g) => {
     g.sand(2, 2, 24);
-    g.sand(6, 0, 8).sand(6, 12, 16).sand(6, 20, 27);
-    g.sand(10, 2, 25);
-    g.sand(15, 0, 6).sand(15, 10, 17).sand(15, 21, 27);
-    g.ladder(4, 2, 17).ladder(14, 2, 15).ladder(23, 2, 17);
-    g.rope(5, 3, 23).rope(9, 0, 27);
-    g.badges(1, [3, 22]).badges(5, [1, 25]).badges(9, [4, 18]).badges(14, [12, 23]);
-    g.ducks(14, [16]).ducks(8, [7]);
+    g.sand(8, 0, 8).sand(8, 12, 16).sand(8, 20, 27);
+    g.sand(14, 2, 25);
+    g.ladder(4, 2, 17).ladder(14, 2, 17).ladder(23, 2, 17);
+    g.rope(5, 3, 23).rope(11, 0, 27);
+    g.badges(1, [3, 22]).badges(7, [1, 13, 25]).badges(13, [4, 18]).badges(17, [12]);
+    g.ducks(7, [7]).ducks(13, [16]);
     g.player(1, 17);
   }),
   createBuiltLevel(10, 'Crossfire', 'rainbow-1', WeatherType.None, 20, (g) => {
