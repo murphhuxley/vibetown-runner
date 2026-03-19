@@ -70,6 +70,10 @@
     #menu-panel.hidden, #instructions-panel.hidden, #options-panel.hidden, #leaderboard-panel.hidden { display: none; }
     #instructions-panel, #options-panel, #leaderboard-panel {
       position: relative;
+      width: 968px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     #menu-panel {
       position: relative;
@@ -155,34 +159,26 @@
     }
     #options-inner {
       position: absolute;
-      top: 265px;
+      top: 50%;
       left: 240px;
       right: 240px;
-      bottom: 144px;
+      transform: translateY(-50%);
       background: rgba(0,0,0,0.75);
       border-radius: 10px;
       z-index: 1;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      padding: 24px 32px;
     }
     .option-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 0;
-      font-size: 18px;
+      padding: 8px 0;
+      font-size: 28px;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
       color: #ccc;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-    }
-    #options-close {
-      position: relative;
-      z-index: 2;
-      margin-top: 10px;
     }
     .toggle-btn {
       padding: 0;
@@ -260,11 +256,6 @@
       color: #F5D76E;
       background: rgba(245,215,110,0.1);
       border-radius: 4px;
-    }
-    #leaderboard-close {
-      position: relative;
-      z-index: 2;
-      margin-top: 10px;
     }
 
     /* ── Score Submission Modal ── */
@@ -401,9 +392,10 @@
       cursor: pointer;
       padding: 0;
       position: absolute;
-      bottom: -10px;
+      top: 920px;
       left: 50%;
       transform: translateX(-50%);
+      z-index: 2;
     }
     .back-btn img {
       height: 78px;
@@ -461,15 +453,15 @@
               <span class="instruction-desc">Fire projectile</span>
             </div>
           </div>
+          <button class="back-btn" id="instructions-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
         </div>
-        <button class="back-btn" id="instructions-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
       </div>
       <div id="options-panel" class="hidden">
         <div id="options-box">
           <img id="options-frame" src="/assets/backgrounds/options-frame.png" alt="">
           <div id="options-inner">
             <div class="option-row">
-              <span>Sound</span>
+              <span>SFX</span>
               <button class="toggle-btn" id="sound-toggle"><img src="/assets/sprites/toggle-on.png" alt="ON"></button>
             </div>
             <div class="option-row">
@@ -477,8 +469,8 @@
               <button class="toggle-btn" id="music-toggle"><img src="/assets/sprites/toggle-on.png" alt="ON"></button>
             </div>
           </div>
+          <button class="back-btn" id="options-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
         </div>
-        <button class="back-btn" id="options-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
       </div>
       <div id="leaderboard-panel" class="hidden">
         <div id="leaderboard-box">
@@ -494,8 +486,8 @@
               <div id="lb-entries"></div>
             </div>
           </div>
+          <button class="back-btn" id="leaderboard-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
         </div>
-        <button class="back-btn" id="leaderboard-close"><img src="/assets/sprites/back-button.png" alt="Back"></button>
       </div>
     </div>
   </div>
