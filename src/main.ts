@@ -102,6 +102,7 @@ function showPanel(panel: HTMLElement): void {
 function hideMenu(): void {
   menuScreen.classList.add('hidden');
   game.startGame();
+  musicStop();
   musicStart();
   canvas.focus();
 }
@@ -110,7 +111,6 @@ function showMenu(): void {
   menuScreen.classList.remove('hidden');
   showPanel(menuPanel);
   game.state.phase = GamePhase.Menu;
-  musicStart();
 }
 
 // MENU click detection on canvas HUD area + overlay audio toggles
@@ -169,6 +169,17 @@ soundToggle.addEventListener('click', () => { sfxMenuClick(); toggleSoundEnabled
 const musicToggle = document.getElementById('music-toggle')!;
 let musicEnabled = true;
 musicToggle.addEventListener('click', () => { sfxMenuClick(); toggleMusicEnabled(); });
+
+// ── Menu Music Toggle (bottom-right of main menu) ──
+const menuMusicBtn = document.getElementById('menu-music-btn')!;
+menuMusicBtn.addEventListener('click', () => {
+  toggleMusicEnabled();
+  // Sync the menu toggle image
+  const img = menuMusicBtn.querySelector('img')!;
+  img.src = musicEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
+  img.alt = musicEnabled ? 'ON' : 'OFF';
+});
+
 // ── Leaderboard ──
 const leaderboardPanel = document.getElementById('leaderboard-panel')!;
 const lbEntries = document.getElementById('lb-entries')!;
@@ -372,9 +383,13 @@ function toggleSoundEnabled(): void {
 
 function toggleMusicEnabled(): void {
   musicEnabled = !musicEnabled;
-  const toggleImg = musicToggle.querySelector('img')!;
-  toggleImg.src = musicEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
-  toggleImg.alt = musicEnabled ? 'ON' : 'OFF';
+  const src = musicEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
+  const alt = musicEnabled ? 'ON' : 'OFF';
+  // Sync both toggle buttons (options page + main menu)
+  for (const btn of [musicToggle, menuMusicBtn]) {
+    const img = btn.querySelector('img');
+    if (img) { img.src = src; img.alt = alt; }
+  }
   musicSetMuted(!musicEnabled);
 }
 
@@ -582,9 +597,16 @@ window.addEventListener('keydown', (e) => {
 loop.start();
 
 // Start music on first user interaction (browser autoplay policy)
-menuScreen.addEventListener('click', () => {
+let musicStarted = false;
+function startMusicOnInteraction(): void {
+  if (musicStarted) return;
+  musicStarted = true;
   if (musicEnabled) musicStart();
-}, { once: true });
+  document.removeEventListener('click', startMusicOnInteraction);
+  document.removeEventListener('keydown', startMusicOnInteraction);
+}
+document.addEventListener('click', startMusicOnInteraction);
+document.addEventListener('keydown', startMusicOnInteraction);
 
 if (isDevHost) {
   // Debug export for playtesting
