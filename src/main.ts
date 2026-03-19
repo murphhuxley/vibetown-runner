@@ -7,6 +7,7 @@ import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
 import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop } from '@/engine/Audio';
+import { getTop25, submitScore, LeaderboardEntry } from '@/leaderboard';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -105,8 +106,105 @@ soundToggle.addEventListener('click', () => {
     game.onRevealLadders = undefined;
   }
 });
+// ── Leaderboard ──
+const leaderboardModal = document.getElementById('leaderboard-modal')!;
+const lbEntries = document.getElementById('lb-entries')!;
+
+function renderLeaderboard(entries: LeaderboardEntry[], highlightId?: string): void {
+  while (lbEntries.firstChild) lbEntries.removeChild(lbEntries.firstChild);
+  if (entries.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'color:#888;padding:20px;font-family:Brice,sans-serif';
+    empty.textContent = 'No scores yet. Be the first!';
+    lbEntries.appendChild(empty);
+    return;
+  }
+  entries.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row' + (entry._id === highlightId ? ' highlight' : '');
+
+    const rank = document.createElement('span');
+    rank.className = 'lb-rank';
+    rank.textContent = String(i + 1);
+
+    const name = document.createElement('span');
+    name.className = 'lb-name';
+    name.textContent = entry.name;
+
+    const score = document.createElement('span');
+    score.className = 'lb-score';
+    score.textContent = entry.score.toLocaleString();
+
+    const level = document.createElement('span');
+    level.className = 'lb-level';
+    level.textContent = String(entry.level);
+
+    row.appendChild(rank);
+    row.appendChild(name);
+    row.appendChild(score);
+    row.appendChild(level);
+    lbEntries.appendChild(row);
+  });
+}
+
+async function showLeaderboard(highlightId?: string): Promise<void> {
+  while (lbEntries.firstChild) lbEntries.removeChild(lbEntries.firstChild);
+  const loading = document.createElement('div');
+  loading.style.cssText = 'color:#888;padding:20px;font-family:Brice,sans-serif';
+  loading.textContent = 'Loading...';
+  lbEntries.appendChild(loading);
+  leaderboardModal.classList.remove('hidden');
+  try {
+    const entries = await getTop25();
+    renderLeaderboard(entries, highlightId);
+  } catch {
+    loading.textContent = 'Failed to load scores.';
+  }
+}
+
 document.getElementById('btn-quit')!.addEventListener('click', () => {
-  window.location.href = 'https://www.goodvibesclub.io';
+  showLeaderboard();
+});
+document.getElementById('leaderboard-close')!.addEventListener('click', () => {
+  leaderboardModal.classList.add('hidden');
+});
+
+// ── Score Submission ──
+const scoreSubmitModal = document.getElementById('score-submit')!;
+const scoreNameInput = document.getElementById('score-name-input') as HTMLInputElement;
+const submitScoreDisplay = document.getElementById('submit-score-display')!;
+let hasSubmittedThisRun = false;
+
+function showScoreSubmit(): void {
+  if (hasSubmittedThisRun) return;
+  submitScoreDisplay.textContent = `Score: ${game.state.score.toLocaleString()}  |  Level: ${game.state.currentLevel}`;
+  scoreNameInput.value = '';
+  scoreSubmitModal.classList.remove('hidden');
+  setTimeout(() => scoreNameInput.focus(), 100);
+}
+
+document.getElementById('score-submit-btn')!.addEventListener('click', async () => {
+  const name = scoreNameInput.value.trim();
+  if (!name) return;
+  scoreSubmitModal.classList.add('hidden');
+  hasSubmittedThisRun = true;
+  try {
+    const id = await submitScore(name, game.state.score, game.state.currentLevel);
+    showLeaderboard(id);
+  } catch {
+    showLeaderboard();
+  }
+});
+
+document.getElementById('score-skip-btn')!.addEventListener('click', () => {
+  scoreSubmitModal.classList.add('hidden');
+  hasSubmittedThisRun = true;
+});
+
+scoreNameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('score-submit-btn')!.click();
+  }
 });
 
 function syncTheme(): void {
@@ -292,8 +390,13 @@ window.addEventListener('keydown', (e) => {
         syncTheme();
       }
     } else if (game.state.phase === GamePhase.GameOver || game.state.phase === GamePhase.Victory) {
-      game.restart();
-      syncTheme();
+      if (!hasSubmittedThisRun) {
+        showScoreSubmit();
+      } else {
+        hasSubmittedThisRun = false;
+        game.restart();
+        syncTheme();
+      }
     }
   }
 });

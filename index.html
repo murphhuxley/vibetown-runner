@@ -171,6 +171,118 @@
       background: rgba(245,215,110,0.3);
     }
 
+    /* ── Leaderboard Modal ── */
+    #leaderboard-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+    }
+    #leaderboard-modal.hidden { display: none; }
+    #leaderboard-box {
+      background: #1a1a1a;
+      border: 2px solid #F5D76E;
+      border-radius: 8px;
+      padding: 30px 40px;
+      max-width: 520px;
+      width: 90%;
+      text-align: center;
+      color: white;
+    }
+    #leaderboard-box h2 {
+      font-weight: 900;
+      font-size: 28px;
+      color: #F5D76E;
+      margin-bottom: 20px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #leaderboard-list {
+      text-align: left;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .lb-header, .lb-row {
+      display: flex;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .lb-header {
+      color: #F5D76E;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .lb-rank { width: 40px; text-align: center; }
+    .lb-name { flex: 1; }
+    .lb-score { width: 80px; text-align: right; }
+    .lb-level { width: 50px; text-align: right; }
+    .lb-row.highlight {
+      color: #F5D76E;
+      background: rgba(245,215,110,0.1);
+    }
+
+    /* ── Score Submission Modal ── */
+    #score-submit {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+    }
+    #score-submit.hidden { display: none; }
+    #score-submit-box {
+      background: #1a1a1a;
+      border: 2px solid #F5D76E;
+      border-radius: 8px;
+      padding: 30px 40px;
+      text-align: center;
+      color: white;
+    }
+    #score-submit-box h2 {
+      font-weight: 900;
+      font-size: 24px;
+      color: #F5D76E;
+      margin-bottom: 8px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .score-display {
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      color: #ccc;
+      margin-bottom: 20px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #score-name-input {
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      padding: 10px 16px;
+      width: 200px;
+      text-align: center;
+      background: #0a0a0a;
+      border: 2px solid #F5D76E;
+      border-radius: 4px;
+      color: #F5D76E;
+      outline: none;
+      text-transform: uppercase;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #score-name-input::placeholder {
+      color: rgba(245,215,110,0.3);
+    }
+
     /* ── Instructions Modal ── */
     #instructions-modal {
       position: fixed;
@@ -285,6 +397,35 @@
         <button class="toggle-btn" id="sound-toggle">ON</button>
       </div>
       <button class="menu-btn" id="options-close" style="margin-top:24px">BACK</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div id="leaderboard-modal" class="hidden">
+    <div id="leaderboard-box">
+      <h2>LEADERBOARD</h2>
+      <div id="leaderboard-list">
+        <div class="lb-header">
+          <span class="lb-rank">#</span>
+          <span class="lb-name">NAME</span>
+          <span class="lb-score">SCORE</span>
+          <span class="lb-level">LVL</span>
+        </div>
+        <div id="lb-entries"></div>
+      </div>
+      <button class="menu-btn" id="leaderboard-close" style="margin-top:20px">BACK</button>
+    </div>
+  </div>
+
+  <!-- Score Submission Modal -->
+  <div id="score-submit" class="hidden">
+    <div id="score-submit-box">
+      <h2>NEW HIGH SCORE!</h2>
+      <div class="score-display" id="submit-score-display"></div>
+      <input type="text" id="score-name-input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
+      <br>
+      <button class="menu-btn" id="score-submit-btn" style="margin-top:16px">SUBMIT</button>
+      <button class="menu-btn" id="score-skip-btn" style="margin-top:8px;opacity:0.6">SKIP</button>
     </div>
   </div>
 

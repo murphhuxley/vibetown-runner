@@ -64,6 +64,7 @@ export class Renderer {
   private ropeTile: HTMLImageElement | null = null;
   private bgImage: HTMLImageElement | null = null;
   private badgeSprite: HTMLImageElement | null = null;
+  private shakaSprites: HTMLImageElement[] = [];
   private badgeFrameCount = 1;
   private badgeSourceFrameWidth = 64;
   sprites: SpriteSet | null = null;
@@ -113,6 +114,13 @@ export class Renderer {
       this.badgeSourceFrameWidth = Math.floor(badgeImg.naturalWidth / frameCount);
     };
     badgeImg.src = '/assets/sprites/money-bag.png?v=money-bag-v2';
+
+    const shakaNames = ['purple', 'red', 'yellow', 'mint', 'pink', 'blue'];
+    for (const name of shakaNames) {
+      const img = new Image();
+      img.src = `/assets/sprites/shaka-${name}.png`;
+      this.shakaSprites.push(img);
+    }
 
     // Offscreen canvas for pixelated text rendering
     this.pixelCanvas = document.createElement('canvas');
@@ -1320,14 +1328,42 @@ export class Renderer {
     const facing = this.playerFacing;
 
     if (this.sprites) {
-      // LFV glow effect
+      // LFV shaka aura effect — colorful shakas orbiting the player
       if (isLFV) {
+        const cx = px + TILE_SIZE / 2;
+        const cy = py + TILE_SIZE / 2;
+        const t = this.bgTime;
         ctx.save();
-        ctx.globalAlpha = 0.4;
-        ctx.fillStyle = COLORS.vibestrGold;
-        ctx.beginPath();
-        ctx.arc(px + TILE_SIZE / 2, py + TILE_SIZE / 2, TILE_SIZE / 2 + 4, 0, Math.PI * 2);
-        ctx.fill();
+
+        // Inner glow
+        ctx.globalAlpha = 0.2;
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, TILE_SIZE / 2 + 2);
+        glow.addColorStop(0, '#FFFFFF');
+        glow.addColorStop(0.4, '#FFD700');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.fillRect(px - 8, py - 8, TILE_SIZE + 16, TILE_SIZE + 16);
+
+        // Orbiting shakas
+        if (this.shakaSprites.length === 6 && this.shakaSprites[0].complete) {
+          const shakaSize = 14;
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2 + t * 2.5;
+            const bob = Math.sin(t * 5 + i * 1.8) * 3;
+            const reach = TILE_SIZE / 2 + 8 + bob;
+            const sx = cx + Math.cos(angle) * reach;
+            const sy = cy + Math.sin(angle) * reach;
+            const rot = angle + Math.sin(t * 3 + i) * 0.4;
+
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(rot);
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(this.shakaSprites[i], -shakaSize / 2, -shakaSize / 2, shakaSize, shakaSize);
+            ctx.restore();
+          }
+        }
+
         ctx.restore();
       }
 

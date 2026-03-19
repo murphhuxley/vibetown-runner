@@ -17,5 +17,8 @@
     "typescript": "^5.9.3",
     "vite": "^8.0.0",
     "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "convex": "^1.33.1"
   }
 }
