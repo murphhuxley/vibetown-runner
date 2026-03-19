@@ -110,9 +110,9 @@ describe('Level pack', () => {
 
       const levelThree = LEVELS.find((level) => level.id === 3);
       expect(levelThree).toBeDefined();
-      expect(levelThree?.powerHelmet).toEqual({ x: 13, y: 7 });
-      expect(levelThree?.grid[7][13]).not.toBe(TileType.Badge);
-      expect(levelThree?.grid[7][13]).not.toBe(TileType.DuckSpawn);
+      expect(levelThree?.powerHelmet).toEqual({ x: 12, y: 4 });
+      expect(levelThree?.grid[4][12]).not.toBe(TileType.Badge);
+      expect(levelThree?.grid[4][12]).not.toBe(TileType.DuckSpawn);
     }
   });
 

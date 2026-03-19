@@ -87,15 +87,19 @@ describe('GameManager', () => {
     game.loadLevel(2);
     game.startGame();
 
-    expect(game.state.powerHelmetPos).toEqual({ x: 13, y: 7 });
+    expect(game.state.powerHelmetPos).toEqual({ x: 12, y: 4 });
 
-    game.state.player.pos = { x: 13, y: 7 };
+    game.state.player.pos = { x: 12, y: 4 };
     (game as any).checkPowerHelmetCollection();
 
     expect(game.state.powerHelmetCollected).toBe(true);
     expect(game.state.powerHelmetActive).toBe(true);
     expect(game.state.powerHelmetPos).toBeNull();
     expect(game.state.powerHelmetShots).toBe(3);
+
+    // Keep the duck out of the muzzle lane so we can assert the projectile exists.
+    game.state.ducks[0].pos = { x: 20, y: 4 };
+    game.state.ducks[0].isTrapped = false;
 
     input.handleKeyDown(' ');
     game.update(16);
@@ -278,7 +282,7 @@ describe('GameManager', () => {
     game.vibeMeter.lfvTimer = 1000;
     game.state.player.isLFV = true;
 
-    game.state.player.pos = { x: 13, y: 7 };
+    game.state.player.pos = { x: 12, y: 4 };
     (game as any).checkPowerHelmetCollection();
 
     expect(game.state.powerHelmetActive).toBe(true);

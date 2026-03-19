@@ -217,7 +217,7 @@ const levelThreeVariants: RawLevel[] = [
       g.ducks(4, [13]);
       g.player(1, 17);
     }),
-    { x: 13, y: 7 },
+    { x: 12, y: 4 },
   ),
   withPowerHelmet(
     createBuiltLevel(3, 'Dig Deep', 'nature-3', WeatherType.None, 13, (g) => {
@@ -230,7 +230,7 @@ const levelThreeVariants: RawLevel[] = [
       g.ducks(4, [13]);
       g.player(1, 17);
     }),
-    { x: 13, y: 7 },
+    { x: 12, y: 4 },
   ),
 ];
 
