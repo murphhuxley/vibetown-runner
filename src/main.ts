@@ -6,7 +6,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_ROWS, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
-import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, musicStart, musicStop, musicSetMuted } from '@/engine/Audio';
+import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, musicStart, musicStop, musicSetMuted, shadowFunkStart, shadowFunkStop, lfvSfxStart, lfvSfxStop } from '@/engine/Audio';
 import { getTop25, submitScore, LeaderboardEntry } from '@/leaderboard';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -46,10 +46,22 @@ game.onTrap = sfxTrap;
 game.onKill = sfxKill;
 game.onDeath = sfxDeath;
 game.onShoot = sfxShoot;
-game.onLFV = sfxLFV;
 game.onLevelComplete = sfxLevelComplete;
 game.onVibestr = sfxVibestr;
 game.onRevealLadders = sfxRevealLadders;
+game.onPowerStart = shadowFunkStart;
+game.onPowerEnd = shadowFunkStop;
+function onLfvActivate(): void {
+  renderer.startLfvActivation();
+  lfvSfxStart();
+}
+
+function onLfvEnd(): void {
+  lfvSfxStop();
+}
+
+game.onLFV = onLfvActivate;
+game.onLFVEnd = onLfvEnd;
 
 // ── Main Menu UI ──
 const menuScreen = document.getElementById('menu-screen')!;
@@ -79,7 +91,7 @@ function showMenu(): void {
   musicStart();
 }
 
-// MENU click detection on canvas HUD area
+// MENU click detection on canvas HUD area + overlay audio toggles
 canvas.addEventListener('click', (e) => {
   if (game.state.phase === GamePhase.Menu) return;
   const rect = canvas.getBoundingClientRect();
@@ -89,6 +101,26 @@ canvas.addEventListener('click', (e) => {
   // MENU text is at the right end of the HUD bar
   if (cy >= hudY && cx >= CANVAS_WIDTH - 100) {
     showMenu();
+  }
+  // Audio toggle click regions on overlay screens
+  const phase = game.state.phase;
+  if (phase === GamePhase.Dead || phase === GamePhase.GameOver || phase === GamePhase.Victory) {
+    const toggleY = phase === GamePhase.Dead ? CANVAS_HEIGHT / 2 + 90
+                   : phase === GamePhase.GameOver ? CANVAS_HEIGHT / 2 + 110
+                   : CANVAS_HEIGHT / 2 + 130;
+    const center = CANVAS_WIDTH / 2;
+    const spacing = 120;
+    const half = TOGGLE_SIZE / 2;
+    // SFX icon hit area
+    const sfxIconX = center - spacing / 2 - TOGGLE_SIZE;
+    if (cx >= sfxIconX && cx <= sfxIconX + TOGGLE_SIZE && cy >= toggleY - half && cy <= toggleY + half) {
+      toggleSoundEnabled();
+    }
+    // Music icon hit area
+    const musIconX = center + spacing / 2 - TOGGLE_SIZE;
+    if (cx >= musIconX && cx <= musIconX + TOGGLE_SIZE && cy >= toggleY - half && cy <= toggleY + half) {
+      toggleMusicEnabled();
+    }
   }
 });
 
@@ -108,47 +140,12 @@ document.getElementById('btn-options')!.addEventListener('click', () => {
 document.getElementById('options-close')!.addEventListener('click', () => {
   showPanel(menuPanel);
 });
-soundToggle.addEventListener('click', () => {
-  soundEnabled = !soundEnabled;
-  const toggleImg = soundToggle.querySelector('img')!;
-  toggleImg.src = soundEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
-  toggleImg.alt = soundEnabled ? 'ON' : 'OFF';
-  // Mute/unmute all audio pools by toggling the master volume callbacks
-  if (soundEnabled) {
-    game.onDig = sfxDig;
-    game.onCollect = sfxCollect;
-    game.onTrap = sfxTrap;
-    game.onKill = sfxKill;
-    game.onDeath = sfxDeath;
-    game.onShoot = sfxShoot;
-    game.onLFV = sfxLFV;
-    game.onLevelComplete = sfxLevelComplete;
-    game.onVibestr = sfxVibestr;
-    game.onRevealLadders = sfxRevealLadders;
-  } else {
-    game.onDig = undefined;
-    game.onCollect = undefined;
-    game.onTrap = undefined;
-    game.onKill = undefined;
-    game.onDeath = undefined;
-    game.onShoot = undefined;
-    game.onLFV = undefined;
-    game.onLevelComplete = undefined;
-    game.onVibestr = undefined;
-    game.onRevealLadders = undefined;
-  }
-});
+soundToggle.addEventListener('click', toggleSoundEnabled);
 
 // ── Music Toggle ──
 const musicToggle = document.getElementById('music-toggle')!;
 let musicEnabled = true;
-musicToggle.addEventListener('click', () => {
-  musicEnabled = !musicEnabled;
-  const toggleImg = musicToggle.querySelector('img')!;
-  toggleImg.src = musicEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
-  toggleImg.alt = musicEnabled ? 'ON' : 'OFF';
-  musicSetMuted(!musicEnabled);
-});
+musicToggle.addEventListener('click', toggleMusicEnabled);
 // ── Leaderboard ──
 const leaderboardPanel = document.getElementById('leaderboard-panel')!;
 const lbEntries = document.getElementById('lb-entries')!;
@@ -184,8 +181,8 @@ function renderLeaderboard(entries: LeaderboardEntry[], highlightId?: string): v
 
     row.appendChild(rank);
     row.appendChild(name);
-    row.appendChild(score);
     row.appendChild(level);
+    row.appendChild(score);
     lbEntries.appendChild(row);
   });
 }
@@ -290,6 +287,71 @@ loadDuckSprites().then((duckSprites) => {
 }).catch((err) => console.warn('Duck sprites failed:', err));
 
 
+// ── Canvas audio toggles (drawn on death/gameover/victory overlays) ──
+const toggleOnImg = new Image();
+toggleOnImg.src = '/assets/sprites/toggle-on.png';
+const toggleOffImg = new Image();
+toggleOffImg.src = '/assets/sprites/toggle-off.png';
+const TOGGLE_SIZE = 28;
+const TOGGLE_FONT = "bold 14px 'Brice', sans-serif";
+
+function drawAudioToggles(y: number): void {
+  const center = CANVAS_WIDTH / 2;
+  const spacing = 120; // distance between SFX and Music groups
+
+  // SFX: label + toggle icon
+  ctx.font = TOGGLE_FONT;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = soundEnabled ? '#F5D76E' : '#666';
+  ctx.fillText('SFX', center - spacing / 2 - TOGGLE_SIZE - 6, y);
+  const sfxImg = soundEnabled ? toggleOnImg : toggleOffImg;
+  if (sfxImg.complete) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sfxImg, center - spacing / 2 - TOGGLE_SIZE, y - TOGGLE_SIZE / 2, TOGGLE_SIZE, TOGGLE_SIZE);
+  }
+
+  // Music: label + toggle icon
+  ctx.textAlign = 'right';
+  ctx.fillStyle = musicEnabled ? '#F5D76E' : '#666';
+  ctx.fillText('MUSIC', center + spacing / 2 - TOGGLE_SIZE - 6, y);
+  const musImg = musicEnabled ? toggleOnImg : toggleOffImg;
+  if (musImg.complete) {
+    ctx.drawImage(musImg, center + spacing / 2 - TOGGLE_SIZE, y - TOGGLE_SIZE / 2, TOGGLE_SIZE, TOGGLE_SIZE);
+  }
+  ctx.imageSmoothingEnabled = false;
+}
+
+function toggleSoundEnabled(): void {
+  soundEnabled = !soundEnabled;
+  const toggleImg = soundToggle.querySelector('img')!;
+  toggleImg.src = soundEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
+  toggleImg.alt = soundEnabled ? 'ON' : 'OFF';
+  if (soundEnabled) {
+    game.onDig = sfxDig; game.onCollect = sfxCollect; game.onTrap = sfxTrap;
+    game.onKill = sfxKill; game.onDeath = sfxDeath; game.onShoot = sfxShoot;
+    game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd;
+    game.onLevelComplete = sfxLevelComplete;
+    game.onVibestr = sfxVibestr; game.onRevealLadders = sfxRevealLadders;
+    game.onPowerStart = shadowFunkStart; game.onPowerEnd = shadowFunkStop;
+  } else {
+    game.onDig = undefined; game.onCollect = undefined; game.onTrap = undefined;
+    game.onKill = undefined; game.onDeath = undefined; game.onShoot = undefined;
+    game.onLFV = undefined; game.onLFVEnd = undefined; game.onLevelComplete = undefined;
+    game.onVibestr = undefined; game.onRevealLadders = undefined;
+    game.onPowerStart = undefined; game.onPowerEnd = undefined;
+    shadowFunkStop(); lfvSfxStop();
+  }
+}
+
+function toggleMusicEnabled(): void {
+  musicEnabled = !musicEnabled;
+  const toggleImg = musicToggle.querySelector('img')!;
+  toggleImg.src = musicEnabled ? '/assets/sprites/toggle-on.png' : '/assets/sprites/toggle-off.png';
+  toggleImg.alt = musicEnabled ? 'ON' : 'OFF';
+  musicSetMuted(!musicEnabled);
+}
+
 let lastDt = 0;
 let playerRenderPos = game.getPlayerRenderPos();
 const loop = new GameLoop(
@@ -391,6 +453,7 @@ const loop = new GameLoop(
       ctx.fillStyle = COLORS.cream;
       ctx.font = "16px 'Brice', sans-serif";
       ctx.fillText('Press ENTER to retry', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+      drawAudioToggles(CANVAS_HEIGHT / 2 + 90);
     }
 
     if (game.state.phase === GamePhase.LevelComplete) {
@@ -418,6 +481,7 @@ const loop = new GameLoop(
       ctx.fillStyle = COLORS.cream;
       ctx.fillText(`Final Score: ${game.state.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
       ctx.fillText('Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
+      drawAudioToggles(CANVAS_HEIGHT / 2 + 110);
     }
 
     if (game.state.phase === GamePhase.Victory) {
@@ -434,6 +498,7 @@ const loop = new GameLoop(
       ctx.fillText(`$VIBESTR: ${game.state.vibestr}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
       ctx.font = "16px 'Brice', sans-serif";
       ctx.fillText('Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 90);
+      drawAudioToggles(CANVAS_HEIGHT / 2 + 130);
     }
   }
 );
