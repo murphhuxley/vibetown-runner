@@ -479,7 +479,7 @@ const loop = new GameLoop(
       ctx.fillText('Z = Dig Left  |  C = Dig Right  |  SPACE = LFV', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
       ctx.fillStyle = COLORS.cream;
       ctx.font = "16px 'Brice', sans-serif";
-      ctx.fillText('Press ESC to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+      ctx.fillText('Press any key to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
       drawAudioToggles(CANVAS_HEIGHT / 2 + 90);
     }
 
@@ -549,12 +549,13 @@ const loop = new GameLoop(
 
 // Handle state transitions (retry / next level)
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (game.state.phase === GamePhase.Playing) {
-      game.state.phase = GamePhase.Paused;
-    } else if (game.state.phase === GamePhase.Paused) {
-      game.state.phase = GamePhase.Playing;
-    }
+  if (game.state.phase === GamePhase.Paused) {
+    game.state.phase = GamePhase.Playing;
+    return;
+  }
+  if (e.key === 'Escape' && game.state.phase === GamePhase.Playing) {
+    game.state.phase = GamePhase.Paused;
+    return;
   }
   if (e.key === 'Enter') {
     if (game.state.phase === GamePhase.Dead) {

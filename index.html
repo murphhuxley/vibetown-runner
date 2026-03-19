@@ -70,15 +70,16 @@
     #menu-panel.hidden, #instructions-panel.hidden, #options-panel.hidden, #leaderboard-panel.hidden { display: none; }
     #instructions-panel, #options-panel, #leaderboard-panel {
       position: relative;
-      width: 968px;
+      width: min(968px, 90vw);
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     #menu-panel {
       position: relative;
-      width: 640px;
-      height: 640px;
+      width: min(640px, 85vw);
+      aspect-ratio: 1;
+      max-height: 85vh;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       animation: menu-float 3s ease-in-out infinite;
@@ -101,11 +102,11 @@
     .menu-hit:hover {
       cursor: pointer;
     }
-    /* Button hit regions: 256px source * 2.5x = 640px */
-    #btn-play         { left: 112px; top: 182px; width: 425px; height: 75px; }
-    #btn-instructions { left: 112px; top: 275px; width: 425px; height: 75px; }
-    #btn-options      { left: 112px; top: 368px; width: 425px; height: 75px; }
-    #btn-quit         { left: 112px; top: 460px; width: 425px; height: 75px; }
+    /* Button hit regions as percentages of 640px panel */
+    #btn-play         { left: 17.5%; top: 28.4%; width: 66.4%; height: 11.7%; }
+    #btn-instructions { left: 17.5%; top: 43.0%; width: 66.4%; height: 11.7%; }
+    #btn-options      { left: 17.5%; top: 57.5%; width: 66.4%; height: 11.7%; }
+    #btn-quit         { left: 17.5%; top: 71.9%; width: 66.4%; height: 11.7%; }
 
     .menu-btn {
       display: block;
@@ -143,8 +144,9 @@
     #options-modal.hidden { display: none; }
     #options-box {
       position: relative;
-      width: 968px;
-      height: 968px;
+      width: min(968px, 90vw);
+      aspect-ratio: 1;
+      max-height: 85vh;
       text-align: center;
       color: white;
     }
@@ -160,8 +162,8 @@
     #options-inner {
       position: absolute;
       top: 50%;
-      left: 240px;
-      right: 240px;
+      left: 25%;
+      right: 25%;
       transform: translateY(-50%);
       background: rgba(0,0,0,0.75);
       border-radius: 10px;
@@ -197,8 +199,9 @@
     #leaderboard-panel.hidden { display: none; }
     #leaderboard-box {
       position: relative;
-      width: 968px;
-      height: 968px;
+      width: min(968px, 90vw);
+      aspect-ratio: 1;
+      max-height: 85vh;
       text-align: center;
       color: white;
     }
@@ -213,10 +216,10 @@
     }
     #leaderboard-inner {
       position: absolute;
-      top: 265px;
-      left: 240px;
-      right: 240px;
-      bottom: 144px;
+      top: 27%;
+      left: 25%;
+      right: 25%;
+      bottom: 15%;
       background: rgba(0,0,0,0.75);
       border-radius: 10px;
       z-index: 1;
@@ -328,8 +331,9 @@
 
     #instructions-box {
       position: relative;
-      width: 968px;
-      height: 968px;
+      width: min(968px, 90vw);
+      aspect-ratio: 1;
+      max-height: 85vh;
       text-align: center;
       color: white;
     }
@@ -344,10 +348,10 @@
     }
     #instructions-inner {
       position: absolute;
-      top: 265px;
-      left: 240px;
-      right: 240px;
-      bottom: 144px;
+      top: 27%;
+      left: 25%;
+      right: 25%;
+      bottom: 15%;
       background: rgba(0,0,0,0.75);
       border-radius: 10px;
       z-index: 1;
@@ -391,14 +395,11 @@
       background: transparent;
       cursor: pointer;
       padding: 0;
-      position: absolute;
-      top: 920px;
-      left: 50%;
-      transform: translateX(-50%);
+      margin-top: 8px;
       z-index: 2;
     }
     .back-btn img {
-      height: 78px;
+      height: min(78px, 8vh);
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
