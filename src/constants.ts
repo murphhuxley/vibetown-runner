@@ -38,7 +38,7 @@ export const VIBE_PER_BADGE = 20;
 export const VIBE_PER_TRAP = 10;
 export const VIBE_MAX = 100;
 
-export const STARTING_LIVES = 5;
+export const STARTING_LIVES = 3;
 
 export const COLORS = {
   cream: '#F2EDE8',

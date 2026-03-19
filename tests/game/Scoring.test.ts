@@ -35,11 +35,11 @@ describe('Scoring', () => {
     expect(s.vibestr).toBe(1);
   });
 
-  it('awards level completion bonus + extra life', () => {
+  it('awards level completion bonus without changing lives directly', () => {
     const s = createScoring();
     completeLevel(s, false);
     expect(s.score).toBe(SCORE_LEVEL_COMPLETE);
-    expect(s.lives).toBe(STARTING_LIVES + 1);
+    expect(s.lives).toBe(STARTING_LIVES);
   });
 
   it('awards LFV bonus when meter unused', () => {

@@ -657,9 +657,27 @@ export class GameManager {
   private completeLevel(): void {
     const lfvUnused = !this.usedLFVThisLevel;
     scoreComplete(this.scoring, lfvUnused);
-    this.scoring.lives++;
+    if (this.shouldAwardEnvironmentLife()) {
+      this.scoring.lives++;
+    }
+    this.state.score = this.scoring.score;
+    this.state.lives = this.scoring.lives;
     this.state.phase = GamePhase.LevelComplete;
     this.onLevelComplete?.();
+  }
+
+  private shouldAwardEnvironmentLife(): boolean {
+    const currentRaw = LEVELS[this.state.currentLevel - 1];
+    const nextRaw = LEVELS[this.state.currentLevel];
+    if (!currentRaw || !nextRaw) return false;
+
+    const currentEnv = this.getEnvironmentKey(currentRaw.theme ?? currentRaw.id.toString());
+    const nextEnv = this.getEnvironmentKey(nextRaw.theme ?? nextRaw.id.toString());
+    return currentEnv !== nextEnv;
+  }
+
+  private getEnvironmentKey(theme: string): string {
+    return theme.replace(/-\d+$/, '');
   }
 
   private playerDeath(): void {

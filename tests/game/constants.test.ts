@@ -27,8 +27,8 @@ describe('Constants', () => {
     expect(HOLE_REGEN_TIME).toBeGreaterThan(LFV_DURATION);
   });
 
-  it('player starts with multiple lives', () => {
-    expect(STARTING_LIVES).toBeGreaterThanOrEqual(3);
+  it('player starts with three lives', () => {
+    expect(STARTING_LIVES).toBe(3);
   });
 
   it('GVC palette has required brand colors', () => {

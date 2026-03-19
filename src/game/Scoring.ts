@@ -41,5 +41,4 @@ export function collectVibestr(s: ScoringState): void {
 export function completeLevel(s: ScoringState, lfvUnused: boolean): void {
   s.score += SCORE_LEVEL_COMPLETE;
   if (lfvUnused) s.score += SCORE_LFV_BONUS;
-  s.lives++;
 }

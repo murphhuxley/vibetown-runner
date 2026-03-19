@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
-import { Direction, TileType } from '@/types';
+import { Direction, GamePhase, TileType } from '@/types';
 import { createProjectile } from '@/game/Projectile';
 import { DUCK_HOLE_KILL_LEAD_MS } from '@/constants';
 
@@ -323,5 +323,33 @@ describe('GameManager', () => {
     expect(game.state.grid[spawn.y][spawn.x]).toBe(TileType.Empty);
     const below = game.state.grid[spawn.y + 1][spawn.x];
     expect([TileType.Sand, TileType.Coral, TileType.TrapSand]).toContain(below);
+  });
+
+  it('awards a life when completing into a new environment', () => {
+    game.loadLevel(2);
+    game.startGame();
+
+    expect(game.state.currentLevel).toBe(3);
+    expect(game.state.level.theme).toBe('nature-3');
+    expect(game.state.lives).toBe(3);
+
+    (game as any).completeLevel();
+
+    expect(game.state.phase).toBe(GamePhase.LevelComplete);
+    expect(game.state.lives).toBe(4);
+  });
+
+  it('does not award a life when completing within the same environment', () => {
+    game.loadLevel(3);
+    game.startGame();
+
+    expect(game.state.currentLevel).toBe(4);
+    expect(game.state.level.theme).toBe('beach-1');
+    expect(game.state.lives).toBe(3);
+
+    (game as any).completeLevel();
+
+    expect(game.state.phase).toBe(GamePhase.LevelComplete);
+    expect(game.state.lives).toBe(3);
   });
 });
