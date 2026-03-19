@@ -401,11 +401,14 @@ export class Renderer {
       const glowX = cx + Math.sin(t * 0.4) * W * 0.4;
       const glowY = cy + Math.cos(t * 0.25) * H * 0.3;
       const grad2 = ctx.createRadialGradient(glowX, glowY, 0, glowX, glowY, r * 0.5);
-      grad2.addColorStop(0, c2 + '30');
-      grad2.addColorStop(0.5, c1 + '15');
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      grad2.addColorStop(0, c2);
+      grad2.addColorStop(0.5, c1);
       grad2.addColorStop(1, 'transparent');
       ctx.fillStyle = grad2;
       ctx.fillRect(0, 0, W, H);
+      ctx.restore();
     }
 
     // ── Scenic background image ──
