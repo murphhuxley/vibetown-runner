@@ -6,7 +6,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
-import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop } from '@/engine/Audio';
+import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop } from '@/engine/Audio';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -44,6 +44,7 @@ game.onCollect = sfxCollect;
 game.onTrap = sfxTrap;
 game.onKill = sfxKill;
 game.onDeath = sfxDeath;
+game.onShoot = sfxShoot;
 game.onLFV = sfxLFV;
 game.onLevelComplete = sfxLevelComplete;
 game.onVibestr = sfxVibestr;
@@ -59,12 +60,53 @@ function hideMenu(): void {
   canvas.focus();
 }
 
+const optionsModal = document.getElementById('options-modal')!;
+const soundToggle = document.getElementById('sound-toggle')!;
+let soundEnabled = true;
+
 document.getElementById('btn-play')!.addEventListener('click', hideMenu);
 document.getElementById('btn-instructions')!.addEventListener('click', () => {
   instructionsModal.classList.remove('hidden');
 });
 document.getElementById('instructions-close')!.addEventListener('click', () => {
   instructionsModal.classList.add('hidden');
+});
+document.getElementById('btn-options')!.addEventListener('click', () => {
+  optionsModal.classList.remove('hidden');
+});
+document.getElementById('options-close')!.addEventListener('click', () => {
+  optionsModal.classList.add('hidden');
+});
+soundToggle.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  soundToggle.textContent = soundEnabled ? 'ON' : 'OFF';
+  // Mute/unmute all audio pools by toggling the master volume callbacks
+  if (soundEnabled) {
+    game.onDig = sfxDig;
+    game.onCollect = sfxCollect;
+    game.onTrap = sfxTrap;
+    game.onKill = sfxKill;
+    game.onDeath = sfxDeath;
+    game.onShoot = sfxShoot;
+    game.onLFV = sfxLFV;
+    game.onLevelComplete = sfxLevelComplete;
+    game.onVibestr = sfxVibestr;
+    game.onRevealLadders = sfxRevealLadders;
+  } else {
+    game.onDig = undefined;
+    game.onCollect = undefined;
+    game.onTrap = undefined;
+    game.onKill = undefined;
+    game.onDeath = undefined;
+    game.onShoot = undefined;
+    game.onLFV = undefined;
+    game.onLevelComplete = undefined;
+    game.onVibestr = undefined;
+    game.onRevealLadders = undefined;
+  }
+});
+document.getElementById('btn-quit')!.addEventListener('click', () => {
+  window.location.href = 'https://www.goodvibesclub.io';
 });
 
 function syncTheme(): void {

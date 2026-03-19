@@ -28,6 +28,7 @@ export class GameManager {
   // SFX callbacks — set from outside to avoid coupling audio into game logic
   onDig?: () => void;
   onCollect?: () => void;
+  onShoot?: () => void;
   onTrap?: () => void;
   onKill?: () => void;
   onDeath?: () => void;
@@ -505,6 +506,7 @@ export class GameManager {
       : Direction.Right;
 
     this.projectiles.push(createProjectile(this.state.player.pos, facing));
+    this.onShoot?.();
     this.state.powerHelmetShots--;
 
     if (this.state.powerHelmetShots <= 0) {

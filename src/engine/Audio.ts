@@ -44,6 +44,8 @@ createPool('/assets/audio/level-complete.mp3');
 createPool('/assets/audio/trap.mp3');
 createPool('/assets/audio/cheer.mp3');
 createPool('/assets/audio/yay.mp3');
+createPool('/assets/audio/death.mp3');
+createPool('/assets/audio/shoot.mp3');
 
 export function sfxDig(): void { play('/assets/audio/dig.mp3', 0.5); }
 export function sfxCollect(): void { play('/assets/audio/collect.mp3', 0.5); }
@@ -72,9 +74,10 @@ export function sfxFallStop(): void {
 
 export function sfxKill(): void {
   const sound = Math.random() < 0.5 ? '/assets/audio/cheer.mp3' : '/assets/audio/yay.mp3';
-  play(sound, 0.15);
+  play(sound, 0.45);
 }
-export function sfxDeath(): void { /* silence */ }
+export function sfxDeath(): void { play('/assets/audio/death.mp3', 0.6); }
+export function sfxShoot(): void { play('/assets/audio/shoot.mp3', 0.4); }
 export function sfxLFV(): void { play('/assets/audio/collect.mp3', 0.6); }
 export function sfxVibestr(): void { play('/assets/audio/collect.mp3', 0.3); }
 export function sfxRevealLadders(): void { play('/assets/audio/collect.mp3', 0.4); }
