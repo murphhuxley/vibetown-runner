@@ -5,7 +5,7 @@ import { InputManager } from '@/engine/Input';
 import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_ROWS, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
 import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop } from '@/engine/Audio';
 import { getTop25, submitScore, LeaderboardEntry } from '@/leaderboard';
 
