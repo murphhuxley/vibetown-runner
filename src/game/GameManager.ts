@@ -37,6 +37,12 @@ export class GameManager {
   onVibestr?: () => void;
   onRevealLadders?: () => void;
   onLand?: () => void;
+  onPowerStart?: () => void;
+  onPowerEnd?: () => void;
+  onLFVEnd?: () => void;
+  onLFVDenied?: () => void;
+  lfvAnimationPlaying = false;
+  powerAnimationPlaying = false;
 
   // Tick-based movement accumulators
   private playerMoveAccum = 0;
@@ -88,6 +94,8 @@ export class GameManager {
     // Active LFV should not carry across retries or level transitions.
     this.vibeMeter.lfvTimer = 0;
     this.usedLFVThisLevel = false;
+    this.lfvAnimationPlaying = false;
+    this.powerAnimationPlaying = false;
 
     this.state = {
       phase: GamePhase.Playing,
@@ -147,12 +155,19 @@ export class GameManager {
     const activePlayerInterval =
       (player.isFalling || playerWillFall ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL);
     let digLockedThisFrame = this.state.player.isDigging;
+    const lfvLockedThisFrame = this.lfvAnimationPlaying || this.powerAnimationPlaying;
 
     this.advancePlayerRender(dt);
 
-    // Update LFV timer
-    updateLFV(this.vibeMeter, dt);
+    // Update LFV timer (frozen during activation animation)
+    const wasLFV = isLFVActive(this.vibeMeter);
+    if (!this.lfvAnimationPlaying) {
+      updateLFV(this.vibeMeter, dt);
+    }
     this.state.player.isLFV = isLFVActive(this.vibeMeter);
+    if (wasLFV && !this.state.player.isLFV) {
+      this.onLFVEnd?.();
+    }
     this.suppressLFVWhilePowerHelmetActive();
 
     // Tick down dig animation timer
@@ -165,38 +180,61 @@ export class GameManager {
     }
 
     // Update facing direction instantly (not tick-gated) so sprite responds immediately
-    if (!digLockedThisFrame) {
+    if (!digLockedThisFrame && !lfvLockedThisFrame) {
       if (this.input.left) this.state.player.facing = Direction.Left;
       else if (this.input.right) this.state.player.facing = Direction.Right;
     }
 
     // Digging — checked every frame so justPressed isn't missed
-    if (!this.state.powerHelmetActive && !digLockedThisFrame && this.input.justPressed('z')) {
+    if (!this.state.powerHelmetActive && !digLockedThisFrame && !lfvLockedThisFrame && this.input.justPressed('z')) {
       digLockedThisFrame = this.tryDig(Direction.Left) || digLockedThisFrame;
     }
-    if (!this.state.powerHelmetActive && !digLockedThisFrame && (this.input.justPressed('x') || this.input.justPressed('c'))) {
+    if (!this.state.powerHelmetActive && !digLockedThisFrame && !lfvLockedThisFrame && (this.input.justPressed('x') || this.input.justPressed('c'))) {
       digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
     }
 
     const spacePressed = this.input.justPressed(' ');
     this.handlePowerHelmetInput(spacePressed);
 
-    // LFV is disabled while the helmet power-up is active.
-    if (spacePressed && !this.state.powerHelmetActive && isLFVReady(this.vibeMeter)) {
+    // LFV is disabled while the helmet power-up is active, can only be used once per level,
+    // and must be triggered from a normal grounded / free-standing state.
+    const lfvReadyToUse = !this.state.powerHelmetActive && !this.usedLFVThisLevel && isLFVReady(this.vibeMeter);
+    if (spacePressed && lfvReadyToUse && (playerOnLadder || playerOnRope)) {
+      this.onLFVDenied?.();
+    }
+
+    if (
+      spacePressed
+      && lfvReadyToUse
+      && !playerOnLadder
+      && !playerOnRope
+    ) {
       activateLFV(this.vibeMeter);
       this.usedLFVThisLevel = true;
       this.onLFV?.();
     }
 
     // Player movement (tick-based)
-    if (digLockedThisFrame) {
+    if (digLockedThisFrame || lfvLockedThisFrame) {
       this.playerMoveAccum = 0;
-      this.updatePlayer(true);
+      if (digLockedThisFrame) {
+        this.updatePlayer(true);
+      } else {
+        this.checkBadgeCollection();
+
+        if (collectDrop(this.drops, player.pos)) {
+          scoreVibestr(this.scoring);
+          this.onVibestr?.();
+        }
+
+        this.checkPowerHelmetCollection();
+        this.checkPlayerCollisions();
+      }
     } else {
       this.playerMoveAccum += dt * playerSpeedMult;
     }
 
-    if (!digLockedThisFrame && this.playerMoveAccum >= activePlayerInterval) {
+    if (!digLockedThisFrame && !lfvLockedThisFrame && this.playerMoveAccum >= activePlayerInterval) {
       const previousPos = { ...this.state.player.pos };
       this.playerMoveAccum -= activePlayerInterval;
       this.updatePlayer(false);
@@ -460,6 +498,7 @@ export class GameManager {
       this.state.player.isDigging = false;
       this.suppressLFVWhilePowerHelmetActive();
       this.onCollect?.();
+      this.onPowerStart?.();
     }
   }
 
@@ -496,7 +535,7 @@ export class GameManager {
   }
 
   private handlePowerHelmetInput(spacePressed: boolean): void {
-    if (!spacePressed) return;
+    if (!spacePressed || this.powerAnimationPlaying) return;
     if (!this.state.powerHelmetActive) return;
 
     if (this.state.powerHelmetShots <= 0) return;
@@ -512,6 +551,7 @@ export class GameManager {
     if (this.state.powerHelmetShots <= 0) {
       this.state.powerHelmetActive = false;
       this.state.powerHelmetCollected = false;
+      this.onPowerEnd?.();
     }
   }
 
@@ -662,6 +702,17 @@ export class GameManager {
     }
     this.state.score = this.scoring.score;
     this.state.lives = this.scoring.lives;
+    if (this.state.player.isLFV) {
+      this.vibeMeter.lfvTimer = 0;
+      this.state.player.isLFV = false;
+      this.lfvAnimationPlaying = false;
+      this.onLFVEnd?.();
+    }
+    if (this.state.powerHelmetActive) {
+      this.state.powerHelmetActive = false;
+      this.powerAnimationPlaying = false;
+      this.onPowerEnd?.();
+    }
     this.state.phase = GamePhase.LevelComplete;
     this.onLevelComplete?.();
   }
@@ -681,6 +732,17 @@ export class GameManager {
   }
 
   private playerDeath(): void {
+    if (this.state.player.isLFV) {
+      this.vibeMeter.lfvTimer = 0;
+      this.state.player.isLFV = false;
+      this.onLFVEnd?.();
+    }
+
+    this.powerAnimationPlaying = false;
+    if (this.state.powerHelmetActive) {
+      this.state.powerHelmetActive = false;
+      this.onPowerEnd?.();
+    }
     this.scoring.lives--;
     this.onDeath?.();
     if (this.scoring.lives <= 0) {

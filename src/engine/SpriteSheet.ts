@@ -22,6 +22,7 @@ export interface SpriteSet {
   powerFront: SpriteAnimation;
   powerClimb: SpriteAnimation;
   powerRope: SpriteAnimation;
+  powerActivation: SpriteAnimation;
   powerPickup: SpriteAnimation;
 }
 
@@ -44,9 +45,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function loadPlayerSprites(): Promise<SpriteSet> {
   const base = '/assets/sprites/';
-  const version = 'craig-pack-v6';
+  const version = 'craig-pack-v11';
 
-  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerClimb, powerRope, powerPickup] = await Promise.all([
+  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerClimb, powerRope, powerActivation, powerPickup] = await Promise.all([
     loadImage(base + 'player-run-right.png?v=' + version),
     loadImage(base + 'player-run-left.png?v=' + version),
     loadImage(base + 'player-idle.png?v=' + version),
@@ -59,6 +60,7 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
     loadImage(base + 'player-power-front.png?v=' + version),
     loadImage(base + 'player-power-climb.png?v=' + version),
     loadImage(base + 'player-power-rope.png?v=' + version),
+    loadImage(base + 'player-power-activation.png?v=' + version),
     loadImage(base + 'power-helmet.png?v=' + version),
   ]);
   const runFrameCount = 8;
@@ -80,6 +82,8 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
   const powerClimbSourceFrameWidth = Math.floor(powerClimb.naturalWidth / powerClimbFrameCount);
   const powerRopeFrameCount = 5;
   const powerRopeSourceFrameWidth = Math.floor(powerRope.naturalWidth / powerRopeFrameCount);
+  const powerActivationFrameCount = 9;
+  const powerActivationSourceFrameWidth = Math.floor(powerActivation.naturalWidth / powerActivationFrameCount);
   const powerPickupFrameCount = 8;
   const powerPickupSourceFrameWidth = Math.floor(powerPickup.naturalWidth / powerPickupFrameCount);
 
@@ -179,6 +183,14 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
       frameCount: powerRopeFrameCount,
       sourceFrameWidth: powerRopeSourceFrameWidth,
       sourceFrameHeight: powerRope.naturalHeight,
+    },
+    powerActivation: {
+      image: powerActivation,
+      frameWidth: Math.floor(powerActivationSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerActivation.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerActivationFrameCount,
+      sourceFrameWidth: powerActivationSourceFrameWidth,
+      sourceFrameHeight: powerActivation.naturalHeight,
     },
     powerPickup: {
       image: powerPickup,

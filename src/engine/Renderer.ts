@@ -5,7 +5,7 @@ import { ConfettiPiece } from '@/game/Confetti';
 import { getWeatherEffects, WeatherEffects } from '@/game/Weather';
 import { SpriteSet, DuckSprites, drawFrame } from '@/engine/SpriteSheet';
 import { LevelTheme, getTheme } from '@/engine/Themes';
-import { TILE_SIZE, GRID_COLS, GRID_ROWS, CANVAS_WIDTH, COLORS, VIBE_MAX, HOLE_OPEN_ANIM, HOLE_CLOSE_ANIM } from '@/constants';
+import { TILE_SIZE, GRID_COLS, GRID_ROWS, CANVAS_WIDTH, COLORS, VIBE_MAX, HOLE_OPEN_ANIM, HOLE_CLOSE_ANIM, PLAYER_SPRITE_SOURCE_SCALE } from '@/constants';
 
 /** Shift a hex color's hue by a given number of degrees */
 function shiftColor(hex: string, degrees: number): string {
@@ -65,6 +65,21 @@ export class Renderer {
   private bgImage: HTMLImageElement | null = null;
   private badgeSprite: HTMLImageElement | null = null;
   private shakaSprites: HTMLImageElement[] = [];
+  private lfvActivationSprite: HTMLImageElement | null = null;
+  private readonly LFV_ACTIVATION_FRAMES = 11;
+  private readonly LFV_ACTIVATION_FRAME_W = 124;
+  private readonly LFV_ACTIVATION_FRAME_H = 124;
+  private readonly LFV_ACTIVATION_FRAME_MS = 100; // 10fps = 100ms per frame
+  private lfvActivationBounds: { x: number; y: number; w: number; h: number }[] = [];
+  private readonly POWER_ACTIVATION_FRAME_MS = 100;
+  lfvActivating = false;
+  powerActivating = false;
+  onLfvActivationDone?: () => void;
+  onPowerActivationDone?: () => void;
+  private lfvActivationFrame = 0;
+  private lfvActivationAccum = 0;
+  private powerActivationFrame = 0;
+  private powerActivationAccum = 0;
   private badgeFrameCount = 1;
   private badgeSourceFrameWidth = 64;
   sprites: SpriteSet | null = null;
@@ -122,6 +137,18 @@ export class Renderer {
       this.shakaSprites.push(img);
     }
 
+    const lfvImg = new Image();
+    lfvImg.onload = () => {
+      this.lfvActivationSprite = lfvImg;
+      this.lfvActivationBounds = this.computeAnimationBounds(
+        lfvImg,
+        this.LFV_ACTIVATION_FRAMES,
+        this.LFV_ACTIVATION_FRAME_W,
+        this.LFV_ACTIVATION_FRAME_H,
+      );
+    };
+    lfvImg.src = '/assets/sprites/lfv-activation.png?v=craig-pack-v10';
+
     // Offscreen canvas for pixelated text rendering
     this.pixelCanvas = document.createElement('canvas');
     this.pixelCtx = this.pixelCanvas.getContext('2d')!;
@@ -143,6 +170,60 @@ export class Renderer {
     draw();
     this.ctx.imageSmoothingEnabled = prevEnabled;
     this.ctx.imageSmoothingQuality = prevQuality;
+  }
+
+  private computeAnimationBounds(
+    image: HTMLImageElement,
+    frameCount: number,
+    frameWidth: number,
+    frameHeight: number,
+  ): { x: number; y: number; w: number; h: number }[] {
+    const canvas = document.createElement('canvas');
+    canvas.width = frameWidth;
+    canvas.height = frameHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+      return Array.from({ length: frameCount }, () => ({ x: 0, y: 0, w: frameWidth, h: frameHeight }));
+    }
+
+    const bounds: { x: number; y: number; w: number; h: number }[] = [];
+    for (let frame = 0; frame < frameCount; frame++) {
+      ctx.clearRect(0, 0, frameWidth, frameHeight);
+      ctx.drawImage(
+        image,
+        frame * frameWidth,
+        0,
+        frameWidth,
+        frameHeight,
+        0,
+        0,
+        frameWidth,
+        frameHeight,
+      );
+      const { data } = ctx.getImageData(0, 0, frameWidth, frameHeight);
+      let minX = frameWidth;
+      let minY = frameHeight;
+      let maxX = -1;
+      let maxY = -1;
+
+      for (let y = 0; y < frameHeight; y++) {
+        for (let x = 0; x < frameWidth; x++) {
+          if (data[(y * frameWidth + x) * 4 + 3] === 0) continue;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+
+      if (maxX < minX || maxY < minY) {
+        bounds.push({ x: 0, y: 0, w: frameWidth, h: frameHeight });
+      } else {
+        bounds.push({ x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 });
+      }
+    }
+
+    return bounds;
   }
 
   /** Draw text with a chunky pixel-art feel by rendering small then scaling up */
@@ -262,6 +343,43 @@ export class Renderer {
       this.animAccum -= frameMs;
       this.animFrame++;
     }
+
+    // LFV activation animation
+    if (this.lfvActivating) {
+      this.lfvActivationAccum += dt;
+      if (this.lfvActivationAccum >= this.LFV_ACTIVATION_FRAME_MS) {
+        this.lfvActivationAccum -= this.LFV_ACTIVATION_FRAME_MS;
+        this.lfvActivationFrame++;
+        if (this.lfvActivationFrame >= this.LFV_ACTIVATION_FRAMES) {
+          this.lfvActivating = false;
+          this.onLfvActivationDone?.();
+        }
+      }
+    }
+
+    if (this.powerActivating && this.sprites) {
+      this.powerActivationAccum += dt;
+      if (this.powerActivationAccum >= this.POWER_ACTIVATION_FRAME_MS) {
+        this.powerActivationAccum -= this.POWER_ACTIVATION_FRAME_MS;
+        this.powerActivationFrame++;
+        if (this.powerActivationFrame >= this.sprites.powerActivation.frameCount) {
+          this.powerActivating = false;
+          this.onPowerActivationDone?.();
+        }
+      }
+    }
+  }
+
+  startLfvActivation(): void {
+    this.lfvActivating = true;
+    this.lfvActivationFrame = 0;
+    this.lfvActivationAccum = 0;
+  }
+
+  startPowerActivation(): void {
+    this.powerActivating = true;
+    this.powerActivationFrame = 0;
+    this.powerActivationAccum = 0;
   }
 
   private getAnimationFrameMs(state: Exclude<Renderer['animState'], null>): number {
@@ -1328,6 +1446,60 @@ export class Renderer {
     const facing = this.playerFacing;
 
     if (this.sprites) {
+      if (this.powerActivating) {
+        const anim = this.sprites.powerActivation;
+        const fi = this.powerActivationFrame % anim.frameCount;
+        const drawWidth = Math.floor(anim.frameWidth * this.PLAYER_SCALE);
+        const drawHeight = Math.floor(anim.frameHeight * this.PLAYER_SCALE);
+        const offsetY = TILE_SIZE - drawHeight;
+        const offsetX = (TILE_SIZE - drawWidth) / 2;
+        const drawX = Math.max(0, Math.min(px + offsetX, CANVAS_WIDTH - drawWidth));
+        const drawY = Math.max(0, py + offsetY);
+        const sourceFrameWidth = anim.sourceFrameWidth ?? anim.frameWidth;
+        const sourceFrameHeight = anim.sourceFrameHeight ?? anim.frameHeight;
+        this.withSpriteSmoothing(() => {
+          ctx.drawImage(
+            anim.image,
+            fi * sourceFrameWidth,
+            0,
+            sourceFrameWidth,
+            sourceFrameHeight,
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight,
+          );
+        });
+        return;
+      }
+
+      // LFV activation animation — replaces player sprite, plays once
+      if (this.lfvActivating && this.lfvActivationSprite?.complete) {
+        const fw = this.LFV_ACTIVATION_FRAME_W;
+        const fi = this.lfvActivationFrame % this.LFV_ACTIVATION_FRAMES;
+        const crop = this.lfvActivationBounds[fi] ?? {
+          x: 0,
+          y: 0,
+          w: this.LFV_ACTIVATION_FRAME_W,
+          h: this.LFV_ACTIVATION_FRAME_H,
+        };
+        const drawH = Math.floor(this.sprites.idle.frameHeight * this.PLAYER_SCALE);
+        const drawW = Math.floor((crop.w / crop.h) * drawH);
+        const drawX = px + TILE_SIZE / 2 - drawW / 2;
+        const drawY = py + TILE_SIZE - drawH;
+        this.withSpriteSmoothing(() => {
+          ctx.drawImage(
+            this.lfvActivationSprite!,
+            fi * fw + crop.x,
+            crop.y,
+            crop.w,
+            crop.h,
+            drawX, drawY, drawW, drawH,
+          );
+        });
+        return;
+      }
+
       // LFV shaka aura effect — colorful shakas orbiting the player
       if (isLFV) {
         const cx = px + TILE_SIZE / 2;
@@ -1526,10 +1698,9 @@ export class Renderer {
     const hudFont = "bold 16px 'Brice', sans-serif";
 
     const ps = 1.4;
-    this.drawPixelText(`SCORE: ${score}`, 10, midY, hudFont, COLORS.cream, 'left', ps);
-    this.drawPixelText(`LIVES: ${lives}`, 180, midY, hudFont, COLORS.cream, 'left', ps);
-    this.drawPixelText(`LVL: ${level}`, 300, midY, hudFont, COLORS.cream, 'left', ps);
-    this.drawPixelText(`$VIBESTR: ${vibestr}`, 390, midY, hudFont, COLORS.vibestrGold, 'left', ps);
+    this.drawPixelText(`VIBES: ${score}`, 10, midY, hudFont, COLORS.vibestrGold, 'left', ps);
+    this.drawPixelText(`LIVES: ${lives}`, 200, midY, hudFont, COLORS.cream, 'left', ps);
+    this.drawPixelText(`LVL: ${level}`, 340, midY, hudFont, COLORS.cream, 'left', ps);
 
     // Vibe meter progress bar
     const barX = 560;

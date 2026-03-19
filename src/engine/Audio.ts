@@ -4,6 +4,7 @@
 
 const POOL_SIZE = 4;
 const pools: Map<string, HTMLAudioElement[]> = new Map();
+let uiAudioCtx: AudioContext | null = null;
 
 function createPool(src: string): void {
   const pool: HTMLAudioElement[] = [];
@@ -22,6 +23,19 @@ function play(src: string, volume = 0.5): void {
   audio.currentTime = 0;
   audio.volume = volume;
   audio.play().catch(() => {});
+}
+
+function getUiAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return null;
+  if (!uiAudioCtx) {
+    uiAudioCtx = new Ctx();
+  }
+  if (uiAudioCtx.state === 'suspended') {
+    uiAudioCtx.resume().catch(() => {});
+  }
+  return uiAudioCtx;
 }
 
 // Looping fall sound — single instance that starts/stops
@@ -46,6 +60,7 @@ createPool('/assets/audio/cheer.mp3');
 createPool('/assets/audio/yay.mp3');
 createPool('/assets/audio/death.mp3');
 createPool('/assets/audio/shoot.mp3');
+createPool('/assets/audio/lfv-activate.mp3');
 
 export function sfxDig(): void { play('/assets/audio/dig.mp3', 0.5); }
 export function sfxCollect(): void { play('/assets/audio/collect.mp3', 0.5); }
@@ -77,12 +92,121 @@ export function sfxKill(): void {
   play(sound, 0.45);
 }
 export function sfxDeath(): void { play('/assets/audio/death.mp3', 0.6); }
+export function sfxLfvActivate(): void { play('/assets/audio/lfv-activate.mp3', 0.6); }
 export function sfxShoot(): void { play('/assets/audio/shoot.mp3', 0.4); }
 export function sfxLFV(): void { play('/assets/audio/collect.mp3', 0.6); }
 export function sfxVibestr(): void { play('/assets/audio/collect.mp3', 0.3); }
 export function sfxRevealLadders(): void { play('/assets/audio/collect.mp3', 0.4); }
+export function sfxError(): void {
+  const ctx = getUiAudioCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  // Two-tone descending "nope" buzz
+  for (let i = 0; i < 2; i++) {
+    const t = now + i * 0.12;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(520 - i * 140, t);
+    osc.frequency.linearRampToValueAtTime(380 - i * 140, t + 0.1);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.07, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.12);
+  }
+}
+
+export function sfxMenuClick(): void {
+  const ctx = getUiAudioCtx();
+  if (!ctx) return;
+  const now = ctx.currentTime;
+
+  // Punchy two-tone chirp — SNES-style select sound
+  const freqs = [660, 990];
+  for (let i = 0; i < 2; i++) {
+    const t = now + i * 0.045;
+    // Triangle for warmth + square for bite
+    for (const type of ['triangle', 'square'] as OscillatorType[]) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freqs[i], t);
+      const vol = type === 'triangle' ? 0.1 : 0.04;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(vol, t + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.07);
+    }
+  }
+}
 
 export function resumeAudio(): void {}
+
+// ── Power-up SFX songs (pause music while active) ──
+const shadowFunkAudio = new Audio('/assets/audio/shadow-funk.mp3');
+shadowFunkAudio.preload = 'auto';
+shadowFunkAudio.volume = 0.5;
+
+const lfvAudio = new Audio('/assets/audio/lfv.mp3');
+lfvAudio.preload = 'auto';
+lfvAudio.volume = 0.5;
+
+let powerSfxActive = false; // true when any power-up song is playing
+
+function resumeMusicAfterPowerSfx(): void {
+  powerSfxActive = false;
+  if (musicPlaying && !musicMuted) {
+    if (musicTheme.currentTime > 0 && musicTheme.currentTime < musicTheme.duration) {
+      musicTheme.play().catch(() => {});
+    } else if (musicVibegaming.currentTime > 0 && musicVibegaming.currentTime < musicVibegaming.duration) {
+      musicVibegaming.play().catch(() => {});
+    } else {
+      musicTheme.currentTime = 0;
+      musicTheme.play().catch(() => {});
+    }
+  }
+}
+
+function pauseMusicForPowerSfx(): void {
+  powerSfxActive = true;
+  musicTheme.pause();
+  musicVibegaming.pause();
+  // Stop the other power-up song if active
+  shadowFunkAudio.pause();
+  shadowFunkAudio.currentTime = 0;
+  lfvAudio.pause();
+  lfvAudio.currentTime = 0;
+}
+
+export function shadowFunkStart(): void {
+  pauseMusicForPowerSfx();
+  shadowFunkAudio.play().catch(() => {});
+}
+
+export function shadowFunkStop(): void {
+  shadowFunkAudio.pause();
+  shadowFunkAudio.currentTime = 0;
+  if (!lfvAudio.paused) return; // LFV still going, don't resume music
+  resumeMusicAfterPowerSfx();
+}
+
+export function lfvSfxStart(): void {
+  pauseMusicForPowerSfx();
+  lfvAudio.play().catch(() => {});
+}
+
+export function lfvSfxStop(): void {
+  lfvAudio.pause();
+  lfvAudio.currentTime = 0;
+  if (!shadowFunkAudio.paused) return; // shadow funk still going, don't resume music
+  resumeMusicAfterPowerSfx();
+}
 
 // ── Background Music ──
 // Two-track cycle: theme → vibegaming → theme → ...
@@ -96,13 +220,13 @@ let musicPlaying = false;
 
 function chainMusic(): void {
   musicTheme.onended = () => {
-    if (!musicMuted && musicPlaying) {
+    if (!musicMuted && musicPlaying && !powerSfxActive) {
       musicVibegaming.currentTime = 0;
       musicVibegaming.play().catch(() => {});
     }
   };
   musicVibegaming.onended = () => {
-    if (!musicMuted && musicPlaying) {
+    if (!musicMuted && musicPlaying && !powerSfxActive) {
       musicTheme.currentTime = 0;
       musicTheme.play().catch(() => {});
     }
@@ -118,7 +242,7 @@ export function musicStart(): void {
   musicTheme.currentTime = 0;
   musicTheme.volume = 0.4;
   musicVibegaming.volume = 0.4;
-  if (!musicMuted) {
+  if (!musicMuted && !powerSfxActive) {
     musicTheme.play().catch(() => {});
   }
 }
@@ -138,7 +262,7 @@ export function musicSetMuted(muted: boolean): void {
   if (muted) {
     musicTheme.pause();
     musicVibegaming.pause();
-  } else if (musicPlaying) {
+  } else if (musicPlaying && !powerSfxActive) {
     // Resume whichever was active — if neither was mid-play, restart theme
     if (musicTheme.currentTime > 0 && musicTheme.currentTime < musicTheme.duration) {
       musicTheme.play().catch(() => {});

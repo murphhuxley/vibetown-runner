@@ -276,6 +276,73 @@ describe('GameManager', () => {
     expect(game.state.player.pos).toEqual(startPos);
   });
 
+  it('locks the player in place while the LFV activation animation is playing', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, (_, y) => (
+      Array.from({ length: game.state.grid[0].length }, () => (
+        y === 6 ? TileType.Sand : TileType.Empty
+      ))
+    ));
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+    game.lfvAnimationPlaying = true;
+
+    input.handleKeyDown('ArrowRight');
+    game.update(500);
+
+    expect(game.state.player.pos).toEqual({ x: 2, y: 5 });
+
+    game.lfvAnimationPlaying = false;
+    game.update(200);
+
+    expect(game.state.player.pos.x).toBe(3);
+  });
+
+  it('does not activate LFV on ladders or ropes and triggers the denied callback instead', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    game.state.player.pos = { x: 4, y: 5 };
+    game.state.grid[5][4] = TileType.Ladder;
+    game.vibeMeter.meter = 100;
+    let denied = 0;
+    game.onLFVDenied = () => { denied += 1; };
+
+    input.handleKeyDown(' ');
+    game.update(16);
+
+    expect(denied).toBe(1);
+    expect(game.lfvAnimationPlaying).toBe(false);
+    expect(game.state.player.isLFV).toBe(false);
+    expect(game.vibeMeter.lfvTimer).toBe(0);
+  });
+
+  it('locks the player in place and blocks firing while the power activation animation is playing', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, (_, y) => (
+      Array.from({ length: game.state.grid[0].length }, () => (
+        y === 6 ? TileType.Sand : TileType.Empty
+      ))
+    ));
+    game.state.player.pos = { x: 2, y: 5 };
+    game.state.player.facing = Direction.Right;
+    game.state.powerHelmetCollected = true;
+    game.state.powerHelmetActive = true;
+    game.state.powerHelmetShots = 3;
+    game.powerAnimationPlaying = true;
+
+    input.handleKeyDown('ArrowRight');
+    input.handleKeyDown(' ');
+    game.update(500);
+
+    expect(game.state.player.pos).toEqual({ x: 2, y: 5 });
+    expect(game.projectiles).toHaveLength(0);
+    expect(game.state.powerHelmetShots).toBe(3);
+
+    game.powerAnimationPlaying = false;
+    game.update(200);
+
+    expect(game.state.player.pos.x).toBe(3);
+  });
+
   it('cancels active LFV when the helmet is collected', () => {
     game.loadLevel(2);
     game.startGame();

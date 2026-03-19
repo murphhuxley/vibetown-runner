@@ -5,6 +5,8 @@ import { TileType } from '@/types';
 import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
 
+const SOLID_TILES = new Set([TileType.Sand, TileType.Coral, TileType.TrapSand]);
+
 function countTile(grid: number[][], tile: TileType): number {
   let count = 0;
   for (const row of grid) {
@@ -13,6 +15,18 @@ function countTile(grid: number[][], tile: TileType): number {
     }
   }
   return count;
+}
+
+function getAllVariants() {
+  return LEVEL_VARIANT_SLOTS.flatMap((slot) => slot);
+}
+
+function isSolid(cell: number | undefined): boolean {
+  return cell !== undefined && SOLID_TILES.has(cell as TileType);
+}
+
+function hasPlatformBelow(grid: number[][], x: number, y: number): boolean {
+  return isSolid(grid[y + 1]?.[x]);
 }
 
 const EXPECTED_BADGES = new Map([
@@ -42,7 +56,7 @@ describe('Level pack', () => {
   });
 
   it('keeps every level parseable and playable', () => {
-    for (const rawLevel of LEVELS) {
+    for (const rawLevel of getAllVariants()) {
       const level = parseLevel(rawLevel);
       expect(findSpawnPosition(level.grid, TileType.PlayerSpawn), `player spawn missing in level ${level.id}`).not.toBeNull();
       expect(countBadges(level.grid), `badges missing in level ${level.id}`).toBeGreaterThan(0);
@@ -105,18 +119,60 @@ describe('Level pack', () => {
   });
 
   it('keeps rope rows from sitting directly over standable platform tiles', () => {
-    const solidTiles = new Set([TileType.Sand, TileType.Coral, TileType.TrapSand]);
-
-    for (const level of LEVELS) {
+    for (const level of getAllVariants()) {
       for (let y = 0; y < level.grid.length - 1; y++) {
         for (let x = 0; x < level.grid[y].length; x++) {
           if (level.grid[y][x] !== TileType.Rope) continue;
           expect(
-            solidTiles.has(level.grid[y + 1][x]),
+            SOLID_TILES.has(level.grid[y + 1][x]),
             `rope at (${x}, ${y}) in level ${level.id} is too close to the platform below`,
           ).toBe(false);
         }
       }
+    }
+  });
+
+  it('keeps at least two clear cells above every rope tile', () => {
+    for (const level of getAllVariants()) {
+      for (let y = 2; y < level.grid.length; y++) {
+        for (let x = 0; x < level.grid[y].length; x++) {
+          if (level.grid[y][x] !== TileType.Rope) continue;
+          expect(
+            isSolid(level.grid[y - 1]?.[x]) || isSolid(level.grid[y - 2]?.[x]),
+            `rope at (${x}, ${y}) in level ${level.id} does not have enough headroom above it`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('keeps supported running lanes free of direct ceiling collisions', () => {
+    const nonLaneTiles = new Set([TileType.Ladder, TileType.Rope, TileType.HiddenLadder]);
+
+    for (const level of getAllVariants()) {
+      for (let y = 1; y < level.grid.length - 1; y++) {
+        for (let x = 0; x < level.grid[y].length; x++) {
+          const tile = level.grid[y][x] as TileType;
+          if (nonLaneTiles.has(tile)) continue;
+          if (!hasPlatformBelow(level.grid, x, y)) continue;
+
+          expect(
+            isSolid(level.grid[y - 1]?.[x]),
+            `tile at (${x}, ${y}) in level ${level.id} is a low-ceiling running lane`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('keeps authored power helmets on platform-supported empty tiles', () => {
+    for (const level of getAllVariants()) {
+      if (!level.powerHelmet) continue;
+
+      const { x, y } = level.powerHelmet;
+      expect(level.grid[y][x], `level ${level.id} power helmet must stay on an empty tile`).toBe(TileType.Empty);
+      expect(level.grid[y][x] === TileType.Ladder || level.grid[y][x] === TileType.Rope, `level ${level.id} power helmet cannot sit on ladder/rope`).toBe(false);
+      expect(hasPlatformBelow(level.grid, x, y), `level ${level.id} power helmet needs a real platform under it`).toBe(true);
     }
   });
 

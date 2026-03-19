@@ -6,7 +6,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_ROWS, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
-import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, musicStart, musicStop, musicSetMuted, shadowFunkStart, shadowFunkStop, lfvSfxStart, lfvSfxStop } from '@/engine/Audio';
+import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, sfxLfvActivate, sfxError, sfxMenuClick, musicStart, musicStop, musicSetMuted, shadowFunkStart, shadowFunkStop, lfvSfxStart, lfvSfxStop } from '@/engine/Audio';
 import { getTop25, submitScore, LeaderboardEntry } from '@/leaderboard';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -49,19 +49,41 @@ game.onShoot = sfxShoot;
 game.onLevelComplete = sfxLevelComplete;
 game.onVibestr = sfxVibestr;
 game.onRevealLadders = sfxRevealLadders;
-game.onPowerStart = shadowFunkStart;
-game.onPowerEnd = shadowFunkStop;
+
+function onPowerActivate(): void {
+  game.powerAnimationPlaying = true;
+  renderer.startPowerActivation();
+  shadowFunkStart();
+}
+
+function onPowerEnd(): void {
+  game.powerAnimationPlaying = false;
+  shadowFunkStop();
+}
+
 function onLfvActivate(): void {
+  game.lfvAnimationPlaying = true;
   renderer.startLfvActivation();
+  sfxLfvActivate();
   lfvSfxStart();
 }
+
+renderer.onLfvActivationDone = () => {
+  game.lfvAnimationPlaying = false;
+};
+renderer.onPowerActivationDone = () => {
+  game.powerAnimationPlaying = false;
+};
 
 function onLfvEnd(): void {
   lfvSfxStop();
 }
 
+game.onPowerStart = onPowerActivate;
+game.onPowerEnd = onPowerEnd;
 game.onLFV = onLfvActivate;
 game.onLFVEnd = onLfvEnd;
+game.onLFVDenied = sfxError;
 
 // ── Main Menu UI ──
 const menuScreen = document.getElementById('menu-screen')!;
@@ -104,8 +126,9 @@ canvas.addEventListener('click', (e) => {
   }
   // Audio toggle click regions on overlay screens
   const phase = game.state.phase;
-  if (phase === GamePhase.Dead || phase === GamePhase.GameOver || phase === GamePhase.Victory) {
-    const toggleY = phase === GamePhase.Dead ? CANVAS_HEIGHT / 2 + 90
+  if (phase === GamePhase.Paused || phase === GamePhase.Dead || phase === GamePhase.GameOver || phase === GamePhase.Victory) {
+    const toggleY = phase === GamePhase.Paused ? CANVAS_HEIGHT / 2 + 90
+                   : phase === GamePhase.Dead ? CANVAS_HEIGHT / 2 + 90
                    : phase === GamePhase.GameOver ? CANVAS_HEIGHT / 2 + 110
                    : CANVAS_HEIGHT / 2 + 130;
     const center = CANVAS_WIDTH / 2;
@@ -127,25 +150,25 @@ canvas.addEventListener('click', (e) => {
 const soundToggle = document.getElementById('sound-toggle')!;
 let soundEnabled = true;
 
-document.getElementById('btn-play')!.addEventListener('click', hideMenu);
+document.getElementById('btn-play')!.addEventListener('click', () => { sfxMenuClick(); hideMenu(); });
 document.getElementById('btn-instructions')!.addEventListener('click', () => {
-  showPanel(instructionsPanel);
+  sfxMenuClick(); showPanel(instructionsPanel);
 });
 document.getElementById('instructions-close')!.addEventListener('click', () => {
-  showPanel(menuPanel);
+  sfxMenuClick(); showPanel(menuPanel);
 });
 document.getElementById('btn-options')!.addEventListener('click', () => {
-  showPanel(optionsPanel);
+  sfxMenuClick(); showPanel(optionsPanel);
 });
 document.getElementById('options-close')!.addEventListener('click', () => {
-  showPanel(menuPanel);
+  sfxMenuClick(); showPanel(menuPanel);
 });
-soundToggle.addEventListener('click', toggleSoundEnabled);
+soundToggle.addEventListener('click', () => { sfxMenuClick(); toggleSoundEnabled(); });
 
 // ── Music Toggle ──
 const musicToggle = document.getElementById('music-toggle')!;
 let musicEnabled = true;
-musicToggle.addEventListener('click', toggleMusicEnabled);
+musicToggle.addEventListener('click', () => { sfxMenuClick(); toggleMusicEnabled(); });
 // ── Leaderboard ──
 const leaderboardPanel = document.getElementById('leaderboard-panel')!;
 const lbEntries = document.getElementById('lb-entries')!;
@@ -205,10 +228,10 @@ async function showLeaderboard(highlightId?: string): Promise<void> {
 }
 
 document.getElementById('btn-quit')!.addEventListener('click', () => {
-  showLeaderboard();
+  sfxMenuClick(); showLeaderboard();
 });
 document.getElementById('leaderboard-close')!.addEventListener('click', () => {
-  showPanel(menuPanel);
+  sfxMenuClick(); showPanel(menuPanel);
 });
 
 // ── Score Submission ──
@@ -295,7 +318,10 @@ toggleOffImg.src = '/assets/sprites/toggle-off.png';
 const TOGGLE_SIZE = 28;
 const TOGGLE_FONT = "bold 14px 'Brice', sans-serif";
 
+let lastToggleY = 0;
+
 function drawAudioToggles(y: number): void {
+  lastToggleY = y;
   const center = CANVAS_WIDTH / 2;
   const spacing = 120; // distance between SFX and Music groups
 
@@ -330,14 +356,14 @@ function toggleSoundEnabled(): void {
   if (soundEnabled) {
     game.onDig = sfxDig; game.onCollect = sfxCollect; game.onTrap = sfxTrap;
     game.onKill = sfxKill; game.onDeath = sfxDeath; game.onShoot = sfxShoot;
-    game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd;
+    game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd; game.onLFVDenied = sfxError;
     game.onLevelComplete = sfxLevelComplete;
     game.onVibestr = sfxVibestr; game.onRevealLadders = sfxRevealLadders;
-    game.onPowerStart = shadowFunkStart; game.onPowerEnd = shadowFunkStop;
+    game.onPowerStart = onPowerActivate; game.onPowerEnd = onPowerEnd;
   } else {
     game.onDig = undefined; game.onCollect = undefined; game.onTrap = undefined;
     game.onKill = undefined; game.onDeath = undefined; game.onShoot = undefined;
-    game.onLFV = undefined; game.onLFVEnd = undefined; game.onLevelComplete = undefined;
+    game.onLFV = undefined; game.onLFVEnd = undefined; game.onLFVDenied = undefined; game.onLevelComplete = undefined;
     game.onVibestr = undefined; game.onRevealLadders = undefined;
     game.onPowerStart = undefined; game.onPowerEnd = undefined;
     shadowFunkStop(); lfvSfxStop();
@@ -357,6 +383,7 @@ let playerRenderPos = game.getPlayerRenderPos();
 const loop = new GameLoop(
   (dt) => {
     lastDt = dt;
+    if (game.state.phase === GamePhase.Paused) { input.endFrame(); return; }
     game.update(dt);
     playerRenderPos = game.getPlayerRenderPos();
 
@@ -439,6 +466,23 @@ const loop = new GameLoop(
     );
 
     // Phase overlays
+    if (game.state.phase === GamePhase.Paused) {
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      ctx.fillStyle = COLORS.cream;
+      ctx.font = "bold 32px 'Brice', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('PAUSED', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 20);
+      ctx.font = "12px 'Brice', sans-serif";
+      ctx.fillStyle = '#A0A0A0';
+      ctx.fillText('Z = Dig Left  |  C = Dig Right  |  SPACE = LFV', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
+      ctx.fillStyle = COLORS.cream;
+      ctx.font = "16px 'Brice', sans-serif";
+      ctx.fillText('Press ESC to resume', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+      drawAudioToggles(CANVAS_HEIGHT / 2 + 90);
+    }
+
     if (game.state.phase === GamePhase.Dead) {
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -505,6 +549,13 @@ const loop = new GameLoop(
 
 // Handle state transitions (retry / next level)
 window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (game.state.phase === GamePhase.Playing) {
+      game.state.phase = GamePhase.Paused;
+    } else if (game.state.phase === GamePhase.Paused) {
+      game.state.phase = GamePhase.Playing;
+    }
+  }
   if (e.key === 'Enter') {
     if (game.state.phase === GamePhase.Dead) {
       game.loadLevel(game.state.currentLevel - 1);
