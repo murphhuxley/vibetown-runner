@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createScoring, collectBadge, trapDuck, killDuck, collectVibestr, completeLevel } from '@/game/Scoring';
-import { SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK, SCORE_VIBESTR, SCORE_LEVEL_COMPLETE, SCORE_LFV_BONUS, STARTING_LIVES } from '@/constants';
+import { createScoring, collectBadge, trapDuck, killDuck, powerKillDuck, collectVibestr, completeLevel } from '@/game/Scoring';
+import { SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK, SCORE_POWER_KILL, SCORE_VIBESTR, SCORE_LEVEL_COMPLETE, SCORE_LFV_BONUS, STARTING_LIVES } from '@/constants';
 
 describe('Scoring', () => {
   it('starts with zero score and starting lives', () => {
@@ -40,6 +40,12 @@ describe('Scoring', () => {
     completeLevel(s, false);
     expect(s.score).toBe(SCORE_LEVEL_COMPLETE);
     expect(s.lives).toBe(STARTING_LIVES);
+  });
+
+  it('awards premium points for power helmet kill', () => {
+    const s = createScoring();
+    powerKillDuck(s);
+    expect(s.score).toBe(SCORE_POWER_KILL);
   });
 
   it('awards LFV bonus when meter unused', () => {

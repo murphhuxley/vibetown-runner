@@ -1,5 +1,5 @@
 import {
-  SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK,
+  SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK, SCORE_POWER_KILL,
   SCORE_VIBESTR, SCORE_LEVEL_COMPLETE, SCORE_LFV_BONUS,
   STARTING_LIVES
 } from '@/constants';
@@ -31,6 +31,10 @@ export function trapDuck(s: ScoringState): void {
 
 export function killDuck(s: ScoringState): void {
   s.score += SCORE_KILL_DUCK;
+}
+
+export function powerKillDuck(s: ScoringState): void {
+  s.score += SCORE_POWER_KILL;
 }
 
 export function collectVibestr(s: ScoringState): void {

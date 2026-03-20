@@ -11,7 +11,7 @@ import { createDuckDeathEffect, updateDuckDeathEffects, DuckDeathEffect } from '
 import { createConfettiBurst, updateConfetti, ConfettiPiece } from '@/game/Confetti';
 import { getSpeedMultiplier } from '@/game/Weather';
 import { createProjectile, isProjectileExpired, traceProjectileImpact, updateProjectile } from '@/game/Projectile';
-import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
+import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, powerKillDuck as scorePowerKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
 import { InputManager } from '@/engine/Input';
 import { LEVELS, randomizeLevels } from '@/levels/catalog';
 
@@ -618,7 +618,11 @@ export class GameManager {
       }
     }
 
-    scoreKill(this.scoring);
+    if (this.state.powerHelmetActive) {
+      scorePowerKill(this.scoring);
+    } else {
+      scoreKill(this.scoring);
+    }
     this.onKill?.();
     respawnDuck(duck, this.state.grid, this.state.player.pos);
     this.duckRenderFrom.set(duck.id, { ...duck.pos });
