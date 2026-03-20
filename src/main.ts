@@ -389,32 +389,32 @@ document.getElementById('login-submit-btn')!.addEventListener('click', async () 
     loginError.textContent = 'Enter name and password';
     return;
   }
+  if (password.length < 3) {
+    loginError.textContent = 'Password must be at least 3 characters';
+    return;
+  }
   loginError.textContent = '';
   try {
-    // Try login first, if player not found try register
+    // Try register first (new player). If name taken, try login instead.
     try {
-      const playerName = await loginPlayer(name, password);
+      const playerName = await registerPlayer(name, password);
       currentPlayer = playerName;
       storePlayer(playerName);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '';
-      if (msg.toLowerCase().includes('not found')) {
-        const playerName = await registerPlayer(name, password);
+    } catch {
+      // Name taken — try logging in with these credentials
+      try {
+        const playerName = await loginPlayer(name, password);
         currentPlayer = playerName;
         storePlayer(playerName);
-      } else {
-        throw e;
+      } catch {
+        loginError.textContent = 'Wrong password for this name';
+        return;
       }
     }
     sfxMenuClick();
     loginModal.classList.add('hidden');
-  } catch (e: unknown) {
-    let msg = e instanceof Error ? e.message : 'Login failed';
-    // Strip Convex noise: "[Request ID: xxx] Server Error\nUncaught Error: actual message"
-    const match = msg.match(/(?:Uncaught Error:|Error:)\s*(.+)/);
-    if (match) msg = match[1].trim();
-    msg = msg.replace(/\[Request ID: [^\]]+\]\s*/g, '').replace('Server Error', '').trim();
-    loginError.textContent = msg || 'Login failed';
+  } catch {
+    loginError.textContent = 'Login failed';
   }
 });
 
