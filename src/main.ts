@@ -409,7 +409,10 @@ document.getElementById('login-submit-btn')!.addEventListener('click', async () 
     sfxMenuClick();
     loginModal.classList.add('hidden');
   } catch (e: unknown) {
-    loginError.textContent = e instanceof Error ? e.message : 'Login failed';
+    let msg = e instanceof Error ? e.message : 'Login failed';
+    // Strip Convex request ID prefix
+    msg = msg.replace(/\[Request ID: [^\]]+\]\s*/g, '').trim();
+    loginError.textContent = msg || 'Login failed';
   }
 });
 
