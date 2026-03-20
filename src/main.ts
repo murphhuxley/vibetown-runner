@@ -45,7 +45,7 @@ game.onDig = sfxDig;
 game.onCollect = sfxCollect;
 game.onTrap = sfxTrap;
 game.onKill = sfxKill;
-game.onDeath = sfxDeath;
+game.onDeath = () => { sfxDeath(); renderer.triggerShake(4, 200); };
 game.onLevelComplete = sfxLevelComplete;
 game.onVibestr = sfxVibestr;
 game.onRevealLadders = sfxRevealLadders;
@@ -463,14 +463,14 @@ function toggleSoundEnabled(): void {
   toggleImg.alt = soundEnabled ? 'ON' : 'OFF';
   if (soundEnabled) {
     game.onDig = sfxDig; game.onCollect = sfxCollect; game.onTrap = sfxTrap;
-    game.onKill = sfxKill; game.onDeath = sfxDeath; game.onShoot = onShoot;
+    game.onKill = sfxKill; game.onDeath = () => { sfxDeath(); renderer.triggerShake(4, 200); }; game.onShoot = onShoot;
     game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd; game.onLFVDenied = sfxError;
     game.onLevelComplete = sfxLevelComplete;
     game.onVibestr = sfxVibestr; game.onRevealLadders = sfxRevealLadders;
     game.onPowerStart = onPowerActivate; game.onPowerEnd = onPowerEnd;
   } else {
     game.onDig = undefined; game.onCollect = undefined; game.onTrap = undefined;
-    game.onKill = undefined; game.onDeath = undefined; game.onShoot = undefined;
+    game.onKill = undefined; game.onDeath = () => { renderer.triggerShake(4, 200); }; game.onShoot = undefined;
     game.onLFV = undefined; game.onLFVEnd = undefined; game.onLFVDenied = undefined; game.onLevelComplete = undefined;
     game.onVibestr = undefined; game.onRevealLadders = undefined;
     game.onPowerStart = undefined; game.onPowerEnd = undefined;
@@ -539,6 +539,9 @@ const loop = new GameLoop(
     input.endFrame();
   },
   () => {
+    const shake = renderer.getShakeOffset(lastDt);
+    ctx.save();
+    ctx.translate(shake.dx, shake.dy);
     renderer.setWeather(game.state.weather);
     renderer.clear(lastDt);
     renderer.drawGrid(game.state.grid);
@@ -658,6 +661,8 @@ const loop = new GameLoop(
       ctx.fillText('Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 90);
       drawAudioToggles(CANVAS_HEIGHT / 2 + 130);
     }
+
+    ctx.restore();
   }
 );
 

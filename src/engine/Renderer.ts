@@ -109,6 +109,9 @@ export class Renderer {
   private readonly DUCK_SCALE = 1.1;
   private readonly BASE_TILE_SIZE = 32;
   private bgTime = 0;
+  private shakeTimer = 0;
+  private shakeDuration = 0;
+  private shakeIntensity = 0;
   private weather: WeatherType = WeatherType.None;
   private weatherEffects: WeatherEffects = getWeatherEffects(WeatherType.None);
 
@@ -274,6 +277,23 @@ export class Renderer {
     else if (align === 'right') drawX = x - drawW;
 
     ctx.drawImage(pCanvas, 0, 0, textW, textH, drawX, y - drawH / 2, drawW, drawH);
+  }
+
+  triggerShake(intensity: number, duration: number): void {
+    this.shakeIntensity = intensity;
+    this.shakeDuration = duration;
+    this.shakeTimer = duration;
+  }
+
+  getShakeOffset(dt: number): { dx: number; dy: number } {
+    if (this.shakeTimer <= 0) return { dx: 0, dy: 0 };
+    this.shakeTimer -= dt;
+    const progress = Math.max(0, this.shakeTimer / this.shakeDuration);
+    const magnitude = this.shakeIntensity * progress;
+    return {
+      dx: (Math.random() - 0.5) * 2 * magnitude,
+      dy: (Math.random() - 0.5) * 2 * magnitude,
+    };
   }
 
   setTheme(theme: LevelTheme, themeKey: string): void {
