@@ -98,16 +98,21 @@ function positionSideHelmets(): void {
   const minGap = 160;
   const leftGap = rect.left;
   const rightGap = window.innerWidth - rect.right;
-  if (leftGap < minGap || rightGap < minGap) {
+  const gap = Math.min(leftGap, rightGap);
+  if (gap < 100) {
     sfLeftHelmet.style.display = 'none';
     sfRightHelmet.style.display = 'none';
     return;
   }
+  // Scale down to fit the available gap
+  const maxW = gap - 20;
+  const s = Math.min(1, maxW / 160);
   sfLeftHelmet.style.display = '';
   sfRightHelmet.style.display = '';
-  const helmetW = 160;
-  sfLeftHelmet.style.left = Math.max(0, (leftGap - helmetW) / 2) + 'px';
-  sfRightHelmet.style.right = Math.max(0, (rightGap - helmetW) / 2) + 'px';
+  sfLeftHelmet.style.transform = `translateY(-50%) scale(${s})`;
+  sfRightHelmet.style.transform = `translateY(-50%) scale(${s})`;
+  sfLeftHelmet.style.left = Math.max(0, (leftGap - 160 * s) / 2) + 'px';
+  sfRightHelmet.style.right = Math.max(0, (rightGap - 160 * s) / 2) + 'px';
 }
 
 function onPowerActivate(): void {
