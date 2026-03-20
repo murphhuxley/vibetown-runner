@@ -1,5 +1,5 @@
 import { GameState, GamePhase, TileType, Direction, DuckState, ProjectileState } from '@/types';
-import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS, DUCK_HOLE_KILL_LEAD_MS } from '@/constants';
+import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS, DUCK_HOLE_KILL_LEAD_MS, SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK, SCORE_POWER_KILL } from '@/constants';
 import { parseLevel, countBadges, findSpawnPosition, findAllSpawnPositions, cloneGrid, ensureHiddenExit } from '@/game/Level';
 import { createPlayer, movePlayer, canClimb, canTraverseRope } from '@/game/Player';
 import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck, respawnDuck } from '@/game/Duck';
@@ -12,6 +12,7 @@ import { createConfettiBurst, updateConfetti, ConfettiPiece } from '@/game/Confe
 import { getSpeedMultiplier } from '@/game/Weather';
 import { createProjectile, isProjectileExpired, traceProjectileImpact, updateProjectile } from '@/game/Projectile';
 import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, powerKillDuck as scorePowerKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
+import { ScorePopup, createScorePopup } from '@/game/ScorePopup';
 import { InputManager } from '@/engine/Input';
 import { LEVELS, randomizeLevels } from '@/levels/catalog';
 
@@ -22,6 +23,7 @@ export class GameManager {
   drops: VibestrDrop[] = [];
   duckDeaths: DuckDeathEffect[] = [];
   confetti: ConfettiPiece[] = [];
+  scorePopups: ScorePopup[] = [];
   projectiles: ProjectileState[] = [];
   input: InputManager;
 
@@ -124,6 +126,7 @@ export class GameManager {
     this.drops = [];
     this.duckDeaths = [];
     this.confetti = [];
+    this.scorePopups = [];
     this.projectiles = [];
     this.playerMoveAccum = 0;
     this.duckMoveAccum = 0;
@@ -487,6 +490,7 @@ export class GameManager {
             this.state.grid[duck.pos.y - 1][duck.pos.x] = TileType.Badge;
           }
           scoreTrap(this.scoring);
+          this.scorePopups.push(createScorePopup(duck.pos.x, duck.pos.y, `+${SCORE_TRAP_DUCK}`, '#F5D76E'));
           addVibe(this.vibeMeter, 'trap');
           this.onTrap?.();
         }
@@ -504,6 +508,7 @@ export class GameManager {
       grid[player.pos.y][player.pos.x] = TileType.Empty;
       this.state.badgesCollected++;
       scoreBadge(this.scoring);
+      this.scorePopups.push(createScorePopup(this.state.player.pos.x, this.state.player.pos.y, `+${SCORE_BADGE}`, '#5AE05A'));
       addVibe(this.vibeMeter, 'badge');
       this.onCollect?.();
     }
@@ -631,6 +636,8 @@ export class GameManager {
     } else {
       scoreKill(this.scoring);
     }
+    const killScore = this.state.powerHelmetActive ? SCORE_POWER_KILL : SCORE_KILL_DUCK;
+    this.scorePopups.push(createScorePopup(duck.pos.x, duck.pos.y, `+${killScore}`, '#E05A5A'));
     this.onKill?.();
     respawnDuck(duck, this.state.grid, this.state.player.pos);
     this.duckRenderFrom.set(duck.id, { ...duck.pos });

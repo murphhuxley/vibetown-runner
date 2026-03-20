@@ -2,6 +2,7 @@ import { TileType, Position, Direction, WeatherType, Hole, ProjectileState } fro
 import { VibeMeterState } from '@/game/VibeMeter';
 import { DuckDeathEffect, DUCK_DEATH_FRAME_MS } from '@/game/DuckDeath';
 import { ConfettiPiece } from '@/game/Confetti';
+import { ScorePopup } from '@/game/ScorePopup';
 import { getWeatherEffects, WeatherEffects } from '@/game/Weather';
 import { SpriteSet, DuckSprites, drawFrame } from '@/engine/SpriteSheet';
 import { LevelTheme, getTheme } from '@/engine/Themes';
@@ -1741,6 +1742,26 @@ export class Renderer {
       ctx.rotate(piece.rotation);
       ctx.fillStyle = piece.color;
       ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size * 0.7);
+      ctx.restore();
+    }
+  }
+
+  drawScorePopups(popups: ScorePopup[]): void {
+    const ctx = this.ctx;
+    for (const popup of popups) {
+      const progress = popup.elapsed / popup.duration;
+      const alpha = 1 - progress;
+      const offsetY = progress * 20; // float up 20px over lifetime
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "bold 10px 'Brice', sans-serif";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      // Shadow for readability
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillText(popup.text, popup.x + 1, popup.y - offsetY + 1);
+      ctx.fillStyle = popup.color;
+      ctx.fillText(popup.text, popup.x, popup.y - offsetY);
       ctx.restore();
     }
   }
