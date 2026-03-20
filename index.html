@@ -356,29 +356,20 @@
       image-rendering: crisp-edges;
       z-index: 0;
     }
-    #score-submit-inner {
-      position: absolute;
-      top: 28%;
-      left: 22%;
-      right: 22%;
-      bottom: 30%;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
     #score-name-input {
+      position: absolute;
+      z-index: 1;
+      top: 27%;
+      left: 14%;
+      width: 72%;
+      height: 12%;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
-      font-size: 18px;
-      padding: 8px 12px;
-      width: 80%;
+      font-size: 16px;
+      padding: 0 8px;
       text-align: center;
-      background: rgba(0,0,0,0.8);
+      background: transparent;
       border: none;
-      border-radius: 2px;
       color: #FFFFFF;
       outline: none;
       text-transform: uppercase;
@@ -388,7 +379,15 @@
     #score-name-input::placeholder {
       color: rgba(255,255,255,0.3);
     }
-    .score-info {
+    #submit-score-display {
+      position: absolute;
+      z-index: 1;
+      top: 49%;
+      left: 55%;
+      width: 35%;
+      height: 8%;
+      display: flex;
+      align-items: center;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
       font-size: 14px;
@@ -396,26 +395,51 @@
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
-    #score-submit-buttons {
-      display: flex;
-      gap: 12px;
-      z-index: 1;
+    #submit-level-display {
       position: absolute;
-      bottom: 18%;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    #score-submit-buttons button {
+      z-index: 1;
+      top: 59%;
+      left: 55%;
+      width: 35%;
+      height: 8%;
+      display: flex;
+      align-items: center;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
       font-size: 14px;
-      padding: 6px 20px;
+      color: #FFFFFF;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #score-submit-btn {
+      position: absolute;
+      z-index: 1;
+      top: 73%;
+      left: 14%;
+      width: 33%;
+      height: 10%;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
       border: none;
       background: transparent;
-      color: #FFFFFF;
+      color: transparent;
       cursor: pointer;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
+    }
+    #score-skip-btn {
+      position: absolute;
+      z-index: 1;
+      top: 73%;
+      left: 53%;
+      width: 33%;
+      height: 10%;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      border: none;
+      background: transparent;
+      color: transparent;
+      cursor: pointer;
     }
 
     /* ── Instructions Modal ── */
@@ -608,15 +632,11 @@
   <div id="score-submit" class="hidden">
     <div id="score-submit-box">
       <img id="highscore-frame" src="/assets/backgrounds/highscore-frame.png" alt="">
-      <div id="score-submit-inner">
-        <input type="text" id="score-name-input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
-        <div class="score-info" id="submit-score-display"></div>
-        <div class="score-info" id="submit-level-display"></div>
-      </div>
-      <div id="score-submit-buttons">
-        <button id="score-submit-btn">SUBMIT</button>
-        <button id="score-skip-btn">SKIP</button>
-      </div>
+      <input type="text" id="score-name-input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
+      <div id="submit-score-display"></div>
+      <div id="submit-level-display"></div>
+      <button id="score-submit-btn">SUBMIT</button>
+      <button id="score-skip-btn">SKIP</button>
     </div>
   </div>
 

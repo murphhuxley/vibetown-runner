@@ -32,7 +32,7 @@ export function updateTrappedDuck(duck: DuckState, dt: number, grid: TileType[][
   if (duck.trapTimer <= 0) {
     duck.isTrapped = false;
     duck.trapTimer = 0;
-    duck.escapeImmunity = 500;
+    duck.escapeImmunity = 1500;
     // Climb out — try to land on solid ground next to the hole
     const holeX = duck.pos.x;
     const aboveY = duck.pos.y - 1;

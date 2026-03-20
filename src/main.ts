@@ -360,8 +360,8 @@ function setScoreSubmitPending(pending: boolean): void {
 
 function showScoreSubmit(): void {
   if (hasSubmittedThisRun) return;
-  submitScoreDisplay.textContent = `Score: ${game.state.score.toLocaleString()}`;
-  submitLevelDisplay.textContent = `Level: ${game.state.currentLevel}`;
+  submitScoreDisplay.textContent = game.state.score.toLocaleString();
+  submitLevelDisplay.textContent = String(game.state.currentLevel);
   scoreNameInput.value = '';
   setScoreSubmitPending(false);
   scoreSubmitModal.classList.remove('hidden');
