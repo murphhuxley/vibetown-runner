@@ -31,6 +31,19 @@
       image-rendering: auto;
     }
 
+    .shadow-funk-helmet {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 144px;
+      height: 144px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      z-index: 4;
+    }
+    .shadow-funk-helmet.hidden { display: none; }
+    .shadow-funk-right { transform: translateY(-50%) scaleX(-1); }
+
     /* ── Main Menu Overlay ── */
     #menu-screen {
       position: fixed;
@@ -533,6 +546,8 @@
     </div>
   </div>
 
+  <img id="shadow-funk-left" class="shadow-funk-helmet hidden" src="/assets/sprites/power-helmet.gif" alt="">
+  <img id="shadow-funk-right" class="shadow-funk-helmet shadow-funk-right hidden" src="/assets/sprites/power-helmet.gif" alt="">
   <canvas id="game"></canvas>
   <script type="module" src="/src/main.ts"></script>
 </body>

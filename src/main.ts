@@ -57,15 +57,32 @@ renderer.onPowerShootMidpoint = () => {
   game.fireQueuedProjectile();
 };
 
+const sfLeftHelmet = document.getElementById('shadow-funk-left')!;
+const sfRightHelmet = document.getElementById('shadow-funk-right')!;
+
+function positionSideHelmets(): void {
+  const rect = canvas.getBoundingClientRect();
+  const helmetW = 144;
+  const leftGap = rect.left;
+  const rightGap = window.innerWidth - rect.right;
+  sfLeftHelmet.style.left = Math.max(0, (leftGap - helmetW) / 2) + 'px';
+  sfRightHelmet.style.right = Math.max(0, (rightGap - helmetW) / 2) + 'px';
+}
+
 function onPowerActivate(): void {
   game.powerAnimationPlaying = true;
   renderer.startPowerActivation();
   shadowFunkStart();
+  positionSideHelmets();
+  sfLeftHelmet.classList.remove('hidden');
+  sfRightHelmet.classList.remove('hidden');
 }
 
 function onPowerEnd(): void {
   game.powerAnimationPlaying = false;
   shadowFunkStop();
+  sfLeftHelmet.classList.add('hidden');
+  sfRightHelmet.classList.add('hidden');
 }
 
 function onLfvActivate(): void {
