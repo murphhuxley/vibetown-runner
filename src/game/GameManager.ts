@@ -50,6 +50,7 @@ export class GameManager {
   private readonly PLAYER_MOVE_INTERVAL = 1000 / PLAYER_SPEED;
   private readonly PLAYER_FALL_INTERVAL = 1000 / PLAYER_FALL_SPEED;
   private readonly DUCK_MOVE_INTERVAL = 250;
+  private currentDuckInterval = 250;
   private playerRenderFrom = { x: 0, y: 0 };
   private playerRenderTo = { x: 0, y: 0 };
   private playerRenderProgress = 1;
@@ -262,8 +263,15 @@ export class GameManager {
 
     // Duck movement
     const duckWeatherMult = getSpeedMultiplier(this.state.weather, 'duck');
+    // Chase acceleration: 20% faster when any duck is on same row within 8 tiles
+    const chasing = this.state.ducks.some(d =>
+      !d.isTrapped &&
+      d.pos.y === this.state.player.pos.y &&
+      Math.abs(d.pos.x - this.state.player.pos.x) <= 8
+    );
+    this.currentDuckInterval = chasing ? this.DUCK_MOVE_INTERVAL * 0.8 : this.DUCK_MOVE_INTERVAL;
     this.duckMoveAccum += dt * duckWeatherMult;
-    if (this.duckMoveAccum >= this.DUCK_MOVE_INTERVAL) {
+    if (this.duckMoveAccum >= this.currentDuckInterval) {
       this.duckMoveAccum = 0;
       if (!isLFVActive(this.vibeMeter)) {
         // Snapshot positions before move
@@ -281,7 +289,7 @@ export class GameManager {
 
     // Advance duck render interpolation
     if (this.duckRenderProgress < 1) {
-      this.duckRenderProgress = Math.min(this.duckRenderProgress + dt / this.DUCK_MOVE_INTERVAL, 1);
+      this.duckRenderProgress = Math.min(this.duckRenderProgress + dt / this.currentDuckInterval, 1);
     }
 
     // Update trapped ducks
