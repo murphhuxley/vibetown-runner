@@ -95,9 +95,17 @@ document.fonts.ready.then(renderSfTextCanvases);
 
 function positionSideHelmets(): void {
   const rect = canvas.getBoundingClientRect();
-  const helmetW = 160;
+  const minGap = 160;
   const leftGap = rect.left;
   const rightGap = window.innerWidth - rect.right;
+  if (leftGap < minGap || rightGap < minGap) {
+    sfLeftHelmet.style.display = 'none';
+    sfRightHelmet.style.display = 'none';
+    return;
+  }
+  sfLeftHelmet.style.display = '';
+  sfRightHelmet.style.display = '';
+  const helmetW = 160;
   sfLeftHelmet.style.left = Math.max(0, (leftGap - helmetW) / 2) + 'px';
   sfRightHelmet.style.right = Math.max(0, (rightGap - helmetW) / 2) + 'px';
 }
@@ -124,8 +132,16 @@ const lfvRight = document.getElementById('lfv-right')!;
 function positionLfvSides(): void {
   const rect = canvas.getBoundingClientRect();
   const imgW = 204;
+  const minGap = 160;
   const leftGap = rect.left;
   const rightGap = window.innerWidth - rect.right;
+  if (leftGap < minGap || rightGap < minGap) {
+    lfvLeft.style.display = 'none';
+    lfvRight.style.display = 'none';
+    return;
+  }
+  lfvLeft.style.display = '';
+  lfvRight.style.display = '';
   lfvLeft.style.left = Math.max(0, (leftGap - imgW) / 2) + 'px';
   lfvRight.style.right = Math.max(0, (rightGap - imgW) / 2) + 'px';
 }
@@ -135,13 +151,13 @@ function onLfvActivate(): void {
   renderer.startLfvActivation();
   sfxLfvActivate();
   lfvSfxStart();
-  positionLfvSides();
-  lfvLeft.classList.remove('hidden');
-  lfvRight.classList.remove('hidden');
 }
 
 renderer.onLfvActivationDone = () => {
   game.lfvAnimationPlaying = false;
+  positionLfvSides();
+  lfvLeft.classList.remove('hidden');
+  lfvRight.classList.remove('hidden');
 };
 renderer.onPowerActivationDone = () => {
   game.powerAnimationPlaying = false;
