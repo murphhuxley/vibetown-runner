@@ -404,20 +404,17 @@ function syncTheme(): void {
 }
 syncTheme();
 
-// Load sprites async — game runs with fallback rectangles until loaded
-loadPlayerSprites().then((sprites) => {
-  renderer.sprites = sprites;
-  if (isDevHost) {
-    console.log('Player sprites loaded');
-  }
-}).catch((err) => console.warn('Player sprites failed:', err));
-
-loadDuckSprites().then((duckSprites) => {
-  renderer.duckSprites = duckSprites;
-  if (isDevHost) {
-    console.log('Duck sprites loaded');
-  }
-}).catch((err) => console.warn('Duck sprites failed:', err));
+// Load sprites before starting game loop — menu is visible during load
+const spriteLoad = Promise.all([
+  loadPlayerSprites().then((sprites) => {
+    renderer.sprites = sprites;
+    if (isDevHost) console.log('Player sprites loaded');
+  }),
+  loadDuckSprites().then((duckSprites) => {
+    renderer.duckSprites = duckSprites;
+    if (isDevHost) console.log('Duck sprites loaded');
+  }),
+]).catch((err) => console.warn('Sprite load failed, using fallbacks:', err));
 
 
 // ── Canvas audio toggles (drawn on death/gameover/victory overlays) ──
@@ -702,7 +699,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-loop.start();
+spriteLoad.then(() => loop.start());
 
 // Start music on first user interaction (browser autoplay policy)
 let musicStarted = false;
