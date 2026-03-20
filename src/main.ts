@@ -90,7 +90,7 @@ const lfvRight = document.getElementById('lfv-right')!;
 
 function positionLfvSides(): void {
   const rect = canvas.getBoundingClientRect();
-  const imgW = 240;
+  const imgW = 204;
   const leftGap = rect.left;
   const rightGap = window.innerWidth - rect.right;
   lfvLeft.style.left = Math.max(0, (leftGap - imgW) / 2) + 'px';
