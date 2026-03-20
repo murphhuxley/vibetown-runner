@@ -42,9 +42,13 @@ export function moveDuckToward(
   duck: DuckState,
   grid: TileType[][],
   playerPos: Position,
-  otherDucks: DuckState[]
+  otherDucks: DuckState[],
+  hesitationChance = 0.15
 ): DuckState {
   if (duck.isTrapped) return duck;
+
+  // Random hesitation — duck pauses this tick
+  if (Math.random() < hesitationChance) return duck;
 
   const next = { ...duck, pos: { ...duck.pos } };
 

@@ -111,6 +111,22 @@ describe('Duck', () => {
     expect(duck.carryingBadge).toBe(false);
   });
 
+  it('hesitates when hesitation chance is 1', () => {
+    const grid = floorGrid();
+    const duck = createDuck(0, { x: 10, y: groundedY });
+    const playerPos = { x: 5, y: groundedY };
+    const moved = moveDuckToward(duck, grid, playerPos, [], 1.0);
+    expect(moved.pos).toEqual(duck.pos);
+  });
+
+  it('never hesitates when hesitation chance is 0', () => {
+    const grid = floorGrid();
+    const duck = createDuck(0, { x: 10, y: groundedY });
+    const playerPos = { x: 5, y: groundedY };
+    const moved = moveDuckToward(duck, grid, playerPos, [], 0);
+    expect(moved.pos.x).toBeLessThan(10);
+  });
+
   it('respawns as far from the player as possible on the top row', () => {
     const grid = floorGrid();
     const duck = createDuck(0, { x: 10, y: groundedY });
