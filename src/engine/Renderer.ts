@@ -3,6 +3,7 @@ import { VibeMeterState } from '@/game/VibeMeter';
 import { DuckDeathEffect, DUCK_DEATH_FRAME_MS } from '@/game/DuckDeath';
 import { ConfettiPiece } from '@/game/Confetti';
 import { ScorePopup } from '@/game/ScorePopup';
+import { DustParticle } from '@/game/LandingDust';
 import { getWeatherEffects, WeatherEffects } from '@/game/Weather';
 import { SpriteSet, DuckSprites, drawFrame } from '@/engine/SpriteSheet';
 import { LevelTheme, getTheme } from '@/engine/Themes';
@@ -1823,6 +1824,20 @@ export class Renderer {
       ctx.fillText(popup.text, popup.x + 1, popup.y - offsetY + 1);
       ctx.fillStyle = popup.color;
       ctx.fillText(popup.text, popup.x, popup.y - offsetY);
+      ctx.restore();
+    }
+  }
+
+  drawLandingDust(particles: DustParticle[]): void {
+    const ctx = this.ctx;
+    for (const p of particles) {
+      const alpha = Math.max(0, p.life / p.maxLife);
+      ctx.save();
+      ctx.globalAlpha = alpha * 0.6;
+      ctx.fillStyle = '#D4C5A9'; // sand color
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
   }

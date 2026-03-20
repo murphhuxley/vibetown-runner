@@ -3,6 +3,7 @@ import { GameLoop } from '@/engine/GameLoop';
 import { Renderer } from '@/engine/Renderer';
 import { InputManager } from '@/engine/Input';
 import { updateScorePopups } from '@/game/ScorePopup';
+import { updateDustParticles } from '@/game/LandingDust';
 import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
@@ -498,6 +499,7 @@ const loop = new GameLoop(
     if (game.state.phase === GamePhase.Paused) { input.endFrame(); return; }
     game.update(dt);
     updateScorePopups(game.scorePopups, dt);
+    updateDustParticles(game.dustParticles, dt);
     playerRenderPos = game.getPlayerRenderPos();
 
     // Snapshot player visual state BEFORE endFrame clears anything
@@ -572,6 +574,7 @@ const loop = new GameLoop(
     renderer.drawDuckDeaths(game.duckDeaths);
     renderer.drawConfetti(game.confetti);
     renderer.drawScorePopups(game.scorePopups);
+    renderer.drawLandingDust(game.dustParticles);
 
     // Draw HUD
     renderer.drawHUD(

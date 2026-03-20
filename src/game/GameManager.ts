@@ -13,6 +13,7 @@ import { getSpeedMultiplier } from '@/game/Weather';
 import { createProjectile, isProjectileExpired, traceProjectileImpact, updateProjectile } from '@/game/Projectile';
 import { createScoring, collectBadge as scoreBadge, trapDuck as scoreTrap, killDuck as scoreKill, powerKillDuck as scorePowerKill, collectVibestr as scoreVibestr, completeLevel as scoreComplete, ScoringState } from '@/game/Scoring';
 import { ScorePopup, createScorePopup } from '@/game/ScorePopup';
+import { DustParticle, createLandingDust } from '@/game/LandingDust';
 import { InputManager } from '@/engine/Input';
 import { LEVELS, randomizeLevels } from '@/levels/catalog';
 
@@ -24,6 +25,7 @@ export class GameManager {
   duckDeaths: DuckDeathEffect[] = [];
   confetti: ConfettiPiece[] = [];
   scorePopups: ScorePopup[] = [];
+  dustParticles: DustParticle[] = [];
   projectiles: ProjectileState[] = [];
   input: InputManager;
 
@@ -127,6 +129,7 @@ export class GameManager {
     this.duckDeaths = [];
     this.confetti = [];
     this.scorePopups = [];
+    this.dustParticles = [];
     this.projectiles = [];
     this.playerMoveAccum = 0;
     this.duckMoveAccum = 0;
@@ -328,6 +331,7 @@ export class GameManager {
 
   private updatePlayer(digLocked = false): void {
     const { player, grid } = this.state;
+    const wasFalling = player.isFalling;
 
     // Trapped ducks act as solid ground (classic Lode Runner bridge mechanic).
     // Temporarily mark their positions as Sand so all isSupported/canMoveTo
@@ -364,6 +368,10 @@ export class GameManager {
       return;
     }
     player.isFalling = false;
+    if (wasFalling) {
+      this.dustParticles.push(...createLandingDust(player.pos.x, player.pos.y));
+      this.onLand?.();
+    }
 
     if (digLocked) {
       this.restoreTrappedTiles(grid, trappedPositions);
