@@ -19,6 +19,8 @@ export interface SpriteSet {
   digRight: SpriteAnimation;
   powerRunRight: SpriteAnimation;
   powerRunLeft: SpriteAnimation;
+  powerShootRight: SpriteAnimation;
+  powerShootLeft: SpriteAnimation;
   powerFront: SpriteAnimation;
   powerClimb: SpriteAnimation;
   powerRope: SpriteAnimation;
@@ -45,9 +47,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export async function loadPlayerSprites(): Promise<SpriteSet> {
   const base = '/assets/sprites/';
-  const version = 'craig-pack-v11';
+  const version = 'craig-pack-v12';
 
-  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerFront, powerClimb, powerRope, powerActivation, powerPickup] = await Promise.all([
+  const [runRight, runLeft, idle, climb, rope, digLeft, digRight, powerRunRight, powerRunLeft, powerShootRight, powerShootLeft, powerFront, powerClimb, powerRope, powerActivation, powerPickup] = await Promise.all([
     loadImage(base + 'player-run-right.png?v=' + version),
     loadImage(base + 'player-run-left.png?v=' + version),
     loadImage(base + 'player-idle.png?v=' + version),
@@ -57,6 +59,8 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
     loadImage(base + 'player-dig-right.png?v=' + version),
     loadImage(base + 'player-power-run-right.png?v=' + version),
     loadImage(base + 'player-power-run-left.png?v=' + version),
+    loadImage(base + 'player-power-shoot-right.png?v=' + version),
+    loadImage(base + 'player-power-shoot-left.png?v=' + version),
     loadImage(base + 'player-power-front.png?v=' + version),
     loadImage(base + 'player-power-climb.png?v=' + version),
     loadImage(base + 'player-power-rope.png?v=' + version),
@@ -76,6 +80,8 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
   const digRightSourceFrameWidth = Math.floor(digRight.naturalWidth / digFrameCount);
   const powerRunFrameCount = 8;
   const powerRunSourceFrameWidth = Math.floor(powerRunRight.naturalWidth / powerRunFrameCount);
+  const powerShootFrameCount = 7;
+  const powerShootSourceFrameWidth = Math.floor(powerShootRight.naturalWidth / powerShootFrameCount);
   const powerFrontFrameCount = 1;
   const powerFrontSourceFrameWidth = Math.floor(powerFront.naturalWidth / powerFrontFrameCount);
   const powerClimbFrameCount = 5;
@@ -159,6 +165,22 @@ export async function loadPlayerSprites(): Promise<SpriteSet> {
       frameCount: powerRunFrameCount,
       sourceFrameWidth: powerRunSourceFrameWidth,
       sourceFrameHeight: powerRunLeft.naturalHeight,
+    },
+    powerShootRight: {
+      image: powerShootRight,
+      frameWidth: Math.floor(powerShootSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerShootRight.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerShootFrameCount,
+      sourceFrameWidth: powerShootSourceFrameWidth,
+      sourceFrameHeight: powerShootRight.naturalHeight,
+    },
+    powerShootLeft: {
+      image: powerShootLeft,
+      frameWidth: Math.floor(powerShootSourceFrameWidth / PLAYER_SPRITE_SOURCE_SCALE),
+      frameHeight: Math.floor(powerShootLeft.naturalHeight / PLAYER_SPRITE_SOURCE_SCALE),
+      frameCount: powerShootFrameCount,
+      sourceFrameWidth: powerShootSourceFrameWidth,
+      sourceFrameHeight: powerShootLeft.naturalHeight,
     },
     powerFront: {
       image: powerFront,

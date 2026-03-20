@@ -45,10 +45,14 @@ game.onCollect = sfxCollect;
 game.onTrap = sfxTrap;
 game.onKill = sfxKill;
 game.onDeath = sfxDeath;
-game.onShoot = sfxShoot;
 game.onLevelComplete = sfxLevelComplete;
 game.onVibestr = sfxVibestr;
 game.onRevealLadders = sfxRevealLadders;
+
+function onShoot(): void {
+  sfxShoot();
+  renderer.startPowerShoot();
+}
 
 function onPowerActivate(): void {
   game.powerAnimationPlaying = true;
@@ -84,6 +88,7 @@ game.onPowerEnd = onPowerEnd;
 game.onLFV = onLfvActivate;
 game.onLFVEnd = onLfvEnd;
 game.onLFVDenied = sfxError;
+game.onShoot = onShoot;
 
 // ── Main Menu UI ──
 const menuScreen = document.getElementById('menu-screen')!;
@@ -366,7 +371,7 @@ function toggleSoundEnabled(): void {
   toggleImg.alt = soundEnabled ? 'ON' : 'OFF';
   if (soundEnabled) {
     game.onDig = sfxDig; game.onCollect = sfxCollect; game.onTrap = sfxTrap;
-    game.onKill = sfxKill; game.onDeath = sfxDeath; game.onShoot = sfxShoot;
+    game.onKill = sfxKill; game.onDeath = sfxDeath; game.onShoot = onShoot;
     game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd; game.onLFVDenied = sfxError;
     game.onLevelComplete = sfxLevelComplete;
     game.onVibestr = sfxVibestr; game.onRevealLadders = sfxRevealLadders;

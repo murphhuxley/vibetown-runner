@@ -123,6 +123,7 @@ def main() -> None:
     power_idle_frame = load_image(SRC / "Shadow Funk Idle.png")
     power_run_frames = load_frames(SRC / "Shadow funk running.gif")
     power_hang_frames = load_frames(SRC / "Shadow funk hanging.gif")
+    power_shoot_frames = load_frames(SRC / "pink_skin_character_teal_leather_jacket_khaki_BROW_custom-ShooSSHSHADOWFUNK SHOOT ANIMATION.gif")
 
     idle_frame = base_rotation_frames[0]
 
@@ -134,6 +135,7 @@ def main() -> None:
     power_run_strip, power_run_w = build_strip(power_run_frames, TARGET_H)
     power_idle_strip = build_single(power_idle_frame, TARGET_H)
     power_hang_strip, _ = build_strip(power_hang_frames, TARGET_H)
+    power_shoot_strip, power_shoot_w = build_strip(power_shoot_frames, TARGET_H)
     power_activation_strip, power_activation_w = build_strip(power_activation_frames, TARGET_H)
     power_pickup_strip, power_pickup_w = build_pickup_from_idle(power_idle_frame, PICKUP_SIZE)
     lfv_activation_strip, lfv_frame_w, lfv_frame_h = build_raw_strip(lfv_frames)
@@ -149,6 +151,8 @@ def main() -> None:
     save_strip("player-power-front.png", power_idle_strip)
     save_strip("player-power-run-right.png", power_run_strip)
     save_strip("player-power-run-left.png", mirror_strip(power_run_strip, power_run_w))
+    save_strip("player-power-shoot-right.png", power_shoot_strip)
+    save_strip("player-power-shoot-left.png", mirror_strip(power_shoot_strip, power_shoot_w))
     save_strip("player-power-climb.png", power_hang_strip)
     save_strip("player-power-rope.png", power_hang_strip)
     save_strip("player-power-activation.png", power_activation_strip)
@@ -162,6 +166,7 @@ def main() -> None:
     print(f"hang frame count={len(hang_frames)}")
     print(f"power idle strip={power_idle_strip.size}")
     print(f"power run frame width={power_run_w}, height={TARGET_H}, frames={len(power_run_frames)}")
+    print(f"power shoot frame width={power_shoot_w}, height={TARGET_H}, frames={len(power_shoot_frames)}")
     print(f"power hang frames={len(power_hang_frames)}")
     print(f"power activation frame width={power_activation_w}, height={TARGET_H}, frames={len(power_activation_frames)}")
     print(f"power pickup frame width={power_pickup_w}, size={PICKUP_SIZE}, frames=1")

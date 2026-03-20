@@ -72,14 +72,18 @@ export class Renderer {
   private readonly LFV_ACTIVATION_FRAME_MS = 100; // 10fps = 100ms per frame
   private lfvActivationBounds: { x: number; y: number; w: number; h: number }[] = [];
   private readonly POWER_ACTIVATION_FRAME_MS = 100;
+  private readonly POWER_SHOOT_FRAME_MS = 65;
   lfvActivating = false;
   powerActivating = false;
+  powerShooting = false;
   onLfvActivationDone?: () => void;
   onPowerActivationDone?: () => void;
   private lfvActivationFrame = 0;
   private lfvActivationAccum = 0;
   private powerActivationFrame = 0;
   private powerActivationAccum = 0;
+  private powerShootFrame = 0;
+  private powerShootAccum = 0;
   private badgeFrameCount = 1;
   private badgeSourceFrameWidth = 64;
   sprites: SpriteSet | null = null;
@@ -368,6 +372,20 @@ export class Renderer {
         }
       }
     }
+
+    if (this.powerShooting && this.sprites) {
+      this.powerShootAccum += dt;
+      if (this.powerShootAccum >= this.POWER_SHOOT_FRAME_MS) {
+        this.powerShootAccum -= this.POWER_SHOOT_FRAME_MS;
+        this.powerShootFrame++;
+        const shootFrames = this.sprites.powerShootRight.frameCount;
+        if (this.powerShootFrame >= shootFrames) {
+          this.powerShooting = false;
+          this.powerShootFrame = 0;
+          this.powerShootAccum = 0;
+        }
+      }
+    }
   }
 
   startLfvActivation(): void {
@@ -380,6 +398,12 @@ export class Renderer {
     this.powerActivating = true;
     this.powerActivationFrame = 0;
     this.powerActivationAccum = 0;
+  }
+
+  startPowerShoot(): void {
+    this.powerShooting = true;
+    this.powerShootFrame = 0;
+    this.powerShootAccum = 0;
   }
 
   private getAnimationFrameMs(state: Exclude<Renderer['animState'], null>): number {
@@ -1455,6 +1479,38 @@ export class Renderer {
         const offsetX = (TILE_SIZE - drawWidth) / 2;
         const drawX = Math.max(0, Math.min(px + offsetX, CANVAS_WIDTH - drawWidth));
         const drawY = Math.max(0, py + offsetY);
+        const sourceFrameWidth = anim.sourceFrameWidth ?? anim.frameWidth;
+        const sourceFrameHeight = anim.sourceFrameHeight ?? anim.frameHeight;
+        this.withSpriteSmoothing(() => {
+          ctx.drawImage(
+            anim.image,
+            fi * sourceFrameWidth,
+            0,
+            sourceFrameWidth,
+            sourceFrameHeight,
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight,
+          );
+        });
+        return;
+      }
+
+      if (this.powerShooting) {
+        const anim = facing === Direction.Left ? this.sprites.powerShootLeft : this.sprites.powerShootRight;
+        const fi = this.powerShootFrame % anim.frameCount;
+        const drawWidth = Math.floor(anim.frameWidth * this.PLAYER_SCALE);
+        const drawHeight = Math.floor(anim.frameHeight * this.PLAYER_SCALE);
+        const offsetY = TILE_SIZE - drawHeight;
+        const offsetX = (TILE_SIZE - drawWidth) / 2;
+        const drawX = Math.max(0, Math.min(px + offsetX, CANVAS_WIDTH - drawWidth));
+        const drawY = Math.max(
+          0,
+          isUsingRope
+            ? py + this.scaleToTile(this.ROPE_LINE_OFFSET_Y) - this.scaleToTile(this.ROPE_HAND_ANCHOR_Y)
+            : py + offsetY
+        );
         const sourceFrameWidth = anim.sourceFrameWidth ?? anim.frameWidth;
         const sourceFrameHeight = anim.sourceFrameHeight ?? anim.frameHeight;
         this.withSpriteSmoothing(() => {

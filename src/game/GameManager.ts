@@ -91,8 +91,9 @@ export class GameManager {
     // Prefer authored exits so puzzle solutions stay deterministic.
     ensureHiddenExit(grid, level.exitColumn);
 
-    // Active LFV should not carry across retries or level transitions.
+    // Reset vibe meter fully each level — start fresh.
     this.vibeMeter.lfvTimer = 0;
+    this.vibeMeter.meter = 0;
     this.usedLFVThisLevel = false;
     this.lfvAnimationPlaying = false;
     this.powerAnimationPlaying = false;
@@ -634,8 +635,6 @@ export class GameManager {
   ): { x: number; y: number } | null {
     if (authored) return authored;
     if (levelId <= 3) return null;
-    // ~35% chance to spawn on any level after 3
-    if (Math.random() > 0.35) return null;
 
     const candidates: { x: number; y: number }[] = [];
     for (let y = 1; y < GRID_ROWS - 1; y++) {
