@@ -62,8 +62,8 @@ const sfRightHelmet = document.getElementById('shadow-funk-right')!;
 
 // Render SHADOW/FUNK text to canvases for true pixel art look
 function renderSfTextCanvases(): void {
-  const scale = 4;
-  const font = "bold 14px 'Brice', sans-serif";
+  const scale = 2.5;
+  const font = "bold 10px 'Brice', sans-serif";
   document.querySelectorAll<HTMLCanvasElement>('.sf-shadow').forEach(c => {
     const tctx = c.getContext('2d')!;
     tctx.font = font;
