@@ -43,7 +43,7 @@ const input = new InputManager();
 input.bind();
 
 // ── Mobile Detection ──
-const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 if (isMobile) {
   document.getElementById('loading-screen')?.remove();
