@@ -60,6 +60,39 @@ renderer.onPowerShootMidpoint = () => {
 const sfLeftHelmet = document.getElementById('shadow-funk-left')!;
 const sfRightHelmet = document.getElementById('shadow-funk-right')!;
 
+// Render SHADOW/FUNK text to canvases for true pixel art look
+function renderSfTextCanvases(): void {
+  const scale = 4;
+  const font = "bold 14px 'Brice', sans-serif";
+  document.querySelectorAll<HTMLCanvasElement>('.sf-shadow').forEach(c => {
+    const tctx = c.getContext('2d')!;
+    tctx.font = font;
+    const w = Math.ceil(tctx.measureText('SHADOW').width) + 4;
+    const h = 18;
+    c.width = w; c.height = h;
+    tctx.font = font;
+    tctx.fillStyle = '#FFFFFF';
+    tctx.textBaseline = 'middle';
+    tctx.fillText('SHADOW', 2, h / 2 + 1);
+    c.style.width = (w * scale) + 'px';
+    c.style.height = (h * scale) + 'px';
+  });
+  document.querySelectorAll<HTMLCanvasElement>('.sf-funk').forEach(c => {
+    const tctx = c.getContext('2d')!;
+    tctx.font = font;
+    const w = Math.ceil(tctx.measureText('FUNK').width) + 4;
+    const h = 18;
+    c.width = w; c.height = h;
+    tctx.font = font;
+    tctx.fillStyle = '#FFFFFF';
+    tctx.textBaseline = 'middle';
+    tctx.fillText('FUNK', 2, h / 2 + 1);
+    c.style.width = (w * scale) + 'px';
+    c.style.height = (h * scale) + 'px';
+  });
+}
+document.fonts.ready.then(renderSfTextCanvases);
+
 function positionSideHelmets(): void {
   const rect = canvas.getBoundingClientRect();
   const helmetW = 160;

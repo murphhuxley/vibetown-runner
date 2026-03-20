@@ -49,12 +49,12 @@
     }
 
     @keyframes sf-drift {
-      0%, 100% { transform: translateY(0); opacity: 0.6; }
-      50% { transform: translateY(-4px); opacity: 1; }
+      0%, 100% { transform: translateY(0); opacity: 0.75; }
+      50% { transform: translateY(-3px); opacity: 0.95; }
     }
     @keyframes sf-drift-alt {
-      0%, 100% { transform: translateY(0); opacity: 1; }
-      50% { transform: translateY(3px); opacity: 0.55; }
+      0%, 100% { transform: translateY(0); opacity: 0.95; }
+      50% { transform: translateY(2px); opacity: 0.7; }
     }
     .shadow-funk-side {
       position: fixed;
@@ -74,21 +74,11 @@
       image-rendering: crisp-edges;
     }
     .sf-text {
-      font-family: 'Brice', sans-serif;
-      font-weight: 900;
-      font-size: 4px;
-      color: #FFFFFF;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-      transform-origin: center;
-      scale: 8;
       image-rendering: pixelated;
-      -webkit-font-smoothing: none;
-      -moz-osx-font-smoothing: unset;
-      font-smooth: never;
+      image-rendering: crisp-edges;
     }
-    .sf-shadow { animation: sf-drift 0.8s ease-in-out infinite; }
-    .sf-funk { animation: sf-drift-alt 0.8s ease-in-out infinite 0.2s; }
+    .sf-shadow { animation: sf-drift 1.2s ease-in-out infinite; }
+    .sf-funk { animation: sf-drift-alt 1.2s ease-in-out infinite 0.3s; }
 
     /* ── Main Menu Overlay ── */
     #menu-screen {
@@ -599,14 +589,14 @@
     <img class="lfv-side-img" src="/assets/sprites/lfv-side.gif" alt="">
   </div>
   <div id="shadow-funk-left" class="shadow-funk-side hidden">
-    <span class="sf-text sf-shadow">SHADOW</span>
+    <canvas class="sf-text sf-shadow" width="1" height="1"></canvas>
     <img class="sf-helmet" src="/assets/sprites/power-helmet.gif" alt="">
-    <span class="sf-text sf-funk">FUNK</span>
+    <canvas class="sf-text sf-funk" width="1" height="1"></canvas>
   </div>
   <div id="shadow-funk-right" class="shadow-funk-side shadow-funk-mirrored hidden">
-    <span class="sf-text sf-shadow">SHADOW</span>
+    <canvas class="sf-text sf-shadow" width="1" height="1"></canvas>
     <img class="sf-helmet" src="/assets/sprites/power-helmet.gif" alt="">
-    <span class="sf-text sf-funk">FUNK</span>
+    <canvas class="sf-text sf-funk" width="1" height="1"></canvas>
   </div>
   <canvas id="game"></canvas>
   <script type="module" src="/src/main.ts"></script>
