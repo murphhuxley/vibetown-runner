@@ -441,6 +441,105 @@
       border-radius: 4px;
     }
 
+    /* ── Login Modal ── */
+    #login-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.85);
+    }
+    #login-modal.hidden { display: none; }
+    #login-box {
+      position: relative;
+      width: min(700px, 85vw);
+      aspect-ratio: 1;
+      max-height: 75vh;
+      text-align: center;
+      color: white;
+    }
+    #login-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      z-index: 0;
+    }
+    .login-input {
+      position: absolute;
+      z-index: 1;
+      left: 25%;
+      width: 50%;
+      height: 7%;
+      font-family: 'Brice', sans-serif;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 0 12px;
+      text-align: center;
+      background: rgba(0,0,0,0.65);
+      border: none;
+      border-radius: 20px;
+      color: #F5D76E;
+      outline: none;
+      text-transform: uppercase;
+      image-rendering: pixelated;
+    }
+    .login-input::placeholder { color: rgba(245,215,110,0.4); }
+    #login-name { top: 35%; }
+    #login-password { top: 50%; }
+    #login-error {
+      position: absolute;
+      z-index: 1;
+      top: 58%;
+      left: 18%;
+      width: 64%;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      color: #F44336;
+      text-align: center;
+    }
+    #login-submit-btn {
+      position: absolute;
+      z-index: 1;
+      top: 78%;
+      left: 14%;
+      width: 33%;
+      height: 10%;
+      border: none;
+      background: transparent;
+      color: transparent;
+      cursor: pointer;
+    }
+    #login-skip-btn {
+      position: absolute;
+      z-index: 1;
+      top: 78%;
+      left: 53%;
+      width: 33%;
+      height: 10%;
+      border: none;
+      background: transparent;
+      color: transparent;
+      cursor: pointer;
+    }
+    #login-status {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      color: #F5D76E;
+      white-space: nowrap;
+    }
+
     /* ── Score Submission Modal ── */
     #score-submit {
       position: fixed;
@@ -468,69 +567,50 @@
       image-rendering: crisp-edges;
       z-index: 0;
     }
-    #score-name-input {
-      position: absolute;
-      z-index: 1;
-      top: 29%;
-      left: 14%;
-      width: 72%;
-      height: 13%;
-      font-family: 'Brice', sans-serif;
-      font-weight: 900;
-      font-size: 24px;
-      padding: 0 8px;
-      text-align: center;
-      background: transparent;
-      border: none;
-      color: #F5D76E;
-      outline: none;
-      text-transform: uppercase;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
-    #score-name-input::placeholder {
-      color: rgba(245,215,110,0.35);
-    }
     #submit-score-display {
       position: absolute;
       z-index: 1;
-      top: 49%;
-      left: 48%;
-      width: 22%;
-      height: 6%;
+      top: 37%;
+      left: 30%;
+      width: 40%;
+      height: 7%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Brice', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
+      font-weight: 900;
+      font-size: 22px;
       color: #F5D76E;
+      background: rgba(0,0,0,0.7);
+      border-radius: 4px;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
     #submit-level-display {
       position: absolute;
       z-index: 1;
-      top: 60%;
-      left: 48%;
-      width: 14%;
-      height: 6%;
+      top: 65%;
+      left: 30%;
+      width: 40%;
+      height: 7%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Brice', sans-serif;
-      font-weight: 700;
-      font-size: 14px;
+      font-weight: 900;
+      font-size: 22px;
       color: #F5D76E;
+      background: rgba(0,0,0,0.7);
+      border-radius: 4px;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
     #score-submit-btn {
       position: absolute;
       z-index: 1;
-      top: 73%;
-      left: 14%;
-      width: 33%;
+      top: 87%;
+      left: 15%;
+      width: 32%;
       height: 10%;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
@@ -543,9 +623,9 @@
     #score-skip-btn {
       position: absolute;
       z-index: 1;
-      top: 73%;
+      top: 87%;
       left: 53%;
-      width: 33%;
+      width: 32%;
       height: 10%;
       font-family: 'Brice', sans-serif;
       font-weight: 700;
@@ -747,11 +827,22 @@
   </div>
 
 
+  <!-- Login Modal -->
+  <div id="login-modal" class="hidden">
+    <div id="login-box">
+      <img id="login-frame" src="/assets/backgrounds/login-frame.png" alt="">
+      <input type="text" id="login-name" class="login-input" maxlength="12" placeholder="NAME" autocomplete="off">
+      <input type="password" id="login-password" class="login-input" maxlength="20" placeholder="PASSWORD" autocomplete="off">
+      <div id="login-error"></div>
+      <button id="login-submit-btn">SUBMIT</button>
+      <button id="login-skip-btn">SKIP</button>
+    </div>
+  </div>
+
   <!-- Score Submission Modal -->
   <div id="score-submit" class="hidden">
     <div id="score-submit-box">
       <img id="highscore-frame" src="/assets/backgrounds/highscore-frame.png" alt="">
-      <input type="text" id="score-name-input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
       <div id="submit-score-display"></div>
       <div id="submit-level-display"></div>
       <button id="score-submit-btn">SUBMIT</button>

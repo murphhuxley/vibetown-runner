@@ -14,7 +14,7 @@ import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_ROWS, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
 import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, sfxLfvActivate, sfxError, sfxMenuClick, musicStart, musicStop, musicSetMuted, shadowFunkStart, shadowFunkStop, lfvSfxStart, lfvSfxStop } from '@/engine/Audio';
-import { getTop25, submitScore, LeaderboardEntry } from '@/leaderboard';
+import { getTop25, submitScore, LeaderboardEntry, registerPlayer, loginPlayer, getStoredPlayer, storePlayer, clearStoredPlayer } from '@/leaderboard';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d')!;
@@ -367,9 +367,63 @@ document.getElementById('leaderboard-close')!.addEventListener('click', () => {
   sfxMenuClick(); showPanel(menuPanel);
 });
 
+// ── Login ──
+const loginModal = document.getElementById('login-modal')!;
+const loginNameInput = document.getElementById('login-name') as HTMLInputElement;
+const loginPasswordInput = document.getElementById('login-password') as HTMLInputElement;
+const loginError = document.getElementById('login-error')!;
+let currentPlayer = getStoredPlayer();
+
+function showLogin(): void {
+  loginNameInput.value = '';
+  loginPasswordInput.value = '';
+  loginError.textContent = '';
+  loginModal.classList.remove('hidden');
+  setTimeout(() => loginNameInput.focus(), 100);
+}
+
+document.getElementById('login-submit-btn')!.addEventListener('click', async () => {
+  const name = loginNameInput.value.trim();
+  const password = loginPasswordInput.value;
+  if (!name || !password) {
+    loginError.textContent = 'Enter name and password';
+    return;
+  }
+  loginError.textContent = '';
+  try {
+    // Try login first, if player not found try register
+    try {
+      const playerName = await loginPlayer(name, password);
+      currentPlayer = playerName;
+      storePlayer(playerName);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '';
+      if (msg.includes('not found')) {
+        const playerName = await registerPlayer(name, password);
+        currentPlayer = playerName;
+        storePlayer(playerName);
+      } else {
+        throw e;
+      }
+    }
+    sfxMenuClick();
+    loginModal.classList.add('hidden');
+  } catch (e: unknown) {
+    loginError.textContent = e instanceof Error ? e.message : 'Login failed';
+  }
+});
+
+document.getElementById('login-skip-btn')!.addEventListener('click', () => {
+  sfxMenuClick();
+  loginModal.classList.add('hidden');
+});
+
+loginPasswordInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('login-submit-btn')!.click();
+});
+
 // ── Score Submission ──
 const scoreSubmitModal = document.getElementById('score-submit')!;
-const scoreNameInput = document.getElementById('score-name-input') as HTMLInputElement;
 const submitScoreDisplay = document.getElementById('submit-score-display')!;
 const submitLevelDisplay = document.getElementById('submit-level-display')!;
 const scoreSubmitBtn = document.getElementById('score-submit-btn') as HTMLButtonElement;
@@ -381,28 +435,29 @@ function setScoreSubmitPending(pending: boolean): void {
   scoreSubmitInFlight = pending;
   scoreSubmitBtn.disabled = pending;
   scoreSkipBtn.disabled = pending;
-  scoreNameInput.disabled = pending;
 }
 
 function showScoreSubmit(): void {
   if (hasSubmittedThisRun) return;
+  // If not logged in, show login first
+  if (!currentPlayer) {
+    showLogin();
+    return;
+  }
   submitScoreDisplay.textContent = game.state.score.toLocaleString();
   submitLevelDisplay.textContent = String(game.state.currentLevel);
-  scoreNameInput.value = '';
   setScoreSubmitPending(false);
   scoreSubmitModal.classList.remove('hidden');
-  setTimeout(() => scoreNameInput.focus(), 100);
 }
 
 scoreSubmitBtn.addEventListener('click', async () => {
-  if (scoreSubmitInFlight) return;
-  const name = scoreNameInput.value.trim();
-  if (!name) return;
+  if (scoreSubmitInFlight || !currentPlayer) return;
+  sfxMenuClick();
   setScoreSubmitPending(true);
   scoreSubmitModal.classList.add('hidden');
   hasSubmittedThisRun = true;
   try {
-    const id = await submitScore(name, game.state.score, game.state.currentLevel);
+    const id = await submitScore(currentPlayer, game.state.score, game.state.currentLevel);
     await showLeaderboard(id);
   } catch {
     await showLeaderboard();
@@ -413,15 +468,11 @@ scoreSubmitBtn.addEventListener('click', async () => {
 
 scoreSkipBtn.addEventListener('click', () => {
   if (scoreSubmitInFlight) return;
+  sfxMenuClick();
   scoreSubmitModal.classList.add('hidden');
   hasSubmittedThisRun = true;
 });
 
-scoreNameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    scoreSubmitBtn.click();
-  }
-});
 
 function syncTheme(): void {
   const key = game.state.level.theme ?? 'beach';

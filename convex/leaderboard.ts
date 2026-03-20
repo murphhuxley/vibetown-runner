@@ -8,14 +8,48 @@ export const submit = mutation({
     level: v.number(),
   },
   handler: async (ctx, args) => {
-    const name = args.name.trim().slice(0, 12);
+    const name = args.name.trim().toUpperCase().slice(0, 12);
     if (name.length === 0) throw new Error("Name required");
+
+    // Check if player already has a leaderboard entry
+    const existing = await ctx.db
+      .query("leaderboard")
+      .filter((q) => q.eq(q.field("name"), name))
+      .first();
+
+    if (existing) {
+      // Only update if new score is higher
+      if (args.score > existing.score) {
+        await ctx.db.patch(existing._id, {
+          score: args.score,
+          level: args.level,
+          createdAt: Date.now(),
+        });
+        return existing._id;
+      }
+      return existing._id;
+    }
+
     return await ctx.db.insert("leaderboard", {
       name,
       score: args.score,
       level: args.level,
       createdAt: Date.now(),
     });
+  },
+});
+
+export const remove = mutation({
+  args: { id: v.id("leaderboard") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+});
+
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("leaderboard").collect();
   },
 });
 
