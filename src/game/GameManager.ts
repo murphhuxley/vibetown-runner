@@ -495,7 +495,8 @@ export class GameManager {
         this.state.grid[duck.pos.y][duck.pos.x] = TileType.Empty;
       }
 
-      // Duck falls into hole
+      // Duck falls into hole (skip if just escaped)
+      if (duck.escapeImmunity > 0) continue;
       for (const hole of this.state.holes) {
         if (duck.pos.x === hole.x && duck.pos.y === hole.y) {
           const hadBadge = duck.carryingBadge;
