@@ -1863,8 +1863,23 @@ export class Renderer {
     const fillRatio = vibeMeter.meter / VIBE_MAX;
     const isReady = vibeMeter.meter >= VIBE_MAX;
     const isActive = vibeMeter.lfvTimer > 0;
+
+    // Pulse bar height when LFV is ready
+    const pulseScale = isReady ? 1 + Math.sin(this.bgTime * 8) * 0.2 : 1;
+    const pulseBarH = barH * pulseScale;
+    const pulseBarY = barY - (pulseBarH - barH) / 2;
+
     ctx.fillStyle = isReady || isActive ? COLORS.vibestrGold : COLORS.palmGreen;
-    ctx.fillRect(barX, barY, barW * fillRatio, barH);
+    ctx.fillRect(barX, pulseBarY, barW * fillRatio, pulseBarH);
+
+    // Glow overlay when LFV is ready
+    if (isReady) {
+      ctx.save();
+      ctx.globalAlpha = 0.25 + Math.sin(this.bgTime * 6) * 0.15;
+      ctx.fillStyle = COLORS.vibestrGold;
+      ctx.fillRect(barX - 2, pulseBarY - 2, barW + 4, pulseBarH + 4);
+      ctx.restore();
+    }
 
     // Border
     ctx.strokeStyle = COLORS.cream;
@@ -1876,7 +1891,10 @@ export class Renderer {
     if (isActive) {
       this.drawPixelText('LFV!', barX + barW / 2, midY, vibeFont, COLORS.vibestrGold, 'center', ps);
     } else if (isReady) {
+      ctx.save();
+      ctx.globalAlpha = 0.7 + Math.sin(this.bgTime * 6) * 0.3;
       this.drawPixelText('LFV READY!', barX + barW / 2, midY, vibeFont, COLORS.vibestrGold, 'center', ps);
+      ctx.restore();
     } else {
       this.drawPixelText('VIBE', barX + barW / 2, midY, vibeFont, COLORS.cream, 'center', ps);
     }
