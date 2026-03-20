@@ -1,3 +1,8 @@
+// Register PWA service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+}
+
 import { GameManager } from '@/game/GameManager';
 import { GameLoop } from '@/engine/GameLoop';
 import { Renderer } from '@/engine/Renderer';
