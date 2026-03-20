@@ -159,7 +159,11 @@ export class GameManager {
     const player = this.state.player;
     const playerOnLadder = canClimb(this.state.grid, player.pos);
     const playerOnRope = canTraverseRope(this.state.grid, player.pos);
-    const playerWillFall = !isSupported(this.state.grid, player.pos, playerOnLadder, playerOnRope);
+    // Check support with trapped ducks counted as solid ground
+    const trappedDuckBelow = this.state.ducks.some(d =>
+      d.isTrapped && d.pos.x === player.pos.x && d.pos.y === player.pos.y + 1
+    );
+    const playerWillFall = !trappedDuckBelow && !isSupported(this.state.grid, player.pos, playerOnLadder, playerOnRope);
     const activePlayerInterval =
       (player.isFalling || playerWillFall ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL);
     let digLockedThisFrame = this.state.player.isDigging;
