@@ -657,9 +657,9 @@ export class GameManager {
     authored: { x: number; y: number } | undefined,
   ): { x: number; y: number } | null {
     if (authored) return authored;
-    if (levelId <= 3) return null;
+    if (levelId <= 5) return null;
     const spawnRoll = Math.random();
-    if (spawnRoll > 0.35) return null;
+    if (spawnRoll > 0.25) return null;
 
     const candidates: { x: number; y: number }[] = [];
     for (let y = 1; y < GRID_ROWS - 1; y++) {

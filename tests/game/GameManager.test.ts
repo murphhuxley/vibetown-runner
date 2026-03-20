@@ -103,6 +103,8 @@ describe('GameManager', () => {
 
     input.handleKeyDown(' ');
     game.update(16);
+    // The renderer normally calls fireQueuedProjectile at the animation midpoint.
+    game.fireQueuedProjectile();
 
     expect(game.state.powerHelmetActive).toBe(true);
     expect(game.state.powerHelmetShots).toBe(2);
@@ -255,6 +257,8 @@ describe('GameManager', () => {
 
     input.handleKeyDown(' ');
     game.update(16);
+    // The renderer normally calls fireQueuedProjectile at the animation midpoint.
+    game.fireQueuedProjectile();
 
     expect(game.projectiles).toHaveLength(1);
     expect(game.state.powerHelmetShots).toBe(2);
@@ -371,25 +375,37 @@ describe('GameManager', () => {
     expect(game.state.player.isLFV).toBe(false);
   });
 
-  it('spawns the helmet randomly on levels after 3', () => {
-    game.loadLevel(3);
-    game.startGame();
+  it('spawns the helmet randomly on levels after 5', () => {
+    const orig = Math.random;
+    Math.random = () => 0.1; // guarantee spawn roll passes (< 0.25)
+    try {
+      game.loadLevel(5);
+      game.startGame();
 
-    expect(game.state.currentLevel).toBe(4);
-    expect(game.state.powerHelmetPos).not.toBeNull();
+      expect(game.state.currentLevel).toBe(6);
+      expect(game.state.powerHelmetPos).not.toBeNull();
+    } finally {
+      Math.random = orig;
+    }
   });
 
   it('spawns the helmet on a platform tile instead of a ladder or rope', () => {
-    game.loadLevel(3);
-    game.startGame();
+    const orig = Math.random;
+    Math.random = () => 0.1; // guarantee spawn roll passes (< 0.25)
+    try {
+      game.loadLevel(5);
+      game.startGame();
 
-    const spawn = game.state.powerHelmetPos;
-    expect(spawn).not.toBeNull();
-    if (!spawn) return;
+      const spawn = game.state.powerHelmetPos;
+      expect(spawn).not.toBeNull();
+      if (!spawn) return;
 
-    expect(game.state.grid[spawn.y][spawn.x]).toBe(TileType.Empty);
-    const below = game.state.grid[spawn.y + 1][spawn.x];
-    expect([TileType.Sand, TileType.Coral, TileType.TrapSand]).toContain(below);
+      expect(game.state.grid[spawn.y][spawn.x]).toBe(TileType.Empty);
+      const below = game.state.grid[spawn.y + 1][spawn.x];
+      expect([TileType.Sand, TileType.Coral, TileType.TrapSand]).toContain(below);
+    } finally {
+      Math.random = orig;
+    }
   });
 
   it('awards a life when completing into a new environment', () => {
