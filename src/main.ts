@@ -85,11 +85,26 @@ function onPowerEnd(): void {
   sfRightHelmet.classList.add('hidden');
 }
 
+const lfvLeft = document.getElementById('lfv-left')!;
+const lfvRight = document.getElementById('lfv-right')!;
+
+function positionLfvSides(): void {
+  const rect = canvas.getBoundingClientRect();
+  const imgW = 240;
+  const leftGap = rect.left;
+  const rightGap = window.innerWidth - rect.right;
+  lfvLeft.style.left = Math.max(0, (leftGap - imgW) / 2) + 'px';
+  lfvRight.style.right = Math.max(0, (rightGap - imgW) / 2) + 'px';
+}
+
 function onLfvActivate(): void {
   game.lfvAnimationPlaying = true;
   renderer.startLfvActivation();
   sfxLfvActivate();
   lfvSfxStart();
+  positionLfvSides();
+  lfvLeft.classList.remove('hidden');
+  lfvRight.classList.remove('hidden');
 }
 
 renderer.onLfvActivationDone = () => {
@@ -101,6 +116,8 @@ renderer.onPowerActivationDone = () => {
 
 function onLfvEnd(): void {
   lfvSfxStop();
+  lfvLeft.classList.add('hidden');
+  lfvRight.classList.add('hidden');
 }
 
 game.onPowerStart = onPowerActivate;

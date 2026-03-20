@@ -31,13 +31,30 @@
       image-rendering: auto;
     }
 
+    .lfv-side {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lfv-side.hidden { display: none; }
+    .lfv-side-img {
+      width: 240px;
+      height: 240px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
     @keyframes sf-drift {
-      0%, 100% { transform: translateY(0); opacity: 0.7; }
-      50% { transform: translateY(-6px); opacity: 1; }
+      0%, 100% { transform: translateY(0); opacity: 0.6; }
+      50% { transform: translateY(-4px); opacity: 1; }
     }
     @keyframes sf-drift-alt {
       0%, 100% { transform: translateY(0); opacity: 1; }
-      50% { transform: translateY(5px); opacity: 0.65; }
+      50% { transform: translateY(3px); opacity: 0.55; }
     }
     .shadow-funk-side {
       position: fixed;
@@ -50,7 +67,6 @@
       gap: 4px;
     }
     .shadow-funk-side.hidden { display: none; }
-    .shadow-funk-mirrored .sf-helmet { transform: scaleX(-1); }
     .sf-helmet {
       width: 144px;
       height: 144px;
@@ -60,15 +76,19 @@
     .sf-text {
       font-family: 'Brice', sans-serif;
       font-weight: 900;
-      font-size: 32px;
+      font-size: 12px;
       color: #FFFFFF;
-      letter-spacing: 3px;
+      letter-spacing: 2px;
       text-transform: uppercase;
+      transform-origin: center;
+      scale: 2.8;
       image-rendering: pixelated;
-      image-rendering: crisp-edges;
+      -webkit-font-smoothing: none;
+      -moz-osx-font-smoothing: unset;
+      font-smooth: never;
     }
-    .sf-shadow { animation: sf-drift 3s ease-in-out infinite; }
-    .sf-funk { animation: sf-drift-alt 3s ease-in-out infinite 0.5s; }
+    .sf-shadow { animation: sf-drift 0.8s ease-in-out infinite; }
+    .sf-funk { animation: sf-drift-alt 0.8s ease-in-out infinite 0.2s; }
 
     /* ── Main Menu Overlay ── */
     #menu-screen {
@@ -572,6 +592,12 @@
     </div>
   </div>
 
+  <div id="lfv-left" class="lfv-side hidden">
+    <img class="lfv-side-img" src="/assets/sprites/lfv-side.gif" alt="">
+  </div>
+  <div id="lfv-right" class="lfv-side hidden">
+    <img class="lfv-side-img" src="/assets/sprites/lfv-side.gif" alt="">
+  </div>
   <div id="shadow-funk-left" class="shadow-funk-side hidden">
     <span class="sf-text sf-shadow">SHADOW</span>
     <img class="sf-helmet" src="/assets/sprites/power-helmet.gif" alt="">
