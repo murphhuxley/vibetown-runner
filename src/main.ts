@@ -414,7 +414,12 @@ const spriteLoad = Promise.all([
     renderer.duckSprites = duckSprites;
     if (isDevHost) console.log('Duck sprites loaded');
   }),
-]).catch((err) => console.warn('Sprite load failed, using fallbacks:', err));
+]).then(() => {
+  document.getElementById('loading-screen')?.remove();
+}).catch((err) => {
+  console.warn('Sprite load failed, using fallbacks:', err);
+  document.getElementById('loading-screen')?.remove();
+});
 
 
 // ── Canvas audio toggles (drawn on death/gameover/victory overlays) ──
