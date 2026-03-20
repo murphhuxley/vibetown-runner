@@ -37,6 +37,45 @@ window.addEventListener('resize', syncCanvasDisplaySize);
 const input = new InputManager();
 input.bind();
 
+// ── Mobile Detection & Touch Controls ──
+const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const rotatePrompt = document.getElementById('rotate-prompt')!;
+const touchLeft = document.getElementById('touch-left')!;
+const touchRight = document.getElementById('touch-right')!;
+
+function checkOrientation(): void {
+  if (!isMobile) return;
+  const isPortrait = window.innerHeight > window.innerWidth;
+  rotatePrompt.style.display = isPortrait ? 'flex' : 'none';
+  touchLeft.style.display = isPortrait ? 'none' : 'flex';
+  touchRight.style.display = isPortrait ? 'none' : 'flex';
+}
+
+if (isMobile) {
+  checkOrientation();
+  window.addEventListener('resize', checkOrientation);
+  window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
+
+  // Wire touch controls to InputManager
+  document.querySelectorAll('[data-key]').forEach(el => {
+    const key = el.getAttribute('data-key')!;
+    el.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      el.classList.add('pressed');
+      input.handleKeyDown(key);
+    }, { passive: false });
+    el.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      el.classList.remove('pressed');
+      input.handleKeyUp(key);
+    });
+    el.addEventListener('touchcancel', () => {
+      el.classList.remove('pressed');
+      input.handleKeyUp(key);
+    });
+  });
+}
+
 const game = new GameManager(input);
 const renderer = new Renderer(ctx);
 const isDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
