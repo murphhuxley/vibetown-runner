@@ -27,12 +27,12 @@ export const LFV_SPEED_MULTIPLIER = 1.5;
 export const SUNSHINE_SPEED_MULTIPLIER = 1.25;
 export const RAIN_SPEED_MULTIPLIER = 0.7;
 
-export const SCORE_BADGE = 250;
-export const SCORE_TRAP_DUCK = 75;
-export const SCORE_KILL_DUCK = 75;
+export const SCORE_BADGE = 500;          // was 250
+export const SCORE_TRAP_DUCK = 100;      // was 75
+export const SCORE_KILL_DUCK = 100;      // was 75
 export const SCORE_VIBESTR = 100;
-export const SCORE_LEVEL_COMPLETE = 1_500;
-export const SCORE_LFV_BONUS = 2_000;
+export const SCORE_LEVEL_COMPLETE = 2_000; // was 1_500
+export const SCORE_LFV_BONUS = 1_000;    // was 2_000
 
 export const VIBE_PER_BADGE = 20;
 export const VIBE_PER_TRAP = 10;
