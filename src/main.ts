@@ -37,43 +37,24 @@ window.addEventListener('resize', syncCanvasDisplaySize);
 const input = new InputManager();
 input.bind();
 
-// ── Mobile Detection & Touch Controls ──
+// ── Mobile Detection ──
 const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-const rotatePrompt = document.getElementById('rotate-prompt')!;
-const touchLeft = document.getElementById('touch-left')!;
-const touchRight = document.getElementById('touch-right')!;
-
-function checkOrientation(): void {
-  if (!isMobile) return;
-  const isPortrait = window.innerHeight > window.innerWidth;
-  rotatePrompt.style.display = isPortrait ? 'flex' : 'none';
-  touchLeft.style.display = isPortrait ? 'none' : 'flex';
-  touchRight.style.display = isPortrait ? 'none' : 'flex';
-}
 
 if (isMobile) {
-  checkOrientation();
-  window.addEventListener('resize', checkOrientation);
-  window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
-
-  // Wire touch controls to InputManager
-  document.querySelectorAll('[data-key]').forEach(el => {
-    const key = el.getAttribute('data-key')!;
-    el.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      el.classList.add('pressed');
-      input.handleKeyDown(key);
-    }, { passive: false });
-    el.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      el.classList.remove('pressed');
-      input.handleKeyUp(key);
-    });
-    el.addEventListener('touchcancel', () => {
-      el.classList.remove('pressed');
-      input.handleKeyUp(key);
-    });
-  });
+  document.getElementById('loading-screen')?.remove();
+  document.getElementById('menu-screen')!.style.display = 'none';
+  document.getElementById('game')!.style.display = 'none';
+  const mobileMsg = document.createElement('div');
+  mobileMsg.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#0a0a0a;z-index:999;gap:16px';
+  const title = document.createElement('div');
+  title.style.cssText = "font-family:'Brice',sans-serif;font-weight:900;font-size:28px;color:#F5D76E;text-align:center;image-rendering:pixelated";
+  title.textContent = 'MOBILE COMING SOON';
+  const sub = document.createElement('div');
+  sub.style.cssText = "font-family:'Brice',sans-serif;font-weight:700;font-size:14px;color:#888;text-align:center";
+  sub.textContent = 'Play on desktop for now';
+  mobileMsg.appendChild(title);
+  mobileMsg.appendChild(sub);
+  document.body.appendChild(mobileMsg);
 }
 
 const game = new GameManager(input);
