@@ -249,10 +249,13 @@ export class GameManager {
 
     if (!digLockedThisFrame && !lfvLockedThisFrame && this.playerMoveAccum >= activePlayerInterval) {
       const previousPos = { ...this.state.player.pos };
+      const wasFalling = this.state.player.isFalling;
       this.playerMoveAccum -= activePlayerInterval;
       this.updatePlayer(false);
+      // Use the pre-move falling state for render duration so walking over
+      // trapped ducks doesn't cause a visual jump from switching to fall speed.
       const playerRenderDuration = (
-        this.state.player.isFalling ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL
+        wasFalling ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL
       ) / playerSpeedMult;
       this.startPlayerRender(previousPos, this.state.player.pos, playerRenderDuration);
     }
