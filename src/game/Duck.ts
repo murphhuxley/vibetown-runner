@@ -49,9 +49,6 @@ export function moveDuckToward(
 ): DuckState {
   if (duck.isTrapped) return duck;
 
-  // Random hesitation — duck pauses this tick
-  if (Math.random() < hesitationChance) return duck;
-
   const next = { ...duck, pos: { ...duck.pos } };
 
   // Gravity — if not supported, fall (unless escape immunity active)
@@ -71,7 +68,10 @@ export function moveDuckToward(
   }
   next.isFalling = false;
 
-  const moved = chooseClassicDuckMove(duck, grid, playerPos, otherDucks);
+  // Random hesitation — only when grounded (not falling, not on ladder)
+  if (!duck.isFalling && !duck.isOnLadder && Math.random() < hesitationChance) return duck;
+
+  const moved = chooseClassicDuckMove(duck, grid, playerPos, otherDucks, duck.escapeImmunity > 0);
   if (moved) {
     next.pos = moved.pos;
     next.isOnLadder = moved.isOnLadder;
@@ -87,7 +87,8 @@ function chooseClassicDuckMove(
   duck: DuckState,
   grid: TileType[][],
   playerPos: Position,
-  otherDucks: DuckState[]
+  otherDucks: DuckState[],
+  blockDown = false
 ): PlayerState | null {
   const targetKey = posKey(playerPos);
   const occupied = new Set(
@@ -95,7 +96,10 @@ function chooseClassicDuckMove(
       .filter((other) => other.id !== duck.id && !other.isTrapped)
       .map((other) => posKey(other.pos))
   );
-  const priorities = getClassicPriorities(duck, grid, playerPos);
+  let priorities = getClassicPriorities(duck, grid, playerPos);
+  if (blockDown) {
+    priorities = priorities.filter(d => d !== Direction.Down);
+  }
   const moveState = createMoverState(grid, duck.pos, duck.facing);
 
   for (const direction of priorities) {
