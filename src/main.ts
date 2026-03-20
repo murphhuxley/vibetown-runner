@@ -398,7 +398,7 @@ document.getElementById('login-submit-btn')!.addEventListener('click', async () 
       storePlayer(playerName);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '';
-      if (msg.includes('not found')) {
+      if (msg.toLowerCase().includes('not found')) {
         const playerName = await registerPlayer(name, password);
         currentPlayer = playerName;
         storePlayer(playerName);
@@ -410,8 +410,10 @@ document.getElementById('login-submit-btn')!.addEventListener('click', async () 
     loginModal.classList.add('hidden');
   } catch (e: unknown) {
     let msg = e instanceof Error ? e.message : 'Login failed';
-    // Strip Convex request ID prefix
-    msg = msg.replace(/\[Request ID: [^\]]+\]\s*/g, '').trim();
+    // Strip Convex noise: "[Request ID: xxx] Server Error\nUncaught Error: actual message"
+    const match = msg.match(/(?:Uncaught Error:|Error:)\s*(.+)/);
+    if (match) msg = match[1].trim();
+    msg = msg.replace(/\[Request ID: [^\]]+\]\s*/g, '').replace('Server Error', '').trim();
     loginError.textContent = msg || 'Login failed';
   }
 });
