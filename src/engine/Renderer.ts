@@ -78,6 +78,8 @@ export class Renderer {
   powerShooting = false;
   onLfvActivationDone?: () => void;
   onPowerActivationDone?: () => void;
+  onPowerShootMidpoint?: () => void;
+  private powerShootFired = false;
   private lfvActivationFrame = 0;
   private lfvActivationAccum = 0;
   private powerActivationFrame = 0;
@@ -378,7 +380,13 @@ export class Renderer {
       if (this.powerShootAccum >= this.POWER_SHOOT_FRAME_MS) {
         this.powerShootAccum -= this.POWER_SHOOT_FRAME_MS;
         this.powerShootFrame++;
+        // Fire projectile at midpoint of animation
         const shootFrames = this.sprites.powerShootRight.frameCount;
+        const midFrame = Math.floor(shootFrames / 2);
+        if (this.powerShootFrame === midFrame && !this.powerShootFired) {
+          this.powerShootFired = true;
+          this.onPowerShootMidpoint?.();
+        }
         if (this.powerShootFrame >= shootFrames) {
           this.powerShooting = false;
           this.powerShootFrame = 0;
@@ -404,6 +412,7 @@ export class Renderer {
     this.powerShooting = true;
     this.powerShootFrame = 0;
     this.powerShootAccum = 0;
+    this.powerShootFired = false;
   }
 
   private getAnimationFrameMs(state: Exclude<Renderer['animState'], null>): number {

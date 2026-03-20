@@ -50,9 +50,12 @@ game.onVibestr = sfxVibestr;
 game.onRevealLadders = sfxRevealLadders;
 
 function onShoot(): void {
-  sfxShoot();
   renderer.startPowerShoot();
 }
+renderer.onPowerShootMidpoint = () => {
+  sfxShoot();
+  game.fireQueuedProjectile();
+};
 
 function onPowerActivate(): void {
   game.powerAnimationPlaying = true;

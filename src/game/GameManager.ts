@@ -541,11 +541,7 @@ export class GameManager {
 
     if (this.state.powerHelmetShots <= 0) return;
 
-    const facing = this.state.player.facing === Direction.Left
-      ? Direction.Left
-      : Direction.Right;
-
-    this.projectiles.push(createProjectile(this.state.player.pos, facing));
+    // Start shoot animation — projectile spawns at midpoint via fireQueuedProjectile()
     this.onShoot?.();
     this.state.powerHelmetShots--;
 
@@ -554,6 +550,14 @@ export class GameManager {
       this.state.powerHelmetCollected = false;
       this.onPowerEnd?.();
     }
+  }
+
+  /** Called by renderer at midpoint of shoot animation to spawn the projectile */
+  fireQueuedProjectile(): void {
+    const facing = this.state.player.facing === Direction.Left
+      ? Direction.Left
+      : Direction.Right;
+    this.projectiles.push(createProjectile(this.state.player.pos, facing));
   }
 
   private updateProjectiles(dt: number): void {
@@ -635,6 +639,8 @@ export class GameManager {
   ): { x: number; y: number } | null {
     if (authored) return authored;
     if (levelId <= 3) return null;
+    const spawnRoll = Math.random();
+    if (spawnRoll > 0.35) return null;
 
     const candidates: { x: number; y: number }[] = [];
     for (let y = 1; y < GRID_ROWS - 1; y++) {
