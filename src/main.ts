@@ -218,6 +218,7 @@ canvas.addEventListener('click', (e) => {
   const hudY = GRID_ROWS * TILE_SIZE;
   // MENU text is at the right end of the HUD bar
   if (cy >= hudY && cx >= CANVAS_WIDTH - 100) {
+    sfxMenuClick();
     showMenu();
   }
   // Audio toggle click regions on overlay screens
