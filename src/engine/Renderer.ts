@@ -6,7 +6,7 @@ import { ScorePopup } from '@/game/ScorePopup';
 import { getWeatherEffects, WeatherEffects } from '@/game/Weather';
 import { SpriteSet, DuckSprites, drawFrame } from '@/engine/SpriteSheet';
 import { LevelTheme, getTheme } from '@/engine/Themes';
-import { TILE_SIZE, GRID_COLS, GRID_ROWS, CANVAS_WIDTH, COLORS, VIBE_MAX, HOLE_OPEN_ANIM, HOLE_CLOSE_ANIM, PLAYER_SPRITE_SOURCE_SCALE } from '@/constants';
+import { TILE_SIZE, GRID_COLS, GRID_ROWS, CANVAS_WIDTH, COLORS, VIBE_MAX, HOLE_OPEN_ANIM, HOLE_CLOSE_ANIM, PLAYER_SPRITE_SOURCE_SCALE, DUCK_TRAP_ESCAPE_TIME } from '@/constants';
 
 /** Shift a hex color's hue by a given number of degrees */
 function shiftColor(hex: string, degrees: number): string {
@@ -1667,10 +1667,16 @@ export class Renderer {
     ctx.fill();
   }
 
-  drawDuck(pos: Position, isTrapped: boolean, facing: Direction, isOnLadder = false): void {
+  drawDuck(pos: Position, isTrapped: boolean, facing: Direction, isOnLadder = false, trapTimer = 0): void {
     const ctx = this.ctx;
     const px = pos.x * TILE_SIZE;
     const py = pos.y * TILE_SIZE;
+
+    // Escape warning: bob when close to escaping
+    let bobOffset = 0;
+    if (isTrapped && trapTimer > 0 && trapTimer < 800) {
+      bobOffset = Math.sin(this.bgTime * 15) * 2;
+    }
 
     if (this.duckSprites) {
       let img: HTMLImageElement;
@@ -1699,19 +1705,54 @@ export class Renderer {
           crop.w,
           crop.h,
           px + offsetX,
-          py + offsetY,
+          py + offsetY + bobOffset,
           drawWidth,
           drawHeight,
         );
       });
+
+      // Trap timer progress bar
+      if (isTrapped && trapTimer > 0) {
+        const ratio = trapTimer / DUCK_TRAP_ESCAPE_TIME;
+        const barW = TILE_SIZE * 0.6;
+        const barH = 3;
+        const barX = px + (TILE_SIZE - barW) / 2;
+        const barY = py + bobOffset - 6;
+
+        // Background
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(barX, barY, barW, barH);
+
+        // Fill — green > yellow > red
+        const fillColor = ratio > 0.66 ? '#4CAF50' : ratio > 0.33 ? '#FFC107' : '#F44336';
+        ctx.fillStyle = fillColor;
+        ctx.fillRect(barX, barY, barW * ratio, barH);
+      }
+
       return;
     }
 
     // Fallback
     ctx.fillStyle = isTrapped ? COLORS.darkSand : COLORS.vibestrGold;
-    ctx.fillRect(px + 4, py + 8, TILE_SIZE - 8, TILE_SIZE - 8);
+    ctx.fillRect(px + 4, py + 8 + bobOffset, TILE_SIZE - 8, TILE_SIZE - 8);
     ctx.fillStyle = '#E87B35';
-    ctx.fillRect(px + TILE_SIZE - 6, py + 12, 6, 4);
+    ctx.fillRect(px + TILE_SIZE - 6, py + 12 + bobOffset, 6, 4);
+
+    // Trap timer progress bar (fallback)
+    if (isTrapped && trapTimer > 0) {
+      const ratio = trapTimer / DUCK_TRAP_ESCAPE_TIME;
+      const barW = TILE_SIZE * 0.6;
+      const barH = 3;
+      const barX = px + (TILE_SIZE - barW) / 2;
+      const barY = py + bobOffset - 6;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(barX, barY, barW, barH);
+
+      const fillColor = ratio > 0.66 ? '#4CAF50' : ratio > 0.33 ? '#FFC107' : '#F44336';
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(barX, barY, barW * ratio, barH);
+    }
   }
 
   drawDuckDeaths(effects: DuckDeathEffect[]): void {

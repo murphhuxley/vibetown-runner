@@ -557,7 +557,7 @@ const loop = new GameLoop(
     // Draw ducks (with smooth interpolation)
     for (const duck of game.state.ducks) {
       const renderPos = duck.isTrapped ? duck.pos : game.getDuckRenderPos(duck.id);
-      renderer.drawDuck(renderPos, duck.isTrapped, duck.facing, duck.isOnLadder);
+      renderer.drawDuck(renderPos, duck.isTrapped, duck.facing, duck.isOnLadder, duck.trapTimer);
     }
 
     renderer.drawProjectiles(game.projectiles);
