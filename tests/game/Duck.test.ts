@@ -97,9 +97,10 @@ describe('Duck', () => {
   });
 
   it('trapped duck escapes after timer expires', () => {
+    const grid = floorGrid();
     const duck = createDuck(0, { x: 10, y: groundedY });
     trapDuck(duck);
-    const escaped = updateTrappedDuck(duck, DUCK_TRAP_ESCAPE_TIME + 100);
+    const escaped = updateTrappedDuck(duck, DUCK_TRAP_ESCAPE_TIME + 100, grid);
     expect(escaped).toBe(true);
     expect(duck.isTrapped).toBe(false);
   });

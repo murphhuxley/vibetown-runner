@@ -23,8 +23,8 @@ describe('Constants', () => {
     expect(badgesNeeded).toBeLessThanOrEqual(15);
   });
 
-  it('hole regen time is longer than LFV duration', () => {
-    expect(HOLE_REGEN_TIME).toBeGreaterThan(LFV_DURATION);
+  it('hole regen time is longer than duck escape time', () => {
+    expect(HOLE_REGEN_TIME).toBeGreaterThan(3_000); // DUCK_TRAP_ESCAPE_TIME
   });
 
   it('player starts with three lives', () => {

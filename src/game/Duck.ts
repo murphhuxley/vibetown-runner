@@ -26,15 +26,33 @@ export function trapDuck(duck: DuckState): void {
   }
 }
 
-export function updateTrappedDuck(duck: DuckState, dt: number): boolean {
+export function updateTrappedDuck(duck: DuckState, dt: number, grid: TileType[][]): boolean {
   if (!duck.isTrapped) return false;
   duck.trapTimer -= dt;
   if (duck.trapTimer <= 0) {
     duck.isTrapped = false;
     duck.trapTimer = 0;
-    duck.escapeImmunity = 500; // immune to falling back into same hole
-    // Climb out of the hole — move up one tile
-    duck.pos = { x: duck.pos.x, y: duck.pos.y - 1 };
+    duck.escapeImmunity = 500;
+    // Climb out — try to land on solid ground next to the hole
+    const holeX = duck.pos.x;
+    const aboveY = duck.pos.y - 1;
+    // Try left, right, then straight up as fallback
+    const offsets = Math.random() < 0.5 ? [-1, 1, 0] : [1, -1, 0];
+    for (const dx of offsets) {
+      const nx = holeX + dx;
+      if (!isInBounds({ x: nx, y: aboveY })) continue;
+      if (!canMoveTo(grid, { x: nx, y: aboveY })) continue;
+      // Check there's solid ground below this position (not another hole)
+      if (dx !== 0 && isInBounds({ x: nx, y: aboveY + 1 })) {
+        const below = getTile(grid, { x: nx, y: aboveY + 1 });
+        if (below === TileType.Sand || below === TileType.Coral || below === TileType.TrapSand) {
+          duck.pos = { x: nx, y: aboveY };
+          return true;
+        }
+      }
+    }
+    // Fallback: straight up
+    duck.pos = { x: holeX, y: aboveY };
     return true;
   }
   return false;

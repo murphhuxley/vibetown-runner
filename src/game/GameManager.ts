@@ -720,7 +720,7 @@ export class GameManager {
       if (!duck.isTrapped) continue;
 
       const holePos = { ...duck.pos };
-      const escaped = updateTrappedDuck(duck, dt);
+      const escaped = updateTrappedDuck(duck, dt, this.state.grid);
       if (!escaped) continue;
 
       if (this.state.player.pos.x === holePos.x && this.state.player.pos.y === holePos.y - 1) {
