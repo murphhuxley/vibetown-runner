@@ -301,6 +301,13 @@ export class GameManager {
     // Update trapped ducks
     this.updateTrappedDucks(dt);
 
+    // Tick down escape immunity
+    for (const duck of this.state.ducks) {
+      if (duck.escapeImmunity > 0) {
+        duck.escapeImmunity = Math.max(0, duck.escapeImmunity - dt);
+      }
+    }
+
     // Update power projectiles
     this.updateProjectiles(dt);
 

@@ -72,6 +72,7 @@ export interface DuckState {
   isOnLadder: boolean;
   carryingBadge: boolean;
   trapTimer: number;
+  escapeImmunity: number;
 }
 
 export interface ProjectileState {

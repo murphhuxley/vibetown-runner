@@ -14,6 +14,7 @@ export function createDuck(id: number, pos: Position): DuckState {
     isOnLadder: false,
     carryingBadge: false,
     trapTimer: 0,
+    escapeImmunity: 0,
   };
 }
 
@@ -31,6 +32,7 @@ export function updateTrappedDuck(duck: DuckState, dt: number): boolean {
   if (duck.trapTimer <= 0) {
     duck.isTrapped = false;
     duck.trapTimer = 0;
+    duck.escapeImmunity = 500; // immune to falling back into same hole
     // Climb out of the hole — move up one tile
     duck.pos = { x: duck.pos.x, y: duck.pos.y - 1 };
     return true;
@@ -52,9 +54,9 @@ export function moveDuckToward(
 
   const next = { ...duck, pos: { ...duck.pos } };
 
-  // Gravity — if not supported, fall
+  // Gravity — if not supported, fall (unless escape immunity active)
   const supported = isSupported(grid, duck.pos, duck.isOnLadder, duck.isOnRope);
-  if (!supported) {
+  if (!supported && duck.escapeImmunity <= 0) {
     const below = { x: duck.pos.x, y: duck.pos.y + 1 };
     if (isInBounds(below) && canMoveTo(grid, below)) {
       next.pos = below;
@@ -239,4 +241,5 @@ export function respawnDuck(duck: DuckState, grid: TileType[][], playerPos: Posi
   duck.isOnRope = false;
   duck.carryingBadge = false;
   duck.trapTimer = 0;
+  duck.escapeImmunity = 0;
 }
