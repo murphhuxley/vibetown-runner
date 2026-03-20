@@ -8,13 +8,19 @@ export interface WeatherEffects {
 }
 
 export function getSpeedMultiplier(
-  _weather: WeatherType,
+  weather: WeatherType,
   entity: 'player' | 'duck'
 ): number {
-  void entity;
-  // Original Lode Runner raises difficulty through level design and enemy
-  // pressure, not by changing the movement rules from screen to screen.
-  return 1;
+  switch (weather) {
+    case WeatherType.Sunshine:
+      return 1.15;
+    case WeatherType.Rain:
+      return 0.8;
+    case WeatherType.TradeWinds:
+      return entity === 'duck' ? 0.75 : 1;
+    default:
+      return 1;
+  }
 }
 
 export function getWeatherEffects(weather: WeatherType): WeatherEffects {
