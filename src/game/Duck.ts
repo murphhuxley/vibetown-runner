@@ -45,7 +45,7 @@ export function moveDuckToward(
   grid: TileType[][],
   playerPos: Position,
   otherDucks: DuckState[],
-  hesitationChance = 0.15
+  hesitationChance = 0.05
 ): DuckState {
   if (duck.isTrapped) return duck;
 
