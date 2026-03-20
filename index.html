@@ -65,6 +65,7 @@
       flex-direction: column;
       align-items: center;
       gap: 4px;
+      overflow: hidden;
     }
     .shadow-funk-side.hidden { display: none; }
     .sf-helmet {
@@ -340,48 +341,81 @@
     }
     #score-submit.hidden { display: none; }
     #score-submit-box {
-      background: #1a1a1a;
-      border: 2px solid #F5D76E;
-      border-radius: 8px;
-      padding: 30px 40px;
+      position: relative;
+      width: min(700px, 85vw);
+      aspect-ratio: 1;
       text-align: center;
       color: white;
     }
-    #score-submit-box h2 {
-      font-weight: 900;
-      font-size: 24px;
-      color: #F5D76E;
-      margin-bottom: 8px;
+    #highscore-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
+      z-index: 0;
     }
-    .score-display {
-      font-family: 'Brice', sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-      color: #ccc;
-      margin-bottom: 20px;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
+    #score-submit-inner {
+      position: absolute;
+      top: 28%;
+      left: 22%;
+      right: 22%;
+      bottom: 30%;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
     #score-name-input {
       font-family: 'Brice', sans-serif;
       font-weight: 700;
       font-size: 18px;
-      padding: 10px 16px;
-      width: 200px;
+      padding: 8px 12px;
+      width: 80%;
       text-align: center;
-      background: #0a0a0a;
-      border: 2px solid #F5D76E;
-      border-radius: 4px;
-      color: #F5D76E;
+      background: rgba(0,0,0,0.8);
+      border: none;
+      border-radius: 2px;
+      color: #FFFFFF;
       outline: none;
       text-transform: uppercase;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
     #score-name-input::placeholder {
-      color: rgba(245,215,110,0.3);
+      color: rgba(255,255,255,0.3);
+    }
+    .score-info {
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: #FFFFFF;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #score-submit-buttons {
+      display: flex;
+      gap: 12px;
+      z-index: 1;
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    #score-submit-buttons button {
+      font-family: 'Brice', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 6px 20px;
+      border: none;
+      background: transparent;
+      color: #FFFFFF;
+      cursor: pointer;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
 
     /* ── Instructions Modal ── */
@@ -573,12 +607,16 @@
   <!-- Score Submission Modal -->
   <div id="score-submit" class="hidden">
     <div id="score-submit-box">
-      <h2>NEW HIGH SCORE!</h2>
-      <div class="score-display" id="submit-score-display"></div>
-      <input type="text" id="score-name-input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
-      <br>
-      <button class="menu-btn" id="score-submit-btn" style="margin-top:16px">SUBMIT</button>
-      <button class="menu-btn" id="score-skip-btn" style="margin-top:8px;opacity:0.6">SKIP</button>
+      <img id="highscore-frame" src="/assets/backgrounds/highscore-frame.png" alt="">
+      <div id="score-submit-inner">
+        <input type="text" id="score-name-input" maxlength="12" placeholder="YOUR NAME" autocomplete="off">
+        <div class="score-info" id="submit-score-display"></div>
+        <div class="score-info" id="submit-level-display"></div>
+      </div>
+      <div id="score-submit-buttons">
+        <button id="score-submit-btn">SUBMIT</button>
+        <button id="score-skip-btn">SKIP</button>
+      </div>
     </div>
   </div>
 

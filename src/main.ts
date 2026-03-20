@@ -99,20 +99,18 @@ function positionSideHelmets(): void {
   const leftGap = rect.left;
   const rightGap = window.innerWidth - rect.right;
   const gap = Math.min(leftGap, rightGap);
-  if (gap < 100) {
+  if (gap < 50) {
     sfLeftHelmet.style.display = 'none';
     sfRightHelmet.style.display = 'none';
     return;
   }
-  // Scale down to fit the available gap
-  const maxW = gap - 20;
-  const s = Math.min(1, maxW / 160);
   sfLeftHelmet.style.display = '';
   sfRightHelmet.style.display = '';
-  sfLeftHelmet.style.transform = `translateY(-50%) scale(${s})`;
-  sfRightHelmet.style.transform = `translateY(-50%) scale(${s})`;
-  sfLeftHelmet.style.left = Math.max(0, (leftGap - 160 * s) / 2) + 'px';
-  sfRightHelmet.style.right = Math.max(0, (rightGap - 160 * s) / 2) + 'px';
+  // Constrain to the available gap — no overflow into game
+  sfLeftHelmet.style.left = '0px';
+  sfLeftHelmet.style.width = leftGap + 'px';
+  sfRightHelmet.style.right = '0px';
+  sfRightHelmet.style.width = rightGap + 'px';
 }
 
 function onPowerActivate(): void {
@@ -345,6 +343,7 @@ document.getElementById('leaderboard-close')!.addEventListener('click', () => {
 const scoreSubmitModal = document.getElementById('score-submit')!;
 const scoreNameInput = document.getElementById('score-name-input') as HTMLInputElement;
 const submitScoreDisplay = document.getElementById('submit-score-display')!;
+const submitLevelDisplay = document.getElementById('submit-level-display')!;
 const scoreSubmitBtn = document.getElementById('score-submit-btn') as HTMLButtonElement;
 const scoreSkipBtn = document.getElementById('score-skip-btn') as HTMLButtonElement;
 let hasSubmittedThisRun = false;
@@ -359,7 +358,8 @@ function setScoreSubmitPending(pending: boolean): void {
 
 function showScoreSubmit(): void {
   if (hasSubmittedThisRun) return;
-  submitScoreDisplay.textContent = `Score: ${game.state.score.toLocaleString()}  |  Level: ${game.state.currentLevel}`;
+  submitScoreDisplay.textContent = `Score: ${game.state.score.toLocaleString()}`;
+  submitLevelDisplay.textContent = `Level: ${game.state.currentLevel}`;
   scoreNameInput.value = '';
   setScoreSubmitPending(false);
   scoreSubmitModal.classList.remove('hidden');
