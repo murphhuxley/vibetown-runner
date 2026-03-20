@@ -24,7 +24,7 @@ describe('Duck', () => {
     const grid = floorGrid();
     const duck = createDuck(0, { x: 10, y: groundedY });
     const playerPos = { x: 5, y: groundedY };
-    const moved = moveDuckToward(duck, grid, playerPos, []);
+    const moved = moveDuckToward(duck, grid, playerPos, [], 0);
     expect(moved.pos.x).toBeLessThan(10);
   });
 
@@ -34,7 +34,7 @@ describe('Duck', () => {
 
     const duck = createDuck(0, { x: 10, y: groundedY });
     const playerPos = { x: 5, y: groundedY };
-    const moved = moveDuckToward(duck, grid, playerPos, []);
+    const moved = moveDuckToward(duck, grid, playerPos, [], 0);
 
     expect(moved.pos).toEqual({ x: 9, y: groundedY });
   });
@@ -47,7 +47,7 @@ describe('Duck', () => {
 
     const duck = createDuck(0, { x: 11, y: groundedY });
     const playerPos = { x: 9, y: groundedY - 3 };
-    const moved = moveDuckToward(duck, grid, playerPos, []);
+    const moved = moveDuckToward(duck, grid, playerPos, [], 0);
 
     expect(moved.pos).toEqual({ x: 10, y: groundedY });
   });
@@ -59,7 +59,7 @@ describe('Duck', () => {
     }
 
     const duck = createDuck(0, { x: 10, y: groundedY });
-    const moved = moveDuckToward(duck, grid, { x: 10, y: groundedY - 3 }, []);
+    const moved = moveDuckToward(duck, grid, { x: 10, y: groundedY - 3 }, [], 0);
 
     expect(moved.pos).toEqual({ x: 10, y: groundedY - 1 });
   });
@@ -74,7 +74,7 @@ describe('Duck', () => {
     duck.isOnLadder = true;
     duck.facing = Direction.Left;
 
-    const moved = moveDuckToward(duck, grid, { x: 14, y: groundedY }, []);
+    const moved = moveDuckToward(duck, grid, { x: 14, y: groundedY }, [], 0);
 
     expect(moved.pos).toEqual({ x: 10, y: groundedY - 1 });
     expect(moved.facing).toBe(Direction.Right);
@@ -85,7 +85,7 @@ describe('Duck', () => {
     const duck = createDuck(0, { x: 10, y: groundedY });
     duck.isTrapped = true;
     const playerPos = { x: 5, y: groundedY };
-    const moved = moveDuckToward(duck, grid, playerPos, []);
+    const moved = moveDuckToward(duck, grid, playerPos, [], 0);
     expect(moved.pos.x).toBe(10);
   });
 
