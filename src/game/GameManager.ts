@@ -186,12 +186,24 @@ export class GameManager {
       else if (this.input.right) this.state.player.facing = Direction.Right;
     }
 
-    // Digging — checked every frame so justPressed isn't missed
-    if (!this.state.powerHelmetActive && !digLockedThisFrame && !lfvLockedThisFrame && this.input.justPressed('z')) {
-      digLockedThisFrame = this.tryDig(Direction.Left) || digLockedThisFrame;
-    }
-    if (!this.state.powerHelmetActive && !digLockedThisFrame && !lfvLockedThisFrame && (this.input.justPressed('x') || this.input.justPressed('c'))) {
-      digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
+    // Digging / directional shooting — Z=left, C/X=right
+    if (this.state.powerHelmetActive && !this.powerAnimationPlaying) {
+      // Shadow Funk: Z shoots left, C/X shoots right
+      if (this.input.justPressed('z')) {
+        this.state.player.facing = Direction.Left;
+        this.handlePowerHelmetInput(true);
+      }
+      if (this.input.justPressed('x') || this.input.justPressed('c')) {
+        this.state.player.facing = Direction.Right;
+        this.handlePowerHelmetInput(true);
+      }
+    } else if (!digLockedThisFrame && !lfvLockedThisFrame) {
+      if (this.input.justPressed('z')) {
+        digLockedThisFrame = this.tryDig(Direction.Left) || digLockedThisFrame;
+      }
+      if (this.input.justPressed('x') || this.input.justPressed('c')) {
+        digLockedThisFrame = this.tryDig(Direction.Right) || digLockedThisFrame;
+      }
     }
 
     const spacePressed = this.input.justPressed(' ');

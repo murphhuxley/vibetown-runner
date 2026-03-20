@@ -62,7 +62,7 @@ const sfRightHelmet = document.getElementById('shadow-funk-right')!;
 
 function positionSideHelmets(): void {
   const rect = canvas.getBoundingClientRect();
-  const helmetW = 144;
+  const helmetW = 160;
   const leftGap = rect.left;
   const rightGap = window.innerWidth - rect.right;
   sfLeftHelmet.style.left = Math.max(0, (leftGap - helmetW) / 2) + 'px';
