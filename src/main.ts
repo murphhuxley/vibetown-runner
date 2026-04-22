@@ -7,6 +7,7 @@ import { GameManager } from '@/game/GameManager';
 import { GameLoop } from '@/engine/GameLoop';
 import { Renderer } from '@/engine/Renderer';
 import { InputManager } from '@/engine/Input';
+import { initMobile } from '@/engine/MobileBoot';
 import { updateScorePopups } from '@/game/ScorePopup';
 import { updateDustParticles } from '@/game/LandingDust';
 import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
@@ -42,28 +43,9 @@ window.addEventListener('resize', syncCanvasDisplaySize);
 const input = new InputManager();
 input.bind();
 
-// ── Mobile Detection ──
-const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-if (isMobile) {
-  document.getElementById('loading-screen')?.remove();
-  document.getElementById('menu-screen')!.style.display = 'none';
-  document.getElementById('game')!.style.display = 'none';
-  const mobileMsg = document.createElement('div');
-  mobileMsg.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#0a0a0a;z-index:999;gap:16px';
-  const title = document.createElement('div');
-  title.style.cssText = "font-family:'Brice',sans-serif;font-weight:900;font-size:28px;color:#F5D76E;text-align:center;image-rendering:pixelated";
-  title.textContent = 'MOBILE COMING SOON';
-  const sub = document.createElement('div');
-  sub.style.cssText = "font-family:'Brice',sans-serif;font-weight:700;font-size:14px;color:#888;text-align:center";
-  sub.textContent = 'Play on desktop for now';
-  mobileMsg.appendChild(title);
-  mobileMsg.appendChild(sub);
-  document.body.appendChild(mobileMsg);
-}
-
 const game = new GameManager(input);
 const renderer = new Renderer(ctx);
+initMobile({ game, input });
 const isDevHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // Wire up SFX
