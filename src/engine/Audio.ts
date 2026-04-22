@@ -146,7 +146,17 @@ export function sfxMenuClick(): void {
   }
 }
 
-export function resumeAudio(): void {}
+export function resumeAudio(): void {
+  // Called on first user gesture to unlock audio on iOS Safari.
+  getUiAudioCtx();
+  // Prime every pool so AudioElements are "user-gesture authorized".
+  for (const pool of pools.values()) {
+    for (const audio of pool) {
+      audio.muted = true;
+      audio.play().then(() => { audio.pause(); audio.currentTime = 0; audio.muted = false; }).catch(() => { audio.muted = false; });
+    }
+  }
+}
 
 // ── Power-up SFX songs (pause music while active) ──
 const shadowFunkAudio = new Audio('/assets/audio/shadow-funk.mp3');
