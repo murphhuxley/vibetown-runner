@@ -107,6 +107,51 @@ function bindVisibility(game: GameManager): void {
   });
 }
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+};
+
+let installPromptEvent: BeforeInstallPromptEvent | null = null;
+
+function captureInstallPrompt(): void {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    installPromptEvent = e as BeforeInstallPromptEvent;
+  });
+}
+
+function isIOSStandaloneEligible(): boolean {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+  return isIOS && !isStandalone;
+}
+
+export function showInstallPromptIfEligible(): void {
+  if (localStorage.getItem('installDismissed') === '1') return;
+  const androidCard = document.getElementById('install-card');
+  const iosCard = document.getElementById('ios-install-card');
+  if (installPromptEvent && androidCard) {
+    androidCard.classList.remove('hidden');
+    document.getElementById('install-yes')?.addEventListener('click', async () => {
+      androidCard.classList.add('hidden');
+      await installPromptEvent!.prompt();
+      installPromptEvent = null;
+    }, { once: true });
+    document.getElementById('install-no')?.addEventListener('click', () => {
+      androidCard.classList.add('hidden');
+      localStorage.setItem('installDismissed', '1');
+    }, { once: true });
+  } else if (isIOSStandaloneEligible() && iosCard) {
+    iosCard.classList.remove('hidden');
+    document.getElementById('ios-install-close')?.addEventListener('click', () => {
+      iosCard.classList.add('hidden');
+      localStorage.setItem('installDismissed', '1');
+    }, { once: true });
+  }
+}
+
 export interface MobileBootOptions {
   game: GameManager;
   input: InputManager;
@@ -114,6 +159,7 @@ export interface MobileBootOptions {
 
 /** Initialize all mobile-specific boot logic. Safe to call on desktop (becomes a no-op for non-touch). */
 export function initMobile(_opts: MobileBootOptions): void {
+  captureInstallPrompt();
   applyTouchClass();
   if (!detectTouch()) return;
   bindOrientation(_opts.game);

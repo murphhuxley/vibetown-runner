@@ -7,7 +7,7 @@ import { GameManager } from '@/game/GameManager';
 import { GameLoop } from '@/engine/GameLoop';
 import { Renderer } from '@/engine/Renderer';
 import { InputManager } from '@/engine/Input';
-import { initMobile } from '@/engine/MobileBoot';
+import { initMobile, showInstallPromptIfEligible } from '@/engine/MobileBoot';
 import { updateScorePopups } from '@/game/ScorePopup';
 import { updateDustParticles } from '@/game/LandingDust';
 import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
@@ -54,7 +54,7 @@ game.onCollect = sfxCollect;
 game.onTrap = sfxTrap;
 game.onKill = sfxKill;
 game.onDeath = () => { sfxDeath(); renderer.triggerShake(4, 200); };
-game.onLevelComplete = sfxLevelComplete;
+game.onLevelComplete = () => { sfxLevelComplete(); showInstallPromptIfEligible(); };
 game.onVibestr = sfxVibestr;
 game.onRevealLadders = sfxRevealLadders;
 
@@ -532,7 +532,7 @@ function toggleSoundEnabled(): void {
     game.onDig = sfxDig; game.onCollect = sfxCollect; game.onTrap = sfxTrap;
     game.onKill = sfxKill; game.onDeath = () => { sfxDeath(); renderer.triggerShake(4, 200); }; game.onShoot = onShoot;
     game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd; game.onLFVDenied = sfxError;
-    game.onLevelComplete = sfxLevelComplete;
+    game.onLevelComplete = () => { sfxLevelComplete(); showInstallPromptIfEligible(); };
     game.onVibestr = sfxVibestr; game.onRevealLadders = sfxRevealLadders;
     game.onPowerStart = onPowerActivate; game.onPowerEnd = onPowerEnd;
   } else {
