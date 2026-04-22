@@ -82,6 +82,24 @@ function bindTouchButtons(input: InputManager): void {
   });
 }
 
+function bindFirstGestureUnlock(): void {
+  const onFirst = async (): Promise<void> => {
+    const { resumeAudio } = await import('@/engine/Audio');
+    try { resumeAudio(); } catch { /* ignore */ }
+    try {
+      const so = screen.orientation as { lock?: (o: string) => Promise<void> } | undefined;
+      await so?.lock?.('landscape');
+    } catch { /* iOS Safari doesn't support; rotate prompt handles it */ }
+  };
+  const fire = (): void => {
+    onFirst();
+    window.removeEventListener('pointerdown', fire, true);
+    window.removeEventListener('keydown', fire, true);
+  };
+  window.addEventListener('pointerdown', fire, true);
+  window.addEventListener('keydown', fire, true);
+}
+
 export interface MobileBootOptions {
   game: GameManager;
   input: InputManager;
@@ -93,4 +111,5 @@ export function initMobile(_opts: MobileBootOptions): void {
   if (!detectTouch()) return;
   bindOrientation(_opts.game);
   bindTouchButtons(_opts.input);
+  bindFirstGestureUnlock();
 }
