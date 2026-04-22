@@ -100,6 +100,13 @@ function bindFirstGestureUnlock(): void {
   window.addEventListener('keydown', fire, true);
 }
 
+function bindVisibility(game: GameManager): void {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') game.pause?.();
+    else game.resume?.();
+  });
+}
+
 export interface MobileBootOptions {
   game: GameManager;
   input: InputManager;
@@ -112,4 +119,5 @@ export function initMobile(_opts: MobileBootOptions): void {
   bindOrientation(_opts.game);
   bindTouchButtons(_opts.input);
   bindFirstGestureUnlock();
+  bindVisibility(_opts.game);
 }
