@@ -55,6 +55,12 @@
     #rotate-prompt .rotate-icon {
       font-size: 48px;
     }
+    body.portrait #rotate-prompt {
+      display: flex;
+    }
+    body.portrait #game-wrapper {
+      display: none;
+    }
 
     #game-wrapper {
       display: flex;
@@ -77,6 +83,9 @@
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
+    }
+    body.has-touch .touch-controls {
+      display: flex;
     }
 
     /* D-pad layout */
@@ -887,8 +896,8 @@
 
     <div id="touch-right" class="touch-controls">
       <div class="action-buttons">
-        <div class="action-btn" data-key="z">DIG<br>LEFT</div>
         <div class="action-btn" data-key=" ">LFV</div>
+        <div class="action-btn" data-key="z">DIG<br>LEFT</div>
         <div class="action-btn" data-key="c">DIG<br>RIGHT</div>
       </div>
     </div>
