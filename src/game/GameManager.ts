@@ -78,6 +78,22 @@ export class GameManager {
     this.state.phase = GamePhase.Playing;
   }
 
+  private pausedFrom: GamePhase | null = null;
+
+  pause(): void {
+    if (this.state.phase === GamePhase.Playing) {
+      this.pausedFrom = this.state.phase;
+      this.state.phase = GamePhase.Paused;
+    }
+  }
+
+  resume(): void {
+    if (this.state.phase === GamePhase.Paused && this.pausedFrom) {
+      this.state.phase = this.pausedFrom;
+      this.pausedFrom = null;
+    }
+  }
+
   loadLevel(index: number): boolean {
     const raw = LEVELS[index];
     if (!raw) return false;
