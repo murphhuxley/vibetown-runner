@@ -58,11 +58,27 @@ function bindTouchButtons(input: InputManager): void {
     }
   };
 
+  const handleMove = (e: PointerEvent): void => {
+    if (!active.has(e.pointerId)) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const btn = el?.closest<HTMLElement>('[data-key]');
+    if (!btn) return; // still on the dpad rail but between buttons — keep current
+    // Only re-target within the same rail (D-pad). Don't let a D-pad drag
+    // accidentally press an action button.
+    const currentKey = active.get(e.pointerId);
+    const startedOnDpad = currentKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(currentKey);
+    const targetIsDpad = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(btn.dataset.key!);
+    if (startedOnDpad && targetIsDpad) {
+      press(e.pointerId, btn.dataset.key!);
+    }
+  };
+
   document.querySelectorAll<HTMLElement>('[data-key]').forEach(el => {
     el.addEventListener('pointerdown', handleDown);
     el.addEventListener('pointerup', handleUp);
     el.addEventListener('pointercancel', handleUp);
     el.addEventListener('pointerleave', handleUp);
+    el.addEventListener('pointermove', handleMove);
   });
 }
 
