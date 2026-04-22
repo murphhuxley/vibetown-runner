@@ -23,6 +23,49 @@ function bindOrientation(game: GameManager): void {
   mq.addEventListener('change', (e) => apply(e.matches));
 }
 
+/** Wire pointer events on all elements with `data-key`. */
+function bindTouchButtons(input: InputManager): void {
+  // pointerId -> currently-pressed key (so we can release correctly on lift)
+  const active = new Map<number, string>();
+
+  const press = (pointerId: number, key: string): void => {
+    const prior = active.get(pointerId);
+    if (prior === key) return;
+    if (prior) input.releaseTouch(prior);
+    input.pressTouch(key);
+    active.set(pointerId, key);
+  };
+
+  const release = (pointerId: number): void => {
+    const key = active.get(pointerId);
+    if (key) input.releaseTouch(key);
+    active.delete(pointerId);
+  };
+
+  const handleDown = (e: PointerEvent): void => {
+    const target = (e.target as HTMLElement).closest<HTMLElement>('[data-key]');
+    if (!target) return;
+    const key = target.dataset.key!;
+    e.preventDefault();
+    target.setPointerCapture?.(e.pointerId);
+    press(e.pointerId, key);
+  };
+
+  const handleUp = (e: PointerEvent): void => {
+    if (active.has(e.pointerId)) {
+      e.preventDefault();
+      release(e.pointerId);
+    }
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-key]').forEach(el => {
+    el.addEventListener('pointerdown', handleDown);
+    el.addEventListener('pointerup', handleUp);
+    el.addEventListener('pointercancel', handleUp);
+    el.addEventListener('pointerleave', handleUp);
+  });
+}
+
 export interface MobileBootOptions {
   game: GameManager;
   input: InputManager;
@@ -33,4 +76,5 @@ export function initMobile(_opts: MobileBootOptions): void {
   applyTouchClass();
   if (!detectTouch()) return;
   bindOrientation(_opts.game);
+  bindTouchButtons(_opts.input);
 }
