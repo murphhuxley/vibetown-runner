@@ -775,6 +775,43 @@
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
+
+    /* PWA Install Cards */
+    .install-card {
+      position: fixed; inset: 0; z-index: 500;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.7);
+    }
+    .install-card.hidden { display: none; }
+    .install-card-inner {
+      background: #141414;
+      border: 2px solid #F5D76E;
+      border-radius: 8px;
+      padding: 24px;
+      max-width: 320px;
+      text-align: center;
+      font-family: 'Brice', sans-serif;
+    }
+    .install-card-icon {
+      width: 64px; height: 64px; image-rendering: pixelated;
+    }
+    .install-card-title {
+      color: #F5D76E; font-weight: 900; font-size: 16px; margin: 12px 0 8px;
+    }
+    .install-card-body {
+      color: #D4C5A9; font-size: 12px; line-height: 1.5; margin-bottom: 16px;
+    }
+    .install-card-actions {
+      display: flex; gap: 8px; justify-content: center;
+    }
+    .install-btn {
+      font-family: 'Brice', sans-serif; font-weight: 700; font-size: 11px;
+      padding: 8px 16px; border: 1px solid rgba(245,215,110,0.4);
+      background: transparent; color: #F5D76E; cursor: pointer; border-radius: 4px;
+    }
+    .install-btn.primary {
+      background: #F5D76E; color: #141414;
+    }
   </style>
 </head>
 <body>
@@ -942,6 +979,33 @@
       </div>
     </div>
   </div>
+
+  <!-- PWA Install Card -->
+  <div id="install-card" class="install-card hidden" role="dialog" aria-label="Install Vibetown Runner">
+    <div class="install-card-inner">
+      <img src="/icons/icon-192.png" alt="" class="install-card-icon">
+      <div class="install-card-title">INSTALL VIBETOWN RUNNER</div>
+      <div class="install-card-body">Add to your home screen to play faster and offline.</div>
+      <div class="install-card-actions">
+        <button id="install-yes" class="install-btn primary">INSTALL</button>
+        <button id="install-no" class="install-btn">NOT NOW</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- iOS Install Instructions Card -->
+  <div id="ios-install-card" class="install-card hidden" role="dialog" aria-label="Add to Home Screen">
+    <div class="install-card-inner">
+      <div class="install-card-title">ADD TO HOME SCREEN</div>
+      <div class="install-card-body">
+        Tap <strong>Share</strong> below, then <strong>Add to Home Screen</strong>.
+      </div>
+      <div class="install-card-actions">
+        <button id="ios-install-close" class="install-btn primary">GOT IT</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
