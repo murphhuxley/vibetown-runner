@@ -18,6 +18,14 @@ export class InputManager {
     this.keys.delete(this.normalizeKey(key));
   }
 
+  pressTouch(key: string): void {
+    this.handleKeyDown(key);
+  }
+
+  releaseTouch(key: string): void {
+    this.handleKeyUp(key);
+  }
+
   isDown(key: string): boolean {
     return this.keys.has(this.normalizeKey(key));
   }

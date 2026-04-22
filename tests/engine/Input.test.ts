@@ -55,3 +55,33 @@ describe('InputManager', () => {
     expect(input.justPressed('z')).toBe(false);
   });
 });
+
+describe('InputManager touch API', () => {
+  it('pressTouch marks the key as down', () => {
+    const input = new InputManager();
+    input.pressTouch('ArrowLeft');
+    expect(input.left).toBe(true);
+  });
+
+  it('releaseTouch clears the key', () => {
+    const input = new InputManager();
+    input.pressTouch('ArrowLeft');
+    input.releaseTouch('ArrowLeft');
+    expect(input.left).toBe(false);
+  });
+
+  it('pressTouch registers as justPressed once', () => {
+    const input = new InputManager();
+    input.pressTouch(' ');
+    expect(input.justPressed(' ')).toBe(true);
+    expect(input.justPressed(' ')).toBe(false);
+  });
+
+  it('touch and keyboard state coexist', () => {
+    const input = new InputManager();
+    input.pressTouch('ArrowLeft');
+    input.handleKeyDown('z');
+    expect(input.left).toBe(true);
+    expect(input.digLeft).toBe(true);
+  });
+});
