@@ -200,11 +200,14 @@
     }
     /* Hit-zone positions eyeballed for CONTROLLER0.png (1846x852, notch-safe layout).
        Adjust these % values if any button feels off on a real device. */
-    /* D-pad (cross-shape, centered around ~8% horizontal, ~44% vertical) */
-    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 5%;   top: 32%; width: 9%;  height: 10%; }
-    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 5%;   top: 56%; width: 9%;  height: 10%; }
-    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 0.5%; top: 44%; width: 7%;  height: 12%; }
-    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 9%;   top: 44%; width: 7%;  height: 12%; }
+    /* D-pad: generous hit zones that overlap slightly at their edges — the finger-slide
+       handler in MobileBoot re-targets between directions smoothly, and corner touches
+       register as whichever direction's DOM element is topmost (left/right on top of up/down).
+       Sizes are ~2x the button art so thumbs don't have to be precise. */
+    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 1%;  top: 18%; width: 17%; height: 24%; }
+    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 1%;  top: 58%; width: 17%; height: 18%; }
+    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 0%;  top: 36%; width: 10%; height: 26%; }
+    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 9%;  top: 36%; width: 10%; height: 26%; }
     /* A (Dig Right, 'c') and B (Dig Left, 'z') */
     body.has-touch .handheld-btn[data-key="c"]          { left: 91%;  top: 40%; width: 7%;  height: 17%; border-radius: 50%; }
     body.has-touch .handheld-btn[data-key="z"]          { left: 83%;  top: 43%; width: 7%;  height: 17%; border-radius: 50%; }
