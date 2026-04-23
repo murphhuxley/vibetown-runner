@@ -212,9 +212,11 @@
     /* SELECT (pause, 'Escape') and START (menu, 'm') */
     body.has-touch .handheld-btn[data-key="Escape"]     { left: 4%;   top: 77%; width: 5%;  height: 7%; }
     body.has-touch .handheld-btn[data-key="m"]          { left: 10%;  top: 77%; width: 5%;  height: 7%; }
-    /* L / R shoulder buttons on top of console — both trigger LFV (' ') */
-    body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 3%;  top: 0%;  width: 9%;  height: 5%; }
-    body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 88%; top: 0%;  width: 9%;  height: 5%; }
+    /* L / R shoulder buttons on top of console — both trigger LFV (' ').
+       Extra-wide and extra-tall so they remain reachable under iPhone's Dynamic Island / notch
+       and above whatever status bar shows. Extend down to 12% (still well above D-pad at 18%). */
+    body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 0%;  top: 0%;  width: 20%; height: 12%; }
+    body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 80%; top: 0%;  width: 20%; height: 12%; }
 
     /* LFV-ready glow: applied to shoulder buttons when vibeMeter hits max.
        Class is toggled by MobileBoot's per-frame loop. */
