@@ -152,21 +152,25 @@
       -webkit-user-select: none;
       touch-action: none;
     }
-    body.has-touch #game {
-      position: absolute !important;
-      /* Values measured programmatically from transparent pixels in mobile-console.png (notch-safe version):
-         left=22.48%, top=6.22%, width=58.88%, height=78.64% — aspect 1.622:1.
-         Canvas aligns exactly with transparent area so game content doesn't bleed under the frame. */
+    /* Camera viewport — clips canvas so only the portion near the player is visible. */
+    body.has-touch .screen-viewport {
+      position: absolute;
       left: 22.48%;
       top: 6.22%;
       width: 58.88%;
       height: 78.64%;
-      /* object-fit: fill stretches the canvas' internal 4:3 rendering into the 1.622:1 screen rect.
-         Tiles become ~22% wider than tall — subtle, acceptable until camera-follow ships. */
-      object-fit: fill;
-      image-rendering: auto;
+      overflow: hidden;
       background: #0a0a0a;
       z-index: 1;
+    }
+    body.has-touch #game {
+      position: absolute !important;
+      top: 0;
+      left: 0;
+      /* Width/height set by JS (MobileBoot.bindCameraFollow) — canvas is zoomed 2× so tiles
+         render as squares at ~30px each, then translated each frame to follow the player. */
+      image-rendering: auto;
+      will-change: transform;
     }
     body.has-touch .frame-overlay {
       position: absolute;
@@ -1130,10 +1134,13 @@
     </div>
 
     <!-- Handheld console frame: positioned absolute on body.has-touch, invisible on desktop.
-         Canvas is the bottom layer, frame PNG sits on top and masks all but the screen rect,
-         hit zones sit on top of everything. -->
+         Canvas lives inside .screen-viewport (which clips it to the screen rect on mobile,
+         or is a transparent pass-through on desktop). Frame PNG sits on top of the viewport
+         and masks everything outside the screen rect. Hit zones sit on top of everything. -->
     <div class="handheld-frame">
-      <canvas id="game"></canvas>
+      <div class="screen-viewport">
+        <canvas id="game"></canvas>
+      </div>
       <img class="frame-overlay" src="/assets/mobile-console.png" alt="">
       <div class="handheld-btn" data-key="ArrowUp"></div>
       <div class="handheld-btn" data-key="ArrowDown"></div>
