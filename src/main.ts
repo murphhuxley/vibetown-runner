@@ -171,6 +171,9 @@ function onLfvActivate(): void {
   renderer.startLfvActivation();
   sfxLfvActivate();
   lfvSfxStart();
+  // Haptic kick on activation. Android only — iOS Safari doesn't support Vibration API.
+  // Short-long pattern feels rewarding: 80ms pulse, 40ms gap, 150ms pulse.
+  try { navigator.vibrate?.([80, 40, 150]); } catch { /* ignore */ }
 }
 
 renderer.onLfvActivationDone = () => {

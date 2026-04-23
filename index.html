@@ -222,16 +222,38 @@
     body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 0%;  top: 0%;  width: 20%; height: 12%; }
     body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 80%; top: 0%;  width: 20%; height: 12%; }
 
-    /* LFV-ready glow: applied to shoulder buttons when vibeMeter hits max.
+    /* LFV-ready glow. Rendered by a dedicated .shoulder-glow element sized to the visible
+       shoulder-button art (small rectangle), NOT the hit zone (which is large and invisible).
        Class is toggled by MobileBoot's per-frame loop. */
-    @keyframes lfv-ready-pulse {
-      0%, 100% { box-shadow: 0 0 8px 2px rgba(245,215,110,0.5), inset 0 0 6px rgba(245,215,110,0.35); }
-      50%      { box-shadow: 0 0 18px 5px rgba(245,215,110,0.9), inset 0 0 10px rgba(245,215,110,0.7); }
+    .shoulder-glow { display: none; }
+    body.has-touch .shoulder-glow {
+      display: block;
+      position: absolute;
+      pointer-events: none;   /* purely decorative — taps fall through to the hit zone underneath */
+      z-index: 6;
+      border-radius: 3px;
     }
-    body.has-touch .handheld-btn.lfv-ready {
-      background: radial-gradient(ellipse at center, rgba(245,215,110,0.28), rgba(245,215,110,0) 70%);
-      border-radius: 10%;
-      animation: lfv-ready-pulse 1.2s ease-in-out infinite;
+    /* Positions match the visible L/R shoulder button art on CONTROLLER0.png. */
+    body.has-touch .shoulder-glow-L { left: 4.5%;  top: 0.8%; width: 7%;  height: 3.2%; }
+    body.has-touch .shoulder-glow-R { left: 88.5%; top: 0.8%; width: 7%;  height: 3.2%; }
+    @keyframes lfv-ready-pulse {
+      0%, 100% {
+        box-shadow:
+          0 0 14px 4px rgba(245,215,110,0.95),
+          0 0 28px 10px rgba(245,215,110,0.55),
+          inset 0 0 8px rgba(245,215,110,0.9);
+        background: rgba(245,215,110,0.35);
+      }
+      50% {
+        box-shadow:
+          0 0 28px 10px rgba(255,230,130,1),
+          0 0 48px 18px rgba(245,215,110,0.75),
+          inset 0 0 14px rgba(255,240,180,1);
+        background: rgba(255,230,130,0.6);
+      }
+    }
+    body.has-touch .shoulder-glow.lfv-ready {
+      animation: lfv-ready-pulse 0.9s ease-in-out infinite;
     }
 
     /* D-pad layout */
@@ -1152,6 +1174,8 @@
       <div class="handheld-btn" data-key="m"></div>
       <div class="handheld-btn shoulder-L" data-key=" "></div>
       <div class="handheld-btn shoulder-R" data-key=" "></div>
+      <div class="shoulder-glow shoulder-glow-L"></div>
+      <div class="shoulder-glow shoulder-glow-R"></div>
     </div>
 
     <div id="touch-right" class="touch-controls">
