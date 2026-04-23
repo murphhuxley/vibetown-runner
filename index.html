@@ -299,6 +299,13 @@
       justify-content: center;
     }
     .lfv-side.hidden { display: none; }
+    /* On mobile the LFV/Shadow-Funk side animations sit in the same viewport gutters as the
+       D-pad hit-zones — they cover the controls and the player can't move. Hide them on touch;
+       LFV is still visually indicated via the in-canvas orbiting shakas + the pulsing shoulder buttons. */
+    body.has-touch #lfv-left,
+    body.has-touch #lfv-right,
+    body.has-touch #shadow-funk-left,
+    body.has-touch #shadow-funk-right { display: none !important; }
     .lfv-side-img {
       width: 204px;
       height: 204px;
