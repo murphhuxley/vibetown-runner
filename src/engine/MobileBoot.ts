@@ -112,6 +112,24 @@ function bindVisibility(game: GameManager): void {
   });
 }
 
+/** Pulse the L/R shoulder buttons when the player has enough vibe to activate LFV.
+    Runs on RAF so it tracks vibeMeter changes without requiring a callback from GameManager. */
+function bindLfvReadyGlow(game: GameManager): void {
+  const shoulders = document.querySelectorAll<HTMLElement>('.handheld-btn.shoulder-L, .handheld-btn.shoulder-R');
+  if (shoulders.length === 0) return;
+  const VIBE_MAX_LOCAL = 100;  // mirrors constants.VIBE_MAX; hard-coded to avoid import churn
+  let lastReady = false;
+  const tick = (): void => {
+    const ready = game.state.vibeMeter >= VIBE_MAX_LOCAL && !game.state.player.isLFV;
+    if (ready !== lastReady) {
+      shoulders.forEach((el) => el.classList.toggle('lfv-ready', ready));
+      lastReady = ready;
+    }
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -175,4 +193,5 @@ export function initMobile(_opts: MobileBootOptions): void {
   bindTouchButtons(_opts.input);
   bindFirstGestureUnlock();
   bindVisibility(_opts.game);
+  bindLfvReadyGlow(_opts.game);
 }

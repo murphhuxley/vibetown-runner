@@ -411,6 +411,10 @@ document.getElementById('login-submit-btn')!.addEventListener('click', async () 
 document.getElementById('login-skip-btn')!.addEventListener('click', () => {
   sfxMenuClick();
   loginModal.classList.add('hidden');
+  // Skipping login from the post-death flow must also cancel score submission —
+  // without this, tap-anywhere on the end-screen re-triggers showScoreSubmit → showLogin
+  // and the user is trapped in an infinite login prompt.
+  hasSubmittedThisRun = true;
 });
 
 loginPasswordInput.addEventListener('keydown', (e) => {
@@ -776,6 +780,22 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.key === 'Enter') handleStateTransition();
+  if (e.key === 'm' || e.key === 'M') {
+    // START button (or 'm' key): return to main menu from anywhere except the menu itself.
+    if (game.state.phase !== GamePhase.Menu) {
+      game.state.phase = GamePhase.Menu;
+      menuScreen.classList.remove('hidden');
+    }
+  }
+});
+
+// Touch handler for the START hit-zone: data-key="m" is pressed via InputManager (no-op there)
+// but we also need to actually show the menu. Bind pointerdown on the button directly.
+document.querySelector('.handheld-btn[data-key="m"]')?.addEventListener('pointerdown', () => {
+  if (game.state.phase !== GamePhase.Menu) {
+    game.state.phase = GamePhase.Menu;
+    menuScreen.classList.remove('hidden');
+  }
 });
 
 // Tap-anywhere on the game canvas during end-screen phases (mobile-friendly retry).

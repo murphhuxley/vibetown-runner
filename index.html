@@ -154,13 +154,15 @@
     }
     body.has-touch #game {
       position: absolute !important;
-      /* Canvas sized to screen rect. Frame PNG on top masks any overflow, so slight misalignment is hidden. */
-      left: 16.8%;
-      top: 3.5%;
-      width: 67.9%;
-      height: 88.0%;
-      /* object-fit: fill stretches the canvas' internal 4:3 rendering into the 1.67:1 screen rect.
-         Tiles become ~25% wider than tall — subtle, acceptable as a non-camera-follow first pass. */
+      /* Values measured programmatically from transparent pixels in mobile-console.png:
+         left=19.65%, right=81.00%, top=5.75%, bottom=86.03% → width=61.34%, height=80.28%.
+         Canvas aligns exactly with transparent area so game content doesn't bleed under the frame. */
+      left: 19.65%;
+      top: 5.75%;
+      width: 61.34%;
+      height: 80.28%;
+      /* object-fit: fill stretches the canvas' internal 4:3 rendering into the 1.656:1 screen rect.
+         Tiles become ~24% wider than tall — subtle, acceptable until camera-follow ships. */
       object-fit: fill;
       image-rendering: auto;
       background: #0a0a0a;
@@ -204,9 +206,24 @@
     /* A (Dig Right, mapped to 'c') and B (Dig Left, mapped to 'z') */
     body.has-touch .handheld-btn[data-key="c"]          { left: 90.5%; top: 40%; width: 7%;  height: 18%; border-radius: 50%; }
     body.has-touch .handheld-btn[data-key="z"]          { left: 83%;   top: 43%; width: 7%;  height: 18%; border-radius: 50%; }
-    /* SELECT (pause, 'Escape') and START (LFV, space) */
+    /* SELECT (pause, 'Escape') and START (menu, 'm') */
     body.has-touch .handheld-btn[data-key="Escape"]     { left: 3.5%;  top: 75%; width: 5%;  height: 7%; }
-    body.has-touch .handheld-btn[data-key=" "]          { left: 9%;    top: 75%; width: 5%;  height: 7%; }
+    body.has-touch .handheld-btn[data-key="m"]          { left: 9%;    top: 75%; width: 5%;  height: 7%; }
+    /* L / R shoulder buttons on top of console — both trigger LFV (' ') */
+    body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 3%;  top: 0%;  width: 9%;  height: 5%; }
+    body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 88%; top: 0%;  width: 9%;  height: 5%; }
+
+    /* LFV-ready glow: applied to shoulder buttons when vibeMeter hits max.
+       Class is toggled by MobileBoot's per-frame loop. */
+    @keyframes lfv-ready-pulse {
+      0%, 100% { box-shadow: 0 0 8px 2px rgba(245,215,110,0.5), inset 0 0 6px rgba(245,215,110,0.35); }
+      50%      { box-shadow: 0 0 18px 5px rgba(245,215,110,0.9), inset 0 0 10px rgba(245,215,110,0.7); }
+    }
+    body.has-touch .handheld-btn.lfv-ready {
+      background: radial-gradient(ellipse at center, rgba(245,215,110,0.28), rgba(245,215,110,0) 70%);
+      border-radius: 10%;
+      animation: lfv-ready-pulse 1.2s ease-in-out infinite;
+    }
 
     /* D-pad layout */
     .dpad {
@@ -682,8 +699,12 @@
     #score-submit.hidden { display: none; }
     #score-submit-box {
       position: relative;
-      width: min(700px, 85vw);
+      /* Cap by both viewport width AND height so the modal fits landscape phones.
+         Without max-height, a 700x700 box overflows iPhone landscape (~844x390) and
+         the SKIP/SUBMIT buttons at 87% top land off-screen — user gets stuck. */
+      width: min(700px, 85vw, 85vh);
       aspect-ratio: 1;
+      max-height: 85vh;
       text-align: center;
       color: white;
     }
@@ -1063,7 +1084,9 @@
       <div class="handheld-btn" data-key="c"></div>
       <div class="handheld-btn" data-key="z"></div>
       <div class="handheld-btn" data-key="Escape"></div>
-      <div class="handheld-btn" data-key=" "></div>
+      <div class="handheld-btn" data-key="m"></div>
+      <div class="handheld-btn shoulder-L" data-key=" "></div>
+      <div class="handheld-btn shoulder-R" data-key=" "></div>
     </div>
 
     <div id="touch-right" class="touch-controls">
