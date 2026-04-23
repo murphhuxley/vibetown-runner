@@ -143,9 +143,9 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      /* Fit frame image inside viewport preserving 1847:852 aspect */
-      width: min(100vw, calc(100vh * 1847 / 852));
-      height: min(100vh, calc(100vw * 852 / 1847));
+      /* Fit frame image inside viewport preserving 1846:852 aspect (new notch-safe image) */
+      width: min(100vw, calc(100vh * 1846 / 852));
+      height: min(100vh, calc(100vw * 852 / 1846));
       /* No background image here — we put the PNG as a layered <img> below so it sits ON TOP of the canvas */
       background: #0a0a0a;
       user-select: none;
@@ -154,15 +154,15 @@
     }
     body.has-touch #game {
       position: absolute !important;
-      /* Values measured programmatically from transparent pixels in mobile-console.png:
-         left=19.65%, right=81.00%, top=5.75%, bottom=86.03% → width=61.34%, height=80.28%.
+      /* Values measured programmatically from transparent pixels in mobile-console.png (notch-safe version):
+         left=22.48%, top=6.22%, width=58.88%, height=78.64% — aspect 1.622:1.
          Canvas aligns exactly with transparent area so game content doesn't bleed under the frame. */
-      left: 19.65%;
-      top: 5.75%;
-      width: 61.34%;
-      height: 80.28%;
-      /* object-fit: fill stretches the canvas' internal 4:3 rendering into the 1.656:1 screen rect.
-         Tiles become ~24% wider than tall — subtle, acceptable until camera-follow ships. */
+      left: 22.48%;
+      top: 6.22%;
+      width: 58.88%;
+      height: 78.64%;
+      /* object-fit: fill stretches the canvas' internal 4:3 rendering into the 1.622:1 screen rect.
+         Tiles become ~22% wider than tall — subtle, acceptable until camera-follow ships. */
       object-fit: fill;
       image-rendering: auto;
       background: #0a0a0a;
@@ -198,17 +198,19 @@
     body.has-touch .handheld-btn:active {
       background: rgba(245,215,110,0.15);
     }
-    /* D-pad hit zones (4 arrows) — cross-shaped area, eyeball positions to tune */
-    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 5.5%;  top: 32%; width: 9%;  height: 10%; }
-    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 5.5%;  top: 55%; width: 9%;  height: 10%; }
-    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 1%;    top: 43%; width: 8%;  height: 12%; }
-    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 10%;   top: 43%; width: 8%;  height: 12%; }
-    /* A (Dig Right, mapped to 'c') and B (Dig Left, mapped to 'z') */
-    body.has-touch .handheld-btn[data-key="c"]          { left: 90.5%; top: 40%; width: 7%;  height: 18%; border-radius: 50%; }
-    body.has-touch .handheld-btn[data-key="z"]          { left: 83%;   top: 43%; width: 7%;  height: 18%; border-radius: 50%; }
+    /* Hit-zone positions eyeballed for CONTROLLER0.png (1846x852, notch-safe layout).
+       Adjust these % values if any button feels off on a real device. */
+    /* D-pad (cross-shape, centered around ~8% horizontal, ~44% vertical) */
+    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 5%;   top: 32%; width: 9%;  height: 10%; }
+    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 5%;   top: 56%; width: 9%;  height: 10%; }
+    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 0.5%; top: 44%; width: 7%;  height: 12%; }
+    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 9%;   top: 44%; width: 7%;  height: 12%; }
+    /* A (Dig Right, 'c') and B (Dig Left, 'z') */
+    body.has-touch .handheld-btn[data-key="c"]          { left: 91%;  top: 40%; width: 7%;  height: 17%; border-radius: 50%; }
+    body.has-touch .handheld-btn[data-key="z"]          { left: 83%;  top: 43%; width: 7%;  height: 17%; border-radius: 50%; }
     /* SELECT (pause, 'Escape') and START (menu, 'm') */
-    body.has-touch .handheld-btn[data-key="Escape"]     { left: 3.5%;  top: 75%; width: 5%;  height: 7%; }
-    body.has-touch .handheld-btn[data-key="m"]          { left: 9%;    top: 75%; width: 5%;  height: 7%; }
+    body.has-touch .handheld-btn[data-key="Escape"]     { left: 4%;   top: 77%; width: 5%;  height: 7%; }
+    body.has-touch .handheld-btn[data-key="m"]          { left: 10%;  top: 77%; width: 5%;  height: 7%; }
     /* L / R shoulder buttons on top of console — both trigger LFV (' ') */
     body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 3%;  top: 0%;  width: 9%;  height: 5%; }
     body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 88%; top: 0%;  width: 9%;  height: 5%; }
@@ -400,6 +402,10 @@
       50% { transform: translateY(-8px); }
     }
     #menu-panel.hidden, #instructions-panel.hidden, #options-panel.hidden, #leaderboard-panel.hidden { display: none; }
+    /* Swap instruction text set based on input mode. Desktop sees ARROWS/Z/C/SPACE; mobile sees D-PAD/A/B/L/R/SELECT/START. */
+    .instructions-touch { display: none; }
+    body.has-touch .instructions-desktop { display: none; }
+    body.has-touch .instructions-touch { display: block; }
     #instructions-panel, #options-panel, #leaderboard-panel {
       position: relative;
       width: min(968px, 90vw);
@@ -948,37 +954,79 @@
           <img id="instructions-frame" src="/assets/backgrounds/instructions-frame.png" alt="">
           <div id="instructions-inner">
             <div style="font-family:'Brice',sans-serif;font-weight:900;font-size:36px;color:#F5D76E;text-align:center;margin-top:-8px;margin-bottom:12px;image-rendering:pixelated">HOW TO:</div>
-            <div class="instruction-row">
-              <span class="instruction-key">ARROWS</span>
-              <span class="instruction-desc">Move & Climb</span>
+            <!-- Desktop / keyboard instructions. Hidden on mobile via body.has-touch CSS rule below. -->
+            <div class="instructions-desktop">
+              <div class="instruction-row">
+                <span class="instruction-key">ARROWS</span>
+                <span class="instruction-desc">Move & Climb</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">Z</span>
+                <span class="instruction-desc">Dig Left</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">C</span>
+                <span class="instruction-desc">Dig Right</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">SPACE</span>
+                <span class="instruction-desc">Activate LFV Mode</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">GOAL</span>
+                <span class="instruction-desc">Collect all money bags</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">ESCAPE</span>
+                <span class="instruction-desc">Climb hidden ladder</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">HELMET</span>
+                <span class="instruction-desc">Shadow Funk Mode</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">Z / C / SPACE</span>
+                <span class="instruction-desc">Fire (Shadow Funk)</span>
+              </div>
             </div>
-            <div class="instruction-row">
-              <span class="instruction-key">Z</span>
-              <span class="instruction-desc">Dig Left</span>
-            </div>
-            <div class="instruction-row">
-              <span class="instruction-key">C</span>
-              <span class="instruction-desc">Dig Right</span>
-            </div>
-            <div class="instruction-row">
-              <span class="instruction-key">SPACE</span>
-              <span class="instruction-desc">Activate LFV Mode</span>
-            </div>
-            <div class="instruction-row">
-              <span class="instruction-key">GOAL</span>
-              <span class="instruction-desc">Collect all money bags</span>
-            </div>
-            <div class="instruction-row">
-              <span class="instruction-key">ESCAPE</span>
-              <span class="instruction-desc">Climb hidden ladder</span>
-            </div>
-            <div class="instruction-row">
-              <span class="instruction-key">HELMET</span>
-              <span class="instruction-desc">Shadow Funk Mode</span>
-            </div>
-            <div class="instruction-row">
-              <span class="instruction-key">Z / C / SPACE</span>
-              <span class="instruction-desc">Fire (Shadow Funk)</span>
+            <!-- Touch / handheld instructions. Hidden on desktop. -->
+            <div class="instructions-touch">
+              <div class="instruction-row">
+                <span class="instruction-key">D-PAD</span>
+                <span class="instruction-desc">Move & Climb</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">B</span>
+                <span class="instruction-desc">Dig Left</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">A</span>
+                <span class="instruction-desc">Dig Right</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">L / R</span>
+                <span class="instruction-desc">Activate LFV Mode</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">GOAL</span>
+                <span class="instruction-desc">Collect all money bags</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">SELECT</span>
+                <span class="instruction-desc">Pause</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">START</span>
+                <span class="instruction-desc">Main Menu</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">HELMET</span>
+                <span class="instruction-desc">Shadow Funk Mode</span>
+              </div>
+              <div class="instruction-row">
+                <span class="instruction-key">A / B / L / R</span>
+                <span class="instruction-desc">Fire (Shadow Funk)</span>
+              </div>
             </div>
           </div>
         </div>
