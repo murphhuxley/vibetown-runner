@@ -194,10 +194,7 @@
       -webkit-tap-highlight-color: transparent;
       z-index: 5;
     }
-    /* Subtle press feedback for visibility during tuning (remove once positions verified) */
-    body.has-touch .handheld-btn:active {
-      background: rgba(245,215,110,0.15);
-    }
+    /* Hit zones are invisible in production — the frame art is the visual affordance. */
     /* Hit-zone positions eyeballed for CONTROLLER0.png (1846x852, notch-safe layout).
        Adjust these % values if any button feels off on a real device. */
     /* D-pad: 3-row NON-overlapping layout so Up/Down never get stolen by Left/Right.
