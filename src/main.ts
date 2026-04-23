@@ -26,6 +26,14 @@ function syncCanvasDisplaySize(): void {
   ctx.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
   ctx.imageSmoothingEnabled = false;
 
+  // On mobile (has-touch), CSS owns display size — canvas is positioned
+  // inside the handheld-frame overlay at fixed % coordinates. Skip inline sizing.
+  if (document.body.classList.contains('has-touch')) {
+    canvas.style.width = '';
+    canvas.style.height = '';
+    return;
+  }
+
   const scale = Math.min(
     DISPLAY_SCALE,
     window.innerWidth / CANVAS_WIDTH,

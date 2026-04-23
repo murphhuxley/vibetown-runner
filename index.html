@@ -124,9 +124,71 @@
       -webkit-user-select: none;
       touch-action: none;
     }
-    body.has-touch .touch-controls {
-      display: flex;
+    /* Touch rails (old layout) are suppressed in favor of handheld overlay on mobile */
+    body.has-touch .touch-controls { display: none !important; }
+
+    /* ── Handheld Console Overlay (mobile) ── */
+    /* Console image aspect ratio: 1847 × 852 ≈ 2.17:1 (matches iPhone landscape) */
+    body.has-touch #game-wrapper {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #0a0a0a;
+      display: block;
     }
+    body.has-touch .handheld-frame {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      /* Fit image inside viewport preserving 1847:852 aspect */
+      width: min(100vw, calc(100vh * 1847 / 852));
+      height: min(100vh, calc(100vw * 852 / 1847));
+      background: url('/assets/mobile-console.png') center/contain no-repeat;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    body.has-touch #game {
+      position: absolute !important;
+      /* Screen rectangle in image as % — tune these against real device */
+      left: 16.8%;
+      top: 3.5%;
+      width: 67.9%;
+      height: 88.0%;
+      object-fit: contain;
+      image-rendering: auto;
+      background: #0a0a0a;
+    }
+    .handheld-btn {
+      display: none;
+    }
+    body.has-touch .handheld-btn {
+      display: block;
+      position: absolute;
+      background: transparent;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      z-index: 5;
+    }
+    /* Subtle press feedback for visibility during tuning (remove once positions verified) */
+    body.has-touch .handheld-btn:active {
+      background: rgba(245,215,110,0.15);
+    }
+    /* D-pad hit zones (4 arrows) — cross-shaped area, eyeball positions to tune */
+    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 5.5%;  top: 32%; width: 9%;  height: 10%; }
+    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 5.5%;  top: 55%; width: 9%;  height: 10%; }
+    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 1%;    top: 43%; width: 8%;  height: 12%; }
+    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 10%;   top: 43%; width: 8%;  height: 12%; }
+    /* A (Dig Right, mapped to 'c') and B (Dig Left, mapped to 'z') */
+    body.has-touch .handheld-btn[data-key="c"]          { left: 90.5%; top: 40%; width: 7%;  height: 18%; border-radius: 50%; }
+    body.has-touch .handheld-btn[data-key="z"]          { left: 83%;   top: 43%; width: 7%;  height: 18%; border-radius: 50%; }
+    /* SELECT (pause, 'Escape') and START (LFV, space) */
+    body.has-touch .handheld-btn[data-key="Escape"]     { left: 3.5%;  top: 75%; width: 5%;  height: 7%; }
+    body.has-touch .handheld-btn[data-key=" "]          { left: 9%;    top: 75%; width: 5%;  height: 7%; }
 
     /* D-pad layout */
     .dpad {
@@ -958,8 +1020,9 @@
     <div>ROTATE YOUR PHONE</div>
   </div>
 
-  <!-- Game Wrapper (3-column on mobile) -->
+  <!-- Game Wrapper — desktop: canvas centered. Mobile (body.has-touch): handheld overlay. -->
   <div id="game-wrapper">
+    <!-- Legacy touch rails (hidden on desktop AND on body.has-touch; kept only to avoid breaking legacy selectors) -->
     <div id="touch-left" class="touch-controls">
       <div class="dpad">
         <div class="dpad-btn dpad-up" data-key="ArrowUp">▲</div>
@@ -969,7 +1032,19 @@
       </div>
     </div>
 
-    <canvas id="game"></canvas>
+    <!-- Handheld console frame: positioned absolute on body.has-touch, invisible on desktop.
+         Canvas + hit zones live inside so they scale together with the frame image. -->
+    <div class="handheld-frame">
+      <canvas id="game"></canvas>
+      <div class="handheld-btn" data-key="ArrowUp"></div>
+      <div class="handheld-btn" data-key="ArrowDown"></div>
+      <div class="handheld-btn" data-key="ArrowLeft"></div>
+      <div class="handheld-btn" data-key="ArrowRight"></div>
+      <div class="handheld-btn" data-key="c"></div>
+      <div class="handheld-btn" data-key="z"></div>
+      <div class="handheld-btn" data-key="Escape"></div>
+      <div class="handheld-btn" data-key=" "></div>
+    </div>
 
     <div id="touch-right" class="touch-controls">
       <div class="action-buttons">

@@ -8,7 +8,12 @@ export function detectTouch(): boolean {
 
 /** Set body class so CSS can show touch controls. */
 function applyTouchClass(): void {
-  if (detectTouch()) document.body.classList.add('has-touch');
+  if (detectTouch()) {
+    document.body.classList.add('has-touch');
+    // Re-trigger canvas sizing now that CSS has taken over (syncCanvasDisplaySize
+    // was called once at module init before this class was set).
+    window.dispatchEvent(new Event('resize'));
+  }
 }
 
 /** Toggle `body.portrait` based on orientation media query. Pauses/resumes game. */
@@ -129,6 +134,10 @@ function isIOSStandaloneEligible(): boolean {
 }
 
 export function showInstallPromptIfEligible(): void {
+  // Desktop should never see the install card — the PWA-install flow is meaningful only
+  // on mobile where "add to home screen" unlocks fullscreen standalone. Chrome's native
+  // prompt is already suppressed by captureInstallPrompt()'s preventDefault.
+  if (!detectTouch()) return;
   if (localStorage.getItem('installDismissed') === '1') return;
   const androidCard = document.getElementById('install-card');
   const iosCard = document.getElementById('ios-install-card');
