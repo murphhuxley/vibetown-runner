@@ -129,6 +129,7 @@
 
     /* ── Handheld Console Overlay (mobile) ── */
     /* Console image aspect ratio: 1847 × 852 ≈ 2.17:1 (matches iPhone landscape) */
+    /* Z-order: canvas (z:1, behind) → frame PNG (z:2, masks all but screen rect) → hit zones (z:5, on top) */
     body.has-touch #game-wrapper {
       position: fixed;
       inset: 0;
@@ -142,25 +143,42 @@
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      /* Fit image inside viewport preserving 1847:852 aspect */
+      /* Fit frame image inside viewport preserving 1847:852 aspect */
       width: min(100vw, calc(100vh * 1847 / 852));
       height: min(100vh, calc(100vw * 852 / 1847));
-      background: url('/assets/mobile-console.png') center/contain no-repeat;
+      /* No background image here — we put the PNG as a layered <img> below so it sits ON TOP of the canvas */
+      background: #0a0a0a;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
     }
     body.has-touch #game {
       position: absolute !important;
-      /* Screen rectangle in image as % — tune these against real device */
+      /* Canvas sized to screen rect. Frame PNG on top masks any overflow, so slight misalignment is hidden. */
       left: 16.8%;
       top: 3.5%;
       width: 67.9%;
       height: 88.0%;
-      object-fit: contain;
+      /* object-fit: fill stretches the canvas' internal 4:3 rendering into the 1.67:1 screen rect.
+         Tiles become ~25% wider than tall — subtle, acceptable as a non-camera-follow first pass. */
+      object-fit: fill;
       image-rendering: auto;
       background: #0a0a0a;
+      z-index: 1;
     }
+    body.has-touch .frame-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;  /* taps pass through the frame PNG to the canvas underneath (for tap-anywhere-on-death) */
+      z-index: 2;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* Hide the frame img on desktop */
+    .frame-overlay { display: none; }
+    body.has-touch .frame-overlay { display: block; }
     .handheld-btn {
       display: none;
     }
@@ -1033,9 +1051,11 @@
     </div>
 
     <!-- Handheld console frame: positioned absolute on body.has-touch, invisible on desktop.
-         Canvas + hit zones live inside so they scale together with the frame image. -->
+         Canvas is the bottom layer, frame PNG sits on top and masks all but the screen rect,
+         hit zones sit on top of everything. -->
     <div class="handheld-frame">
       <canvas id="game"></canvas>
+      <img class="frame-overlay" src="/assets/mobile-console.png" alt="">
       <div class="handheld-btn" data-key="ArrowUp"></div>
       <div class="handheld-btn" data-key="ArrowDown"></div>
       <div class="handheld-btn" data-key="ArrowLeft"></div>

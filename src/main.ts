@@ -690,7 +690,7 @@ const loop = new GameLoop(
       ctx.fillText('Z = Dig Left  |  C = Dig Right  |  SPACE = LFV', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
       ctx.fillStyle = COLORS.cream;
       ctx.font = "16px 'Brice', sans-serif";
-      ctx.fillText('Press ENTER to retry', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
+      ctx.fillText(document.body.classList.contains('has-touch') ? 'Tap to retry' : 'Press ENTER to retry', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
       drawAudioToggles(CANVAS_HEIGHT / 2 + 90);
     }
 
@@ -704,7 +704,7 @@ const loop = new GameLoop(
       ctx.fillText('LETS FREAKING VIBE!', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
       ctx.font = "16px 'Brice', sans-serif";
       ctx.fillStyle = COLORS.cream;
-      ctx.fillText('Press ENTER for next level', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
+      ctx.fillText(document.body.classList.contains('has-touch') ? 'Tap for next level' : 'Press ENTER for next level', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
     }
 
     if (game.state.phase === GamePhase.GameOver) {
@@ -718,7 +718,7 @@ const loop = new GameLoop(
       ctx.font = "16px 'Brice', sans-serif";
       ctx.fillStyle = COLORS.cream;
       ctx.fillText(`Final Score: ${game.state.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 40);
-      ctx.fillText('Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
+      ctx.fillText(document.body.classList.contains('has-touch') ? 'Tap to play again' : 'Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 70);
       drawAudioToggles(CANVAS_HEIGHT / 2 + 110);
     }
 
@@ -735,7 +735,7 @@ const loop = new GameLoop(
       ctx.fillText(`Final Score: ${game.state.score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 20);
       ctx.fillText(`$VIBESTR: ${game.state.vibestr}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 50);
       ctx.font = "16px 'Brice', sans-serif";
-      ctx.fillText('Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 90);
+      ctx.fillText(document.body.classList.contains('has-touch') ? 'Tap to play again' : 'Press ENTER to play again', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 90);
       drawAudioToggles(CANVAS_HEIGHT / 2 + 130);
     }
 
@@ -743,7 +743,29 @@ const loop = new GameLoop(
   }
 );
 
-// Handle state transitions (retry / next level)
+// Shared phase-transition logic: called by Enter key AND by canvas tap (mobile tap-anywhere).
+function handleStateTransition(): void {
+  if (game.state.phase === GamePhase.Dead) {
+    game.loadLevel(game.state.currentLevel - 1);
+    syncTheme();
+  } else if (game.state.phase === GamePhase.LevelComplete) {
+    if (!game.loadLevel(game.state.currentLevel)) {
+      game.state.phase = GamePhase.Victory;
+    } else {
+      syncTheme();
+    }
+  } else if (game.state.phase === GamePhase.GameOver || game.state.phase === GamePhase.Victory) {
+    if (!hasSubmittedThisRun) {
+      showScoreSubmit();
+    } else {
+      hasSubmittedThisRun = false;
+      game.restart();
+      syncTheme();
+    }
+  }
+}
+
+// Handle state transitions (retry / next level) — keyboard.
 window.addEventListener('keydown', (e) => {
   if (game.state.phase === GamePhase.Paused) {
     game.state.phase = GamePhase.Playing;
@@ -753,25 +775,20 @@ window.addEventListener('keydown', (e) => {
     game.state.phase = GamePhase.Paused;
     return;
   }
-  if (e.key === 'Enter') {
-    if (game.state.phase === GamePhase.Dead) {
-      game.loadLevel(game.state.currentLevel - 1);
-      syncTheme();
-    } else if (game.state.phase === GamePhase.LevelComplete) {
-      if (!game.loadLevel(game.state.currentLevel)) {
-        game.state.phase = GamePhase.Victory;
-      } else {
-        syncTheme();
-      }
-    } else if (game.state.phase === GamePhase.GameOver || game.state.phase === GamePhase.Victory) {
-      if (!hasSubmittedThisRun) {
-        showScoreSubmit();
-      } else {
-        hasSubmittedThisRun = false;
-        game.restart();
-        syncTheme();
-      }
-    }
+  if (e.key === 'Enter') handleStateTransition();
+});
+
+// Tap-anywhere on the game canvas during end-screen phases (mobile-friendly retry).
+// Tap on hit-zones (`[data-key]`) is handled by their own pointer events, not this one.
+canvas.addEventListener('pointerdown', () => {
+  const phase = game.state.phase;
+  if (phase === GamePhase.Paused) {
+    game.state.phase = GamePhase.Playing;
+    return;
+  }
+  if (phase === GamePhase.Dead || phase === GamePhase.LevelComplete
+      || phase === GamePhase.GameOver || phase === GamePhase.Victory) {
+    handleStateTransition();
   }
 });
 
