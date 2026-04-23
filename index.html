@@ -200,14 +200,15 @@
     }
     /* Hit-zone positions eyeballed for CONTROLLER0.png (1846x852, notch-safe layout).
        Adjust these % values if any button feels off on a real device. */
-    /* D-pad: generous hit zones that overlap slightly at their edges — the finger-slide
-       handler in MobileBoot re-targets between directions smoothly, and corner touches
-       register as whichever direction's DOM element is topmost (left/right on top of up/down).
-       Sizes are ~2x the button art so thumbs don't have to be precise. */
-    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 1%;  top: 18%; width: 17%; height: 24%; }
-    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 1%;  top: 58%; width: 17%; height: 18%; }
-    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 0%;  top: 36%; width: 10%; height: 26%; }
-    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 9%;  top: 36%; width: 10%; height: 26%; }
+    /* D-pad: 3-row NON-overlapping layout so Up/Down never get stolen by Left/Right.
+       - Top row (18–42%, height 24%): Up — full D-pad width.
+       - Middle row (42–60%, height 18%): Left (left half) / Right (right half).
+       - Bottom row (60–80%, height 20%): Down — full D-pad width.
+       All four zones are generous and finger-slide still retargets between them smoothly. */
+    body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 1%;    top: 18%; width: 17%;   height: 24%; }
+    body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 0%;    top: 42%; width: 10.5%; height: 18%; }
+    body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 10.5%; top: 42%; width: 10.5%; height: 18%; }
+    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 1%;    top: 60%; width: 17%;   height: 20%; }
     /* A (Dig Right, 'c') and B (Dig Left, 'z') */
     body.has-touch .handheld-btn[data-key="c"]          { left: 91%;  top: 40%; width: 7%;  height: 17%; border-radius: 50%; }
     body.has-touch .handheld-btn[data-key="z"]          { left: 83%;  top: 43%; width: 7%;  height: 17%; border-radius: 50%; }
