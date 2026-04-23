@@ -125,18 +125,27 @@ function bindCameraFollow(game: GameManager): void {
   const COLS = 28;
   const ROWS = 21; // 20 grid rows + 1 UI row
 
+  // Cache viewport/canvas dimensions. Only recompute on resize — per-frame reads would
+  // force layout recalc every frame, contributing to stutter.
+  let vw = 0, vh = 0, tilePx = 0, cw = 0, ch = 0;
+  const relayout = (): void => {
+    vw = viewport.clientWidth;
+    vh = viewport.clientHeight;
+    if (vw === 0 || vh === 0) return;
+    tilePx = (vh / ROWS) * ZOOM;
+    cw = tilePx * COLS;
+    ch = tilePx * ROWS;
+    canvas.style.width = cw + 'px';
+    canvas.style.height = ch + 'px';
+  };
+  relayout();
+  window.addEventListener('resize', relayout);
+  window.addEventListener('orientationchange', relayout);
+
   const staticPhases: Set<string> = new Set(['dead', 'game-over', 'victory', 'level-complete', 'paused']);
 
   const tick = (): void => {
-    const vw = viewport.clientWidth;
-    const vh = viewport.clientHeight;
     if (vw > 0 && vh > 0) {
-      const tilePx = (vh / ROWS) * ZOOM;
-      const cw = tilePx * COLS;
-      const ch = tilePx * ROWS;
-      canvas.style.width = cw + 'px';
-      canvas.style.height = ch + 'px';
-
       let tx: number;
       let ty: number;
       if (staticPhases.has(game.state.phase as unknown as string)) {
@@ -144,16 +153,20 @@ function bindCameraFollow(game: GameManager): void {
         tx = (vw - cw) / 2;
         ty = (vh - ch) / 2;
       } else {
-        // Follow player. pos.x/pos.y are grid coordinates (sub-tile fractional OK).
-        const px = game.state.player.pos.x * tilePx + tilePx / 2;
-        const py = game.state.player.pos.y * tilePx + tilePx / 2;
+        // Use the INTERPOLATED render position (same one the Renderer uses) to avoid
+        // tick-quantized stutter. player.pos jumps discretely on each tick; renderPos
+        // smoothly interpolates between ticks and is what's actually being drawn.
+        const r = game.getPlayerRenderPos();
+        const px = r.x * tilePx + tilePx / 2;
+        const py = r.y * tilePx + tilePx / 2;
         tx = vw / 2 - px;
         ty = vh / 2 - py;
         // Clamp so canvas doesn't reveal black gutters past the grid edges.
         tx = Math.min(0, Math.max(vw - cw, tx));
         ty = Math.min(0, Math.max(vh - ch, ty));
       }
-      canvas.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px)`;
+      // translate3d forces the browser onto the compositor thread — smoother than translate().
+      canvas.style.transform = `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0)`;
     }
     requestAnimationFrame(tick);
   };
