@@ -225,36 +225,6 @@
     body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 0%;  top: 0%;  width: 20%; height: 12%; }
     body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 80%; top: 0%;  width: 20%; height: 12%; }
 
-    body.has-touch .handheld-btn.pressed::after {
-      content: '';
-      position: absolute;
-      inset: 12%;
-      border-radius: inherit;
-      pointer-events: none;
-      background: rgba(245, 215, 110, 0.2);
-      box-shadow:
-        0 0 12px rgba(245, 215, 110, 0.7),
-        inset 0 0 8px rgba(255, 255, 255, 0.35);
-    }
-    body.has-touch .handheld-btn[data-key^="Arrow"].pressed::after {
-      border-radius: 10px;
-    }
-    body.has-touch.debug-touch-zones .handheld-btn {
-      background: rgba(245, 215, 110, 0.22);
-      outline: 2px dashed rgba(255, 255, 255, 0.8);
-    }
-    body.has-touch.debug-touch-zones .handheld-btn::before {
-      content: attr(data-key);
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      font: 700 9px 'Brice', sans-serif;
-      color: #141414;
-      text-shadow: 0 1px rgba(255,255,255,0.65);
-      pointer-events: none;
-    }
-
     /* LFV-ready glow. Rendered by a dedicated .shoulder-glow element sized to the visible
        shoulder-button art (small rectangle), NOT the hit zone (which is large and invisible).
        Class is toggled by MobileBoot's per-frame loop. */

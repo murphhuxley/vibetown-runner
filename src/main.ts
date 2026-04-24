@@ -795,22 +795,17 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleStateTransition();
   if (e.key === 'm' || e.key === 'M') {
     // START button (or 'm' key): return to main menu from anywhere except the menu itself.
-    if (game.state.phase !== GamePhase.Menu) {
-      game.state.phase = GamePhase.Menu;
-      menuScreen.classList.remove('hidden');
-    }
+    if (game.state.phase !== GamePhase.Menu) showMenu();
   }
 });
 
 // Touch handler for the START hit-zone: data-key="m" is pressed via InputManager (no-op there)
 // but we also need to actually show the menu. Bind pointerdown on the button directly.
-document.querySelector('.handheld-btn[data-key="m"]')?.addEventListener('pointerdown', () => {
-  if (game.state.phase !== GamePhase.Menu) {
-    input.clear();
-    game.state.phase = GamePhase.Menu;
-    menuScreen.classList.remove('hidden');
-  }
-});
+document.querySelector('.handheld-btn[data-key="m"]')?.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (game.state.phase !== GamePhase.Menu) showMenu();
+}, { capture: true });
 
 // Tap-anywhere on the game canvas during end-screen phases (mobile-friendly retry).
 // Tap on hit-zones (`[data-key]`) is handled by their own pointer events, not this one.

@@ -4,7 +4,7 @@
 //   - Stale-while-revalidate: /assets/index-*.{js,css} (hashed bundle)
 //   - Network-only: Convex RPC, /api/*
 
-const CACHE = 'vibetown-mobile-ux-v2';
+const CACHE = 'vibetown-mobile-ux-v3';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (event) => {

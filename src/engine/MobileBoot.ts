@@ -11,10 +11,6 @@ export function detectTouch(): boolean {
 function applyTouchClass(): void {
   if (detectTouch()) {
     document.body.classList.add('has-touch');
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('touchZones') === '1' || localStorage.getItem('debugTouchZones') === '1') {
-      document.body.classList.add('debug-touch-zones');
-    }
     // Re-trigger canvas sizing now that CSS has taken over (syncCanvasDisplaySize
     // was called once at module init before this class was set).
     window.dispatchEvent(new Event('resize'));
@@ -167,14 +163,10 @@ function bindCameraFollow(game: GameManager): void {
   const ZOOM = 2;
   const COLS = GRID_COLS;
   const ROWS = GRID_ROWS + 1; // grid rows + 1 UI row
-  const LOOK_AHEAD_TILES = 2.2;
-  const INTRO_PAN_MS = 900;
 
   // Cache viewport/canvas dimensions. Only recompute on resize — per-frame reads would
   // force layout recalc every frame, contributing to stutter.
   let vw = 0, vh = 0, tilePx = 0, cw = 0, ch = 0;
-  let lastLevel = game.state.currentLevel;
-  let introPanStart = performance.now();
   const relayout = (): void => {
     vw = viewport.clientWidth;
     vh = viewport.clientHeight;
@@ -200,30 +192,14 @@ function bindCameraFollow(game: GameManager): void {
         tx = (vw - cw) / 2;
         ty = (vh - ch) / 2;
       } else {
-        const now = performance.now();
-        if (game.state.currentLevel !== lastLevel) {
-          lastLevel = game.state.currentLevel;
-          introPanStart = now;
-        }
         // Use the INTERPOLATED render position (same one the Renderer uses) to avoid
         // tick-quantized stutter. player.pos jumps discretely on each tick; renderPos
         // smoothly interpolates between ticks and is what's actually being drawn.
         const r = game.getPlayerRenderPos();
-        const facingOffset = game.state.player.facing === 'left'
-          ? -LOOK_AHEAD_TILES * tilePx
-          : game.state.player.facing === 'right'
-            ? LOOK_AHEAD_TILES * tilePx
-            : 0;
-        const px = r.x * tilePx + tilePx / 2 + facingOffset;
+        const px = r.x * tilePx + tilePx / 2;
         const py = r.y * tilePx + tilePx / 2;
-        const followTx = vw / 2 - px;
-        const followTy = vh / 2 - py;
-        const centerTx = (vw - cw) / 2;
-        const centerTy = (vh - ch) / 2;
-        const introT = Math.min(1, Math.max(0, (now - introPanStart) / INTRO_PAN_MS));
-        const easedIntro = 1 - Math.pow(1 - introT, 3);
-        tx = centerTx + (followTx - centerTx) * easedIntro;
-        ty = centerTy + (followTy - centerTy) * easedIntro;
+        tx = vw / 2 - px;
+        ty = vh / 2 - py;
         // Clamp so canvas doesn't reveal black gutters past the grid edges.
         tx = Math.min(0, Math.max(vw - cw, tx));
         ty = Math.min(0, Math.max(vh - ch, ty));
