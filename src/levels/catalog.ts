@@ -156,6 +156,23 @@ function withPowerHelmet(level: RawLevel, powerHelmet: { x: number; y: number })
   };
 }
 
+function mirrorLevel(level: RawLevel): RawLevel {
+  const mirrored: RawLevel = {
+    ...level,
+    exitColumn: typeof level.exitColumn === 'number'
+      ? GRID_COLS - 1 - level.exitColumn
+      : undefined,
+    powerHelmet: level.powerHelmet
+      ? { x: GRID_COLS - 1 - level.powerHelmet.x, y: level.powerHelmet.y }
+      : undefined,
+    npcs: [],
+    grid: level.grid.map((row) => [...row].reverse()),
+  };
+
+  validateBuiltLevel(mirrored);
+  return mirrored;
+}
+
 const levelOneVariants: RawLevel[] = [
   levelData01 as RawLevel,
   createBuiltLevel(1, 'Welcome to Vibetown', 'nature-1', WeatherType.None, 20, (g) => {
@@ -514,7 +531,7 @@ export const LEVEL_VARIANT_SLOTS: RawLevel[][] = [
   levelThreeVariants,
   levelFourVariants,
   levelFiveVariants,
-  ...builtLevels.map((level) => [level]),
+  ...builtLevels.map((level) => [level, mirrorLevel(level)]),
 ];
 
 // Canonical A-path campaign, useful for tests and any future "classic route" mode.

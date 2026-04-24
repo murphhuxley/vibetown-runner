@@ -81,7 +81,7 @@
       display: none;
       position: fixed;
       inset: 0;
-      z-index: 200;
+      z-index: 1200;
       background: #0a0a0a;
       flex-direction: column;
       justify-content: center;
@@ -100,6 +100,9 @@
     }
     body.portrait #game-wrapper {
       display: none;
+    }
+    body.portrait .install-card {
+      display: none !important;
     }
 
     #game-wrapper {
@@ -221,6 +224,36 @@
        and above whatever status bar shows. Extend down to 12% (still well above D-pad at 18%). */
     body.has-touch .handheld-btn[data-key=" "].shoulder-L { left: 0%;  top: 0%;  width: 20%; height: 12%; }
     body.has-touch .handheld-btn[data-key=" "].shoulder-R { left: 80%; top: 0%;  width: 20%; height: 12%; }
+
+    body.has-touch .handheld-btn.pressed::after {
+      content: '';
+      position: absolute;
+      inset: 12%;
+      border-radius: inherit;
+      pointer-events: none;
+      background: rgba(245, 215, 110, 0.2);
+      box-shadow:
+        0 0 12px rgba(245, 215, 110, 0.7),
+        inset 0 0 8px rgba(255, 255, 255, 0.35);
+    }
+    body.has-touch .handheld-btn[data-key^="Arrow"].pressed::after {
+      border-radius: 10px;
+    }
+    body.has-touch.debug-touch-zones .handheld-btn {
+      background: rgba(245, 215, 110, 0.22);
+      outline: 2px dashed rgba(255, 255, 255, 0.8);
+    }
+    body.has-touch.debug-touch-zones .handheld-btn::before {
+      content: attr(data-key);
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font: 700 9px 'Brice', sans-serif;
+      color: #141414;
+      text-shadow: 0 1px rgba(255,255,255,0.65);
+      pointer-events: none;
+    }
 
     /* LFV-ready glow. Rendered by a dedicated .shoulder-glow element sized to the visible
        shoulder-button art (small rectangle), NOT the hit zone (which is large and invisible).
@@ -954,6 +987,103 @@
     }
     .install-btn.primary {
       background: #F5D76E; color: #141414;
+    }
+
+    @media (pointer: coarse), (max-height: 520px) {
+      body.has-touch #menu-content {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding:
+          max(6px, env(safe-area-inset-top))
+          max(10px, env(safe-area-inset-right))
+          max(6px, env(safe-area-inset-bottom))
+          max(10px, env(safe-area-inset-left));
+        box-sizing: border-box;
+      }
+
+      body.has-touch #menu-panel {
+        width: min(76vh, 88vw);
+        max-height: 86vh;
+      }
+
+      body.has-touch #instructions-panel,
+      body.has-touch #options-panel,
+      body.has-touch #leaderboard-panel {
+        width: min(94vw, 112vh);
+        max-height: 94vh;
+        padding-bottom: 0;
+      }
+
+      body.has-touch #instructions-box,
+      body.has-touch #options-box,
+      body.has-touch #leaderboard-box,
+      body.has-touch #login-box {
+        width: min(92vw, 92vh);
+        max-height: 92vh;
+      }
+
+      body.has-touch #instructions-inner,
+      body.has-touch #leaderboard-inner {
+        top: 22%;
+        left: 17%;
+        right: 17%;
+        bottom: 12%;
+        padding: 10px 12px;
+      }
+
+      body.has-touch #options-inner {
+        left: 18%;
+        right: 18%;
+        padding: 16px 20px;
+      }
+
+      body.has-touch .instruction-row,
+      body.has-touch .option-row,
+      body.has-touch .lb-row {
+        font-size: clamp(10px, 2.6vh, 16px);
+        padding: 6px 0;
+      }
+
+      body.has-touch .instruction-key {
+        font-size: clamp(9px, 2.2vh, 13px);
+        padding: 4px 8px;
+      }
+
+      body.has-touch .lb-header {
+        font-size: clamp(8px, 1.8vh, 11px);
+      }
+
+      body.has-touch .back-btn {
+        bottom: -4px;
+        min-width: 64px;
+        min-height: 44px;
+      }
+
+      body.has-touch .back-btn img {
+        height: min(56px, 13vh);
+      }
+
+      body.has-touch #menu-music-toggle {
+        bottom: max(10px, env(safe-area-inset-bottom));
+        right: max(10px, env(safe-area-inset-right));
+        transform: scale(0.85);
+        transform-origin: right bottom;
+      }
+
+      body.has-touch .login-input {
+        height: 10%;
+        font-size: clamp(12px, 3.2vh, 18px);
+      }
+
+      body.has-touch #login-name { top: 32%; }
+      body.has-touch #login-password { top: 48%; }
+      body.has-touch #login-error {
+        top: 60%;
+        font-size: clamp(8px, 2vh, 11px);
+      }
     }
   </style>
 </head>

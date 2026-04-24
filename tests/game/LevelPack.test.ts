@@ -107,6 +107,12 @@ describe('Level pack', () => {
     }
   });
 
+  it('offers at least two variants for every campaign slot', () => {
+    for (let i = 0; i < LEVEL_VARIANT_SLOTS.length; i++) {
+      expect(LEVEL_VARIANT_SLOTS[i].length, `level slot ${i + 1} needs replay variety`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('keeps the curated badge and duck counts on every restart', () => {
     for (let attempt = 0; attempt < 10; attempt++) {
       randomizeLevels();

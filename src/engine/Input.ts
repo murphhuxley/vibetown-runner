@@ -26,6 +26,11 @@ export class InputManager {
     this.handleKeyUp(key);
   }
 
+  clear(): void {
+    this.keys.clear();
+    this.justPressedKeys.clear();
+  }
+
   isDown(key: string): boolean {
     return this.keys.has(this.normalizeKey(key));
   }

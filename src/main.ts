@@ -1,6 +1,13 @@
 // Register PWA service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').then((registration) => {
+      registration.update().catch(() => {});
+      if (registration.waiting) {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+    }).catch(() => {});
+  });
 }
 
 import { GameManager } from '@/game/GameManager';
@@ -206,6 +213,7 @@ const instructionsPanel = document.getElementById('instructions-panel')!;
 const optionsPanel = document.getElementById('options-panel')!;
 
 function showPanel(panel: HTMLElement): void {
+  input.clear();
   menuPanel.classList.add('hidden');
   instructionsPanel.classList.add('hidden');
   optionsPanel.classList.add('hidden');
@@ -214,6 +222,7 @@ function showPanel(panel: HTMLElement): void {
 }
 
 function hideMenu(): void {
+  input.clear();
   menuScreen.classList.add('hidden');
   game.startGame();
   musicStop();
@@ -222,6 +231,7 @@ function hideMenu(): void {
 }
 
 function showMenu(): void {
+  input.clear();
   menuScreen.classList.remove('hidden');
   showPanel(menuPanel);
   game.state.phase = GamePhase.Menu;
@@ -796,6 +806,7 @@ window.addEventListener('keydown', (e) => {
 // but we also need to actually show the menu. Bind pointerdown on the button directly.
 document.querySelector('.handheld-btn[data-key="m"]')?.addEventListener('pointerdown', () => {
   if (game.state.phase !== GamePhase.Menu) {
+    input.clear();
     game.state.phase = GamePhase.Menu;
     menuScreen.classList.remove('hidden');
   }

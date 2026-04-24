@@ -1,10 +1,10 @@
 // Vibetown Runner Service Worker
 // Strategies:
+//   - Network-first: shell + sprite/art assets, with cache fallback for offline play
 //   - Stale-while-revalidate: /assets/index-*.{js,css} (hashed bundle)
-//   - Cache-first: /assets/sprites/, /assets/tilesets/, /assets/audio/, /assets/backgrounds/, /assets/fonts/
 //   - Network-only: Convex RPC, /api/*
 
-const CACHE = 'vibetown-v1';
+const CACHE = 'vibetown-mobile-ux-v2';
 const SHELL = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
@@ -17,6 +17,12 @@ self.addEventListener('activate', (event) => {
     caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 function isBundle(url) {
@@ -39,24 +45,39 @@ self.addEventListener('fetch', (event) => {
   if (isNetworkOnly(url)) return; // default network
   if (isCacheableAsset(url)) {
     event.respondWith(
-      caches.match(event.request).then(hit => hit || fetch(event.request).then(res => {
+      fetch(event.request).then(res => {
         const clone = res.clone();
         caches.open(CACHE).then(c => c.put(event.request, clone));
         return res;
-      }))
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
   if (isBundle(url) || SHELL.includes(url.pathname)) {
     event.respondWith(
-      caches.match(event.request).then(hit => {
-        const fetchPromise = fetch(event.request).then(res => {
+      fetch(event.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(c => c.put(event.request, clone));
+        return res;
+      }).catch(() => (
+        caches.match(event.request).then(hit => {
+          if (hit) return hit;
+          return caches.match('/index.html');
+        })
+      ))
+    );
+    return;
+  }
+  event.respondWith(
+    caches.match(event.request).then(hit => {
+      const fetchPromise = fetch(event.request).then(res => {
+        if (res.ok) {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(event.request, clone));
-          return res;
-        }).catch(() => hit);
-        return hit || fetchPromise;
-      })
-    );
-  }
+        }
+        return res;
+      }).catch(() => hit);
+      return hit || fetchPromise;
+    })
+  );
 });

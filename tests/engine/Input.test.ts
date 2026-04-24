@@ -54,6 +54,15 @@ describe('InputManager', () => {
     expect(input.justPressed('z')).toBe(true);
     expect(input.justPressed('z')).toBe(false);
   });
+
+  it('clear removes held and just-pressed state', () => {
+    input.handleKeyDown('ArrowLeft');
+    input.handleKeyDown('z');
+    input.clear();
+
+    expect(input.left).toBe(false);
+    expect(input.justPressed('z')).toBe(false);
+  });
 });
 
 describe('InputManager touch API', () => {
