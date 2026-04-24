@@ -257,12 +257,58 @@ function togglePauseFromSelect(): void {
   }
 }
 
+function getCanvasPoint(e: MouseEvent | PointerEvent): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: ((e.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
+    y: ((e.clientY - rect.top) / rect.height) * CANVAS_HEIGHT,
+  };
+}
+
+function getOverlayAudioToggleHit(cx: number, cy: number, phase: GamePhase): 'sound' | 'music' | null {
+  if (phase !== GamePhase.Paused && phase !== GamePhase.Dead && phase !== GamePhase.GameOver && phase !== GamePhase.Victory) {
+    return null;
+  }
+
+  const toggleY = phase === GamePhase.Paused ? CANVAS_HEIGHT / 2 + 90
+                : phase === GamePhase.Dead ? CANVAS_HEIGHT / 2 + 90
+                : phase === GamePhase.GameOver ? CANVAS_HEIGHT / 2 + 110
+                : CANVAS_HEIGHT / 2 + 130;
+  const center = CANVAS_WIDTH / 2;
+  const spacing = 120;
+  const half = TOGGLE_SIZE / 2;
+
+  const soundX = center - spacing / 2 - TOGGLE_SIZE;
+  if (cx >= soundX && cx <= soundX + TOGGLE_SIZE && cy >= toggleY - half && cy <= toggleY + half) {
+    return 'sound';
+  }
+
+  const musicX = center + spacing / 2 - TOGGLE_SIZE;
+  if (cx >= musicX && cx <= musicX + TOGGLE_SIZE && cy >= toggleY - half && cy <= toggleY + half) {
+    return 'music';
+  }
+
+  return null;
+}
+
+function handleOverlayAudioToggle(hit: 'sound' | 'music'): void {
+  if (hit === 'sound') {
+    toggleSoundEnabled();
+  } else {
+    toggleMusicEnabled();
+  }
+}
+
+let suppressNextCanvasClickAudioToggle = false;
+
 // MENU click detection on canvas HUD area + overlay audio toggles
 canvas.addEventListener('click', (e) => {
   if (game.state.phase === GamePhase.Menu) return;
-  const rect = canvas.getBoundingClientRect();
-  const cx = ((e.clientX - rect.left) / rect.width) * CANVAS_WIDTH;
-  const cy = ((e.clientY - rect.top) / rect.height) * (CANVAS_HEIGHT);
+  if (suppressNextCanvasClickAudioToggle) {
+    suppressNextCanvasClickAudioToggle = false;
+    return;
+  }
+  const { x: cx, y: cy } = getCanvasPoint(e);
   const hudY = GRID_ROWS * TILE_SIZE;
   // MENU text is at the right end of the HUD bar
   if (cy >= hudY && cx >= CANVAS_WIDTH - 100) {
@@ -271,24 +317,9 @@ canvas.addEventListener('click', (e) => {
   }
   // Audio toggle click regions on overlay screens
   const phase = game.state.phase;
-  if (phase === GamePhase.Paused || phase === GamePhase.Dead || phase === GamePhase.GameOver || phase === GamePhase.Victory) {
-    const toggleY = phase === GamePhase.Paused ? CANVAS_HEIGHT / 2 + 90
-                   : phase === GamePhase.Dead ? CANVAS_HEIGHT / 2 + 90
-                   : phase === GamePhase.GameOver ? CANVAS_HEIGHT / 2 + 110
-                   : CANVAS_HEIGHT / 2 + 130;
-    const center = CANVAS_WIDTH / 2;
-    const spacing = 120;
-    const half = TOGGLE_SIZE / 2;
-    // SFX icon hit area
-    const sfxIconX = center - spacing / 2 - TOGGLE_SIZE;
-    if (cx >= sfxIconX && cx <= sfxIconX + TOGGLE_SIZE && cy >= toggleY - half && cy <= toggleY + half) {
-      toggleSoundEnabled();
-    }
-    // Music icon hit area
-    const musIconX = center + spacing / 2 - TOGGLE_SIZE;
-    if (cx >= musIconX && cx <= musIconX + TOGGLE_SIZE && cy >= toggleY - half && cy <= toggleY + half) {
-      toggleMusicEnabled();
-    }
+  const audioHit = getOverlayAudioToggleHit(cx, cy, phase);
+  if (audioHit) {
+    handleOverlayAudioToggle(audioHit);
   }
 });
 
@@ -847,8 +878,18 @@ document.querySelector('.handheld-btn[data-key="Escape"]')?.addEventListener('po
 
 // Tap-anywhere on the game canvas during end-screen phases (mobile-friendly retry).
 // Tap on hit-zones (`[data-key]`) is handled by their own pointer events, not this one.
-canvas.addEventListener('pointerdown', () => {
+canvas.addEventListener('pointerdown', (e) => {
   const phase = game.state.phase;
+  const { x: cx, y: cy } = getCanvasPoint(e);
+  const audioHit = getOverlayAudioToggleHit(cx, cy, phase);
+  if (audioHit) {
+    e.preventDefault();
+    e.stopPropagation();
+    suppressNextCanvasClickAudioToggle = true;
+    handleOverlayAudioToggle(audioHit);
+    return;
+  }
+
   if (phase === GamePhase.Paused) {
     game.state.phase = GamePhase.Playing;
     return;
