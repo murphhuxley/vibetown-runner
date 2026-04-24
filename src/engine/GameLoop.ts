@@ -23,7 +23,10 @@ export class GameLoop {
     if (!this.running) return;
     const dt = time - this.lastTime;
     this.lastTime = time;
-    const cappedDt = Math.min(dt, 50);
+    // Mobile Safari can occasionally deliver 60-100ms frames during compositing.
+    // A 50ms cap made those dips play in slow motion, so allow enough catch-up
+    // without letting a background-tab resume jump the whole simulation.
+    const cappedDt = Math.min(dt, 100);
     try {
       this.updateFn(cappedDt);
       this.renderFn();

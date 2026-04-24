@@ -77,8 +77,11 @@ function onShoot(): void {
   renderer.startPowerShoot();
 }
 renderer.onPowerShootMidpoint = () => {
-  sfxShoot();
+  if (soundEnabled) sfxShoot();
   game.fireQueuedProjectile();
+};
+renderer.onPowerShootDone = () => {
+  game.finishPowerShot();
 };
 
 const sfLeftHelmet = document.getElementById('shadow-funk-left')!;
@@ -140,7 +143,7 @@ function positionSideHelmets(): void {
 function onPowerActivate(): void {
   game.powerAnimationPlaying = true;
   renderer.startPowerActivation();
-  shadowFunkStart();
+  if (soundEnabled) shadowFunkStart();
   positionSideHelmets();
   sfLeftHelmet.classList.remove('hidden');
   sfRightHelmet.classList.remove('hidden');
@@ -176,8 +179,10 @@ function positionLfvSides(): void {
 function onLfvActivate(): void {
   game.lfvAnimationPlaying = true;
   renderer.startLfvActivation();
-  sfxLfvActivate();
-  lfvSfxStart();
+  if (soundEnabled) {
+    sfxLfvActivate();
+    lfvSfxStart();
+  }
   // Haptic kick on activation. Android only — iOS Safari doesn't support Vibration API.
   // Short-long pattern feels rewarding: 80ms pulse, 40ms gap, 150ms pulse.
   try { navigator.vibrate?.([80, 40, 150]); } catch { /* ignore */ }
@@ -224,6 +229,12 @@ function showPanel(panel: HTMLElement): void {
 function hideMenu(): void {
   input.clear();
   menuScreen.classList.add('hidden');
+  if (needsFreshRunFromMenu || hasSubmittedThisRun) {
+    needsFreshRunFromMenu = false;
+    hasSubmittedThisRun = false;
+    game.restart();
+    syncTheme();
+  }
   game.startGame();
   musicStop();
   musicStart();
@@ -235,6 +246,15 @@ function showMenu(): void {
   menuScreen.classList.remove('hidden');
   showPanel(menuPanel);
   game.state.phase = GamePhase.Menu;
+}
+
+function togglePauseFromSelect(): void {
+  input.clear();
+  if (game.state.phase === GamePhase.Playing) {
+    game.state.phase = GamePhase.Paused;
+  } else if (game.state.phase === GamePhase.Paused) {
+    game.state.phase = GamePhase.Playing;
+  }
 }
 
 // MENU click detection on canvas HUD area + overlay audio toggles
@@ -416,6 +436,9 @@ document.getElementById('login-submit-btn')!.addEventListener('click', async () 
     }
     sfxMenuClick();
     loginModal.classList.add('hidden');
+    if ((game.state.phase === GamePhase.GameOver || game.state.phase === GamePhase.Victory) && !hasSubmittedThisRun) {
+      showScoreSubmit();
+    }
   } catch {
     loginError.textContent = 'Login failed';
   }
@@ -428,6 +451,7 @@ document.getElementById('login-skip-btn')!.addEventListener('click', () => {
   // without this, tap-anywhere on the end-screen re-triggers showScoreSubmit → showLogin
   // and the user is trapped in an infinite login prompt.
   hasSubmittedThisRun = true;
+  needsFreshRunFromMenu = true;
 });
 
 loginPasswordInput.addEventListener('keydown', (e) => {
@@ -442,6 +466,7 @@ const scoreSubmitBtn = document.getElementById('score-submit-btn') as HTMLButton
 const scoreSkipBtn = document.getElementById('score-skip-btn') as HTMLButtonElement;
 let hasSubmittedThisRun = false;
 let scoreSubmitInFlight = false;
+let needsFreshRunFromMenu = false;
 
 function setScoreSubmitPending(pending: boolean): void {
   scoreSubmitInFlight = pending;
@@ -468,6 +493,7 @@ scoreSubmitBtn.addEventListener('click', async () => {
   setScoreSubmitPending(true);
   scoreSubmitModal.classList.add('hidden');
   hasSubmittedThisRun = true;
+  needsFreshRunFromMenu = true;
   try {
     const id = await submitScore(currentPlayer, game.state.score, game.state.currentLevel);
     await showLeaderboard(id);
@@ -483,6 +509,7 @@ scoreSkipBtn.addEventListener('click', () => {
   sfxMenuClick();
   scoreSubmitModal.classList.add('hidden');
   hasSubmittedThisRun = true;
+  needsFreshRunFromMenu = true;
 });
 
 
@@ -562,10 +589,11 @@ function toggleSoundEnabled(): void {
     game.onPowerStart = onPowerActivate; game.onPowerEnd = onPowerEnd;
   } else {
     game.onDig = undefined; game.onCollect = undefined; game.onTrap = undefined;
-    game.onKill = undefined; game.onDeath = () => { renderer.triggerShake(4, 200); }; game.onShoot = undefined;
-    game.onLFV = undefined; game.onLFVEnd = undefined; game.onLFVDenied = undefined; game.onLevelComplete = undefined;
+    game.onKill = undefined; game.onDeath = () => { renderer.triggerShake(4, 200); }; game.onShoot = onShoot;
+    game.onLFV = onLfvActivate; game.onLFVEnd = onLfvEnd; game.onLFVDenied = undefined;
+    game.onLevelComplete = () => { showInstallPromptIfEligible(); };
     game.onVibestr = undefined; game.onRevealLadders = undefined;
-    game.onPowerStart = undefined; game.onPowerEnd = undefined;
+    game.onPowerStart = onPowerActivate; game.onPowerEnd = onPowerEnd;
     shadowFunkStop(); lfvSfxStop();
   }
 }
@@ -613,7 +641,7 @@ const loop = new GameLoop(
     renderer.playerMoving = isPlaying && !usingLadder && !usingRope && movingHorizontally;
     renderer.playerFacing = game.state.player.facing;
     renderer.playerDigging = isPlaying && game.state.player.isDigging;
-    renderer.playerPowerActive = isPlaying && game.state.powerHelmetActive;
+    renderer.playerPowerActive = isPlaying && (game.state.powerHelmetActive || game.isPowerShotLocked());
     renderer.playerIdling = isPlaying
       && !game.state.player.isDigging
       && !usingLadder
@@ -776,6 +804,7 @@ function handleStateTransition(): void {
       showScoreSubmit();
     } else {
       hasSubmittedThisRun = false;
+      needsFreshRunFromMenu = false;
       game.restart();
       syncTheme();
     }
@@ -804,7 +833,16 @@ window.addEventListener('keydown', (e) => {
 document.querySelector('.handheld-btn[data-key="m"]')?.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   e.stopPropagation();
+  e.stopImmediatePropagation();
   if (game.state.phase !== GamePhase.Menu) showMenu();
+}, { capture: true });
+
+// Touch handler for the SELECT hit-zone: pause/resume the game without opening the menu.
+document.querySelector('.handheld-btn[data-key="Escape"]')?.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  togglePauseFromSelect();
 }, { capture: true });
 
 // Tap-anywhere on the game canvas during end-screen phases (mobile-friendly retry).

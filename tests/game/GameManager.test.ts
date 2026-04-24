@@ -111,6 +111,36 @@ describe('GameManager', () => {
     expect(game.projectiles).toHaveLength(1);
   });
 
+  it('locks helmet shot direction until the projectile spawns', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, (_, y) => (
+      Array.from({ length: game.state.grid[0].length }, () => (
+        y === 6 ? TileType.Sand : TileType.Empty
+      ))
+    ));
+    game.state.player.pos = { x: 4, y: 5 };
+    game.state.player.facing = Direction.Right;
+    game.state.powerHelmetCollected = true;
+    game.state.powerHelmetActive = true;
+    game.state.powerHelmetShots = 3;
+
+    input.handleKeyDown('z');
+    game.update(16);
+
+    expect(game.isPowerShotLocked()).toBe(true);
+    expect(game.state.powerHelmetShots).toBe(2);
+
+    // A later input/frame change before the renderer midpoint should not flip
+    // the already-committed shot.
+    game.state.player.facing = Direction.Right;
+    game.fireQueuedProjectile();
+
+    expect(game.projectiles).toHaveLength(1);
+    expect(game.projectiles[0].direction).toBe(Direction.Left);
+
+    game.finishPowerShot();
+    expect(game.isPowerShotLocked()).toBe(false);
+  });
+
   it('fires a helmet projectile that can kill a duck', () => {
     game.state.grid = Array.from({ length: game.state.grid.length }, () => (
       Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)

@@ -59,6 +59,9 @@ export class GameManager {
   private playerRenderTo = { x: 0, y: 0 };
   private playerRenderProgress = 1;
   private playerRenderDuration = this.PLAYER_MOVE_INTERVAL;
+  private queuedProjectileDirection: Direction.Left | Direction.Right | null = null;
+  private powerShotLocked = false;
+  private powerEndAfterShot = false;
 
   // Duck render interpolation
   private duckRenderFrom: Map<number, { x: number; y: number }> = new Map();
@@ -118,6 +121,9 @@ export class GameManager {
     this.usedLFVThisLevel = false;
     this.lfvAnimationPlaying = false;
     this.powerAnimationPlaying = false;
+    this.powerShotLocked = false;
+    this.powerEndAfterShot = false;
+    this.queuedProjectileDirection = null;
 
     this.state = {
       phase: GamePhase.Playing,
@@ -183,7 +189,7 @@ export class GameManager {
     const activePlayerInterval =
       (player.isFalling || playerWillFall ? this.PLAYER_FALL_INTERVAL : this.PLAYER_MOVE_INTERVAL);
     let digLockedThisFrame = this.state.player.isDigging;
-    const lfvLockedThisFrame = this.lfvAnimationPlaying || this.powerAnimationPlaying;
+    const lfvLockedThisFrame = this.lfvAnimationPlaying || this.powerAnimationPlaying || this.powerShotLocked;
 
     this.advancePlayerRender(dt);
 
@@ -218,11 +224,11 @@ export class GameManager {
       // Shadow Funk: Z shoots left, C/X shoots right
       if (this.input.justPressed('z')) {
         this.state.player.facing = Direction.Left;
-        this.handlePowerHelmetInput(true);
+        this.handlePowerHelmetInput(true, Direction.Left);
       }
       if (this.input.justPressed('x') || this.input.justPressed('c')) {
         this.state.player.facing = Direction.Right;
-        this.handlePowerHelmetInput(true);
+        this.handlePowerHelmetInput(true, Direction.Right);
       }
     } else if (!digLockedThisFrame && !lfvLockedThisFrame) {
       if (this.input.justPressed('z')) {
@@ -599,28 +605,50 @@ export class GameManager {
     }
   }
 
-  private handlePowerHelmetInput(spacePressed: boolean): void {
-    if (!spacePressed || this.powerAnimationPlaying) return;
+  private handlePowerHelmetInput(spacePressed: boolean, forcedDirection?: Direction.Left | Direction.Right): void {
+    if (!spacePressed || this.powerAnimationPlaying || this.powerShotLocked) return;
     if (!this.state.powerHelmetActive) return;
 
     if (this.state.powerHelmetShots <= 0) return;
+
+    const shotDirection = forcedDirection
+      ?? (this.state.player.facing === Direction.Left ? Direction.Left : Direction.Right);
+    this.state.player.facing = shotDirection;
+    this.queuedProjectileDirection = shotDirection;
+    this.powerShotLocked = true;
+    this.playerMoveAccum = 0;
 
     // Start shoot animation — projectile spawns at midpoint via fireQueuedProjectile()
     this.onShoot?.();
     this.state.powerHelmetShots--;
 
     if (this.state.powerHelmetShots <= 0) {
-      this.state.powerHelmetActive = false;
-      this.state.powerHelmetCollected = false;
-      this.onPowerEnd?.();
+      this.powerEndAfterShot = true;
     }
+  }
+
+  /** Called by renderer when the shoot animation finishes. */
+  finishPowerShot(): void {
+    this.powerShotLocked = false;
+    this.queuedProjectileDirection = null;
+    if (this.powerEndAfterShot) {
+      this.powerEndAfterShot = false;
+      if (this.state.powerHelmetActive) {
+        this.state.powerHelmetActive = false;
+        this.state.powerHelmetCollected = false;
+        this.onPowerEnd?.();
+      }
+    }
+  }
+
+  isPowerShotLocked(): boolean {
+    return this.powerShotLocked;
   }
 
   /** Called by renderer at midpoint of shoot animation to spawn the projectile */
   fireQueuedProjectile(): void {
-    const facing = this.state.player.facing === Direction.Left
-      ? Direction.Left
-      : Direction.Right;
+    const facing = this.queuedProjectileDirection
+      ?? (this.state.player.facing === Direction.Left ? Direction.Left : Direction.Right);
     this.projectiles.push(createProjectile(this.state.player.pos, facing));
   }
 
@@ -788,6 +816,9 @@ export class GameManager {
     if (this.state.powerHelmetActive) {
       this.state.powerHelmetActive = false;
       this.powerAnimationPlaying = false;
+      this.powerShotLocked = false;
+      this.powerEndAfterShot = false;
+      this.queuedProjectileDirection = null;
       this.onPowerEnd?.();
     }
     this.state.phase = GamePhase.LevelComplete;
@@ -816,6 +847,9 @@ export class GameManager {
     }
 
     this.powerAnimationPlaying = false;
+    this.powerShotLocked = false;
+    this.powerEndAfterShot = false;
+    this.queuedProjectileDirection = null;
     if (this.state.powerHelmetActive) {
       this.state.powerHelmetActive = false;
       this.onPowerEnd?.();

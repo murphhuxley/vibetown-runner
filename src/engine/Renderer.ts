@@ -81,6 +81,7 @@ export class Renderer {
   onLfvActivationDone?: () => void;
   onPowerActivationDone?: () => void;
   onPowerShootMidpoint?: () => void;
+  onPowerShootDone?: () => void;
   private powerShootFired = false;
   private lfvActivationFrame = 0;
   private lfvActivationAccum = 0;
@@ -413,6 +414,7 @@ export class Renderer {
           this.powerShooting = false;
           this.powerShootFrame = 0;
           this.powerShootAccum = 0;
+          this.onPowerShootDone?.();
         }
       }
     }
@@ -619,6 +621,7 @@ export class Renderer {
   }
 
   private noisePattern: CanvasPattern | null = null;
+  private backdropTexturePattern: CanvasPattern | null = null;
 
   private createNoisePattern(): CanvasPattern | null {
     const size = 64;
@@ -678,25 +681,39 @@ export class Renderer {
 
   private drawBackdropPixelTexture(width: number, height: number): void {
     const ctx = this.ctx;
-    const cell = this.WORLD_PIXEL * 2;
-    const cols = Math.ceil(width / cell);
-    const rows = Math.ceil(height / cell);
+    if (!this.backdropTexturePattern) {
+      this.backdropTexturePattern = this.createBackdropTexturePattern();
+    }
+    if (!this.backdropTexturePattern) return;
 
     ctx.save();
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const pattern = (row * 3 + col * 5) % 7;
-        if (pattern > 2) continue;
-        const x = col * cell;
-        const y = row * cell;
+    ctx.fillStyle = this.backdropTexturePattern;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+  }
 
-        ctx.fillStyle = pattern === 0
+  private createBackdropTexturePattern(): CanvasPattern | null {
+    const cell = this.WORLD_PIXEL * 2;
+    const period = 7;
+    const size = cell * period;
+    const patternCanvas = document.createElement('canvas');
+    patternCanvas.width = size;
+    patternCanvas.height = size;
+    const pctx = patternCanvas.getContext('2d');
+    if (!pctx) return null;
+
+    for (let row = 0; row < period; row++) {
+      for (let col = 0; col < period; col++) {
+        const pattern = (row * 3 + col * 5) % period;
+        if (pattern > 2) continue;
+        pctx.fillStyle = pattern === 0
           ? 'rgba(255,255,255,0.018)'
           : 'rgba(0,0,0,0.014)';
-        ctx.fillRect(x, y, cell, cell);
+        pctx.fillRect(col * cell, row * cell, cell, cell);
       }
     }
-    ctx.restore();
+
+    return this.ctx.createPattern(patternCanvas, 'repeat');
   }
 
   drawWeather(): void {
