@@ -859,13 +859,49 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+function activateHandheldStart(): void {
+  if (game.state.phase !== GamePhase.Menu) showMenu();
+}
+
+function activateHandheldSelect(): void {
+  togglePauseFromSelect();
+}
+
+function getHandheldSystemButton(e: PointerEvent): 'start' | 'select' | null {
+  if (!document.body.classList.contains('has-touch')) return null;
+  const frame = document.querySelector<HTMLElement>('.handheld-frame');
+  if (!frame) return null;
+  const rect = frame.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return null;
+
+  const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+  const yPct = ((e.clientY - rect.top) / rect.height) * 100;
+  if (yPct < 76.8 || yPct > 86.6) return null;
+  if (xPct >= 3.2 && xPct <= 9.8) return 'select';
+  if (xPct >= 10.2 && xPct <= 16.8) return 'start';
+  return null;
+}
+
+// Belt-and-suspenders mobile system-button handling. The invisible hit-zone divs are still
+// present, but this frame-level detector catches START / SELECT even if mobile Safari targets
+// the canvas/frame during a borderline tap.
+document.querySelector('.handheld-frame')?.addEventListener('pointerdown', (e) => {
+  const systemButton = getHandheldSystemButton(e as PointerEvent);
+  if (!systemButton) return;
+  e.preventDefault();
+  e.stopPropagation();
+  e.stopImmediatePropagation();
+  if (systemButton === 'start') activateHandheldStart();
+  else activateHandheldSelect();
+}, { capture: true });
+
 // Touch handler for the START hit-zone: data-key="m" is pressed via InputManager (no-op there)
 // but we also need to actually show the menu. Bind pointerdown on the button directly.
 document.querySelector('.handheld-btn[data-key="m"]')?.addEventListener('pointerdown', (e) => {
   e.preventDefault();
   e.stopPropagation();
   e.stopImmediatePropagation();
-  if (game.state.phase !== GamePhase.Menu) showMenu();
+  activateHandheldStart();
 }, { capture: true });
 
 // Touch handler for the SELECT hit-zone: pause/resume the game without opening the menu.
@@ -873,7 +909,7 @@ document.querySelector('.handheld-btn[data-key="Escape"]')?.addEventListener('po
   e.preventDefault();
   e.stopPropagation();
   e.stopImmediatePropagation();
-  togglePauseFromSelect();
+  activateHandheldSelect();
 }, { capture: true });
 
 // Tap-anywhere on the game canvas during end-screen phases (mobile-friendly retry).

@@ -207,18 +207,19 @@
     /* D-pad: 3-row NON-overlapping layout so Up/Down never get stolen by Left/Right.
        - Top row (18–42%, height 24%): Up — full D-pad width.
        - Middle row (42–60%, height 18%): Left (left half) / Right (right half).
-       - Bottom row (60–80%, height 20%): Down — full D-pad width.
+       - Bottom row (60–76.5%, height 16.5%): Down — full D-pad width.
+       System buttons live just below this row, so Down should never steal START / SELECT taps.
        All four zones are generous and finger-slide still retargets between them smoothly. */
     body.has-touch .handheld-btn[data-key="ArrowUp"]    { left: 1%;    top: 18%; width: 17%;   height: 24%; }
     body.has-touch .handheld-btn[data-key="ArrowLeft"]  { left: 0%;    top: 42%; width: 10.5%; height: 18%; }
     body.has-touch .handheld-btn[data-key="ArrowRight"] { left: 10.5%; top: 42%; width: 10.5%; height: 18%; }
-    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 1%;    top: 60%; width: 17%;   height: 20%; }
+    body.has-touch .handheld-btn[data-key="ArrowDown"]  { left: 1%;    top: 60%; width: 17%;   height: 16.5%; }
     /* A (Dig Right, 'c') and B (Dig Left, 'z') */
     body.has-touch .handheld-btn[data-key="c"]          { left: 91%;  top: 40%; width: 7%;  height: 17%; border-radius: 50%; }
     body.has-touch .handheld-btn[data-key="z"]          { left: 83%;  top: 43%; width: 7%;  height: 17%; border-radius: 50%; }
     /* SELECT (pause, 'Escape') and START (menu, 'm') */
-    body.has-touch .handheld-btn[data-key="Escape"]     { left: 4%;   top: 77%; width: 5%;  height: 7%; }
-    body.has-touch .handheld-btn[data-key="m"]          { left: 10%;  top: 77%; width: 5%;  height: 7%; }
+    body.has-touch .handheld-btn[data-key="Escape"]     { left: 3.2%;  top: 76.8%; width: 6.6%; height: 9.8%; }
+    body.has-touch .handheld-btn[data-key="m"]          { left: 10.2%; top: 76.8%; width: 6.6%; height: 9.8%; }
     /* L / R shoulder buttons on top of console — both trigger LFV (' ').
        Extra-wide and extra-tall so they remain reachable under iPhone's Dynamic Island / notch
        and above whatever status bar shows. Extend down to 12% (still well above D-pad at 18%). */
