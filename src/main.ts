@@ -876,9 +876,9 @@ function getHandheldSystemButton(e: PointerEvent): 'start' | 'select' | null {
 
   const xPct = ((e.clientX - rect.left) / rect.width) * 100;
   const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-  if (yPct < 76.8 || yPct > 86.6) return null;
-  if (xPct >= 3.2 && xPct <= 9.8) return 'select';
-  if (xPct >= 10.2 && xPct <= 16.8) return 'start';
+  if (yPct < 67.8 || yPct > 83.3) return null;
+  if (xPct >= 4.8 && xPct <= 11.2) return 'select';
+  if (xPct >= 11.6 && xPct <= 18) return 'start';
   return null;
 }
 
