@@ -141,6 +141,38 @@ function bindFirstGestureUnlock(): void {
   window.addEventListener('keydown', fire, true);
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement
+    && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+}
+
+function bindZoomGuard(): void {
+  let lastTouchEndAt = 0;
+
+  // iOS still exposes proprietary gesture events for pinch zoom in Safari/PWA mode.
+  const preventGesture = (e: Event): void => {
+    if (!isEditableTarget(e.target)) e.preventDefault();
+  };
+  document.addEventListener('gesturestart', preventGesture, { passive: false });
+  document.addEventListener('gesturechange', preventGesture, { passive: false });
+  document.addEventListener('gestureend', preventGesture, { passive: false });
+
+  document.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 1 && !isEditableTarget(e.target)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', (e) => {
+    if (isEditableTarget(e.target)) return;
+    const now = Date.now();
+    if (now - lastTouchEndAt < 350) {
+      e.preventDefault();
+    }
+    lastTouchEndAt = now;
+  }, { passive: false, capture: true });
+}
+
 function bindVisibility(game: GameManager, input: InputManager): void {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
@@ -290,6 +322,7 @@ export function initMobile(_opts: MobileBootOptions): void {
   applyTouchClass();
   if (!detectTouch()) return;
   bindOrientation(_opts.game, _opts.input);
+  bindZoomGuard();
   bindTouchButtons(_opts.input);
   bindFirstGestureUnlock();
   bindVisibility(_opts.game, _opts.input);

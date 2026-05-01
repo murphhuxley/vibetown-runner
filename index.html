@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0a0a0a" />
@@ -63,6 +63,10 @@
       font-display: swap;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      touch-action: none;
+      overscroll-behavior: none;
+    }
     body {
       background: #0a0a0a;
       display: flex;
@@ -71,6 +75,12 @@
       min-height: 100vh;
       overflow: hidden;
       font-family: 'Brice', sans-serif;
+      touch-action: none;
+      overscroll-behavior: none;
+    }
+    input,
+    button {
+      touch-action: manipulation;
     }
     #game {
       image-rendering: auto;
