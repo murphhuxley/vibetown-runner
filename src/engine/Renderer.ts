@@ -597,7 +597,7 @@ export class Renderer {
     // ── Scenic background image ──
     if (this.bgImage) {
       ctx.save();
-      ctx.globalAlpha = 0.6;
+      ctx.globalAlpha = 0.58;
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(this.bgImage, 0, 0, W, H);
@@ -606,6 +606,7 @@ export class Renderer {
 
     // ── Parallax depth layers ──
     this.drawParallaxLayers(W, H, t);
+    this.drawSceneColorGrade(W, H);
 
     // Pixel noise texture — breaks up the smooth gradient, matches sprite grain
     if (!this.noisePattern) {
@@ -675,6 +676,27 @@ export class Renderer {
     vig.addColorStop(0, 'transparent');
     vig.addColorStop(1, 'rgba(0,0,0,0.15)');
     ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  private drawSceneColorGrade(W: number, H: number): void {
+    const ctx = this.ctx;
+    const vertical = ctx.createLinearGradient(0, 0, 0, H);
+    vertical.addColorStop(0, 'rgba(255,255,255,0.08)');
+    vertical.addColorStop(0.45, 'rgba(255,255,255,0)');
+    vertical.addColorStop(1, 'rgba(18,14,24,0.12)');
+
+    ctx.save();
+    ctx.fillStyle = vertical;
+    ctx.fillRect(0, 0, W, H);
+
+    const edge = ctx.createLinearGradient(0, 0, W, 0);
+    edge.addColorStop(0, 'rgba(0,0,0,0.16)');
+    edge.addColorStop(0.16, 'rgba(0,0,0,0)');
+    edge.addColorStop(0.84, 'rgba(0,0,0,0)');
+    edge.addColorStop(1, 'rgba(0,0,0,0.16)');
+    ctx.fillStyle = edge;
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
@@ -821,11 +843,61 @@ export class Renderer {
         }
       }
     }
+    this.drawGridSurfacePolish(grid);
+  }
+
+  private isSolidTile(tile: TileType | undefined): boolean {
+    return tile === TileType.Sand || tile === TileType.TrapSand || tile === TileType.Coral;
+  }
+
+  private drawGridSurfacePolish(grid: TileType[][]): void {
+    const ctx = this.ctx;
+    const S = TILE_SIZE;
+    const s = (v: number) => this.scaleToTile(v);
+
+    ctx.save();
+    for (let y = 0; y < GRID_ROWS; y++) {
+      for (let x = 0; x < GRID_COLS; x++) {
+        const tile = grid[y][x];
+        if (!this.isSolidTile(tile)) continue;
+
+        const px = x * S;
+        const py = y * S;
+        const above = grid[y - 1]?.[x];
+        const below = grid[y + 1]?.[x];
+        const left = grid[y]?.[x - 1];
+        const right = grid[y]?.[x + 1];
+
+        if (!this.isSolidTile(above)) {
+          ctx.fillStyle = 'rgba(255,255,255,0.18)';
+          ctx.fillRect(px, py, S, s(1));
+          ctx.fillStyle = 'rgba(255,255,255,0.07)';
+          ctx.fillRect(px, py + s(1), S, s(1));
+        }
+
+        if (!this.isSolidTile(below)) {
+          ctx.fillStyle = 'rgba(0,0,0,0.2)';
+          ctx.fillRect(px, py + S - s(2), S, s(2));
+        }
+
+        if (!this.isSolidTile(left)) {
+          ctx.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx.fillRect(px, py, s(1), S);
+        }
+
+        if (!this.isSolidTile(right)) {
+          ctx.fillStyle = 'rgba(0,0,0,0.16)';
+          ctx.fillRect(px + S - s(1), py, s(1), S);
+        }
+      }
+    }
+    ctx.restore();
   }
 
   private drawSand(px: number, py: number): void {
     if (this.sandTile) {
       this.ctx.drawImage(this.sandTile, px, py, TILE_SIZE, TILE_SIZE);
+      this.drawTileMaterialPolish(px, py, 'sand');
       return;
     }
 
@@ -893,11 +965,13 @@ export class Renderer {
         brickIdx++;
       }
     }
+    this.drawTileMaterialPolish(px, py, 'sand');
   }
 
   private drawCoral(px: number, py: number): void {
     if (this.coralTile) {
       this.ctx.drawImage(this.coralTile, px, py, TILE_SIZE, TILE_SIZE);
+      this.drawTileMaterialPolish(px, py, 'coral');
       return;
     }
 
@@ -949,6 +1023,36 @@ export class Renderer {
     ctx.fillRect(px, py, S, divider);
     ctx.fillStyle = t.coralShadow;
     ctx.fillRect(px, py + S - divider, S, divider);
+    this.drawTileMaterialPolish(px, py, 'coral');
+  }
+
+  private drawTileMaterialPolish(px: number, py: number, kind: 'sand' | 'coral'): void {
+    const ctx = this.ctx;
+    const S = TILE_SIZE;
+    const s = (v: number) => this.scaleToTile(v);
+    const seed = (px * 17 + py * 31 + (kind === 'coral' ? 97 : 0)) & 0xff;
+
+    ctx.save();
+    const glaze = ctx.createLinearGradient(px, py, px, py + S);
+    glaze.addColorStop(0, kind === 'coral' ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.09)');
+    glaze.addColorStop(0.52, 'rgba(255,255,255,0)');
+    glaze.addColorStop(1, kind === 'coral' ? 'rgba(0,0,0,0.16)' : 'rgba(0,0,0,0.12)');
+    ctx.fillStyle = glaze;
+    ctx.fillRect(px, py, S, S);
+
+    ctx.fillStyle = kind === 'coral' ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.1)';
+    ctx.fillRect(px + s(2), py + s(2), S - s(4), s(1));
+
+    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    ctx.fillRect(px + s(2), py + S - s(3), S - s(4), s(1));
+
+    for (let i = 0; i < 5; i++) {
+      const gx = px + ((seed + i * 11) % Math.max(1, S - s(4))) + s(2);
+      const gy = py + ((seed + i * 19) % Math.max(1, S - s(6))) + s(3);
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+      ctx.fillRect(gx, gy, s(1), s(1));
+    }
+    ctx.restore();
   }
 
   private drawLadder(px: number, py: number): void {
@@ -1869,9 +1973,31 @@ export class Renderer {
     const ctx = this.ctx;
     const hudY = GRID_ROWS * TILE_SIZE;
 
-    // Black bar background
-    ctx.fillStyle = COLORS.black;
+    const hudGrad = ctx.createLinearGradient(0, hudY, 0, hudY + TILE_SIZE);
+    hudGrad.addColorStop(0, '#24201f');
+    hudGrad.addColorStop(0.18, '#171515');
+    hudGrad.addColorStop(1, '#0b0a0a');
+    ctx.fillStyle = hudGrad;
     ctx.fillRect(0, hudY, CANVAS_WIDTH, TILE_SIZE);
+
+    ctx.fillStyle = 'rgba(245,215,110,0.75)';
+    ctx.fillRect(0, hudY, CANVAS_WIDTH, 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.fillRect(0, hudY + 2, CANVAS_WIDTH, 1);
+
+    const drawHudPlate = (x: number, w: number, accent = false): void => {
+      ctx.fillStyle = accent ? 'rgba(245,215,110,0.1)' : 'rgba(255,255,255,0.045)';
+      ctx.fillRect(x, hudY + 5, w, TILE_SIZE - 10);
+      ctx.fillStyle = accent ? 'rgba(245,215,110,0.22)' : 'rgba(255,255,255,0.09)';
+      ctx.fillRect(x, hudY + 5, w, 1);
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(x, hudY + TILE_SIZE - 6, w, 1);
+    };
+
+    drawHudPlate(6, 170, true);
+    drawHudPlate(190, 120);
+    drawHudPlate(330, 96);
+    drawHudPlate(548, 176, true);
 
     const midY = hudY + TILE_SIZE / 2;
     const hudFont = "bold 16px 'Brice', sans-serif";
@@ -1888,11 +2014,13 @@ export class Renderer {
     const barY = hudY + (TILE_SIZE - barH) / 2;
 
     // Background
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = '#1b1a19';
     ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(barX + 1, barY + 1, barW - 2, 1);
 
     // Fill
-    const fillRatio = vibeMeter.meter / VIBE_MAX;
+    const fillRatio = Math.max(0, Math.min(1, vibeMeter.meter / VIBE_MAX));
     const isReady = vibeMeter.meter >= VIBE_MAX;
     const isActive = vibeMeter.lfvTimer > 0;
 
@@ -1901,7 +2029,15 @@ export class Renderer {
     const pulseBarH = barH * pulseScale;
     const pulseBarY = barY - (pulseBarH - barH) / 2;
 
-    ctx.fillStyle = isReady || isActive ? COLORS.vibestrGold : COLORS.palmGreen;
+    const fill = ctx.createLinearGradient(barX, pulseBarY, barX, pulseBarY + pulseBarH);
+    if (isReady || isActive) {
+      fill.addColorStop(0, '#FFF4A8');
+      fill.addColorStop(1, COLORS.vibestrGold);
+    } else {
+      fill.addColorStop(0, '#9EBB73');
+      fill.addColorStop(1, COLORS.palmGreen);
+    }
+    ctx.fillStyle = fill;
     ctx.fillRect(barX, pulseBarY, barW * fillRatio, pulseBarH);
 
     // Glow overlay when LFV is ready
@@ -1914,8 +2050,10 @@ export class Renderer {
     }
 
     // Border
-    ctx.strokeStyle = COLORS.cream;
+    ctx.strokeStyle = 'rgba(242,237,232,0.7)';
     ctx.lineWidth = 1;
+    ctx.strokeRect(barX - 1, barY - 1, barW + 2, barH + 2);
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
     ctx.strokeRect(barX, barY, barW, barH);
 
     // Label
