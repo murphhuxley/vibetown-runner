@@ -199,6 +199,10 @@ function bindCameraFollow(game: GameManager): void {
   // Cache viewport/canvas dimensions. Only recompute on resize — per-frame reads would
   // force layout recalc every frame, contributing to stutter.
   let vw = 0, vh = 0, tilePx = 0, cw = 0, ch = 0;
+  let cameraReady = false;
+  let cameraX = 0;
+  let cameraY = 0;
+  let lastPhase = '';
   const relayout = (): void => {
     vw = viewport.clientWidth;
     vh = viewport.clientHeight;
@@ -208,6 +212,7 @@ function bindCameraFollow(game: GameManager): void {
     ch = tilePx * ROWS;
     canvas.style.width = cw + 'px';
     canvas.style.height = ch + 'px';
+    cameraReady = false;
   };
   relayout();
   window.addEventListener('resize', relayout);
@@ -217,12 +222,13 @@ function bindCameraFollow(game: GameManager): void {
 
   const tick = (): void => {
     if (vw > 0 && vh > 0) {
-      let tx: number;
-      let ty: number;
-      if (staticPhases.has(game.state.phase as unknown as string)) {
+      const phase = game.state.phase as unknown as string;
+      let targetX: number;
+      let targetY: number;
+      if (staticPhases.has(phase)) {
         // Center canvas in viewport so end-screen overlay text is visible.
-        tx = (vw - cw) / 2;
-        ty = (vh - ch) / 2;
+        targetX = (vw - cw) / 2;
+        targetY = (vh - ch) / 2;
       } else {
         // Use the INTERPOLATED render position (same one the Renderer uses) to avoid
         // tick-quantized stutter. player.pos jumps discretely on each tick; renderPos
@@ -230,14 +236,27 @@ function bindCameraFollow(game: GameManager): void {
         const r = game.getPlayerRenderPos();
         const px = r.x * tilePx + tilePx / 2;
         const py = r.y * tilePx + tilePx / 2;
-        tx = vw / 2 - px;
-        ty = vh / 2 - py;
+        targetX = vw / 2 - px;
+        targetY = vh / 2 - py;
         // Clamp so canvas doesn't reveal black gutters past the grid edges.
-        tx = Math.min(0, Math.max(vw - cw, tx));
-        ty = Math.min(0, Math.max(vh - ch, ty));
+        targetX = Math.min(0, Math.max(vw - cw, targetX));
+        targetY = Math.min(0, Math.max(vh - ch, targetY));
       }
+
+      const shouldSnap = !cameraReady || phase !== lastPhase || staticPhases.has(phase);
+      if (shouldSnap) {
+        cameraX = targetX;
+        cameraY = targetY;
+        cameraReady = true;
+      } else {
+        const ease = 0.28;
+        cameraX += (targetX - cameraX) * ease;
+        cameraY += (targetY - cameraY) * ease;
+      }
+      lastPhase = phase;
+
       // translate3d forces the browser onto the compositor thread — smoother than translate().
-      canvas.style.transform = `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0)`;
+      canvas.style.transform = `translate3d(${cameraX.toFixed(1)}px, ${cameraY.toFixed(1)}px, 0)`;
     }
     requestAnimationFrame(tick);
   };

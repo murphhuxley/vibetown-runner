@@ -3,11 +3,12 @@ import { Direction, Position, ProjectileState, TileType, DuckState } from '@/typ
 import { getTile, isInBounds } from '@/game/Physics';
 
 const PROJECTILE_HALF_WIDTH = 0.16;
-const PROJECTILE_TRACE_STEP = 0.06;
+const PROJECTILE_HALF_HEIGHT = 0.07;
+const PROJECTILE_TRACE_STEP = 0.04;
 const DUCK_HITBOX_LEFT = 0.14;
 const DUCK_HITBOX_RIGHT = 0.86;
-const DUCK_HITBOX_TOP = 0.08;
-const DUCK_HITBOX_BOTTOM = 0.92;
+const DUCK_HITBOX_TOP = 0.02;
+const DUCK_HITBOX_BOTTOM = 0.95;
 
 export function createProjectile(
   playerPos: Position,
@@ -46,7 +47,7 @@ export function traceProjectileImpact(
   const steps = Math.max(1, Math.ceil(distance / PROJECTILE_TRACE_STEP));
   const dir = projectile.direction === Direction.Right ? 1 : -1;
 
-  for (let i = 1; i <= steps; i++) {
+  for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     const sampleX = projectile.prevPos.x + dx * t;
     const sampleY = projectile.prevPos.y + dy * t;
@@ -83,14 +84,16 @@ function projectileSampleHitsSolid(
 function projectileSampleHitsDuck(sampleX: number, sampleY: number, duckPos: Position): boolean {
   const projectileLeft = sampleX - PROJECTILE_HALF_WIDTH;
   const projectileRight = sampleX + PROJECTILE_HALF_WIDTH;
+  const projectileTop = sampleY - PROJECTILE_HALF_HEIGHT;
+  const projectileBottom = sampleY + PROJECTILE_HALF_HEIGHT;
   const duckLeft = duckPos.x + DUCK_HITBOX_LEFT;
   const duckRight = duckPos.x + DUCK_HITBOX_RIGHT;
   const duckTop = duckPos.y + DUCK_HITBOX_TOP;
   const duckBottom = duckPos.y + DUCK_HITBOX_BOTTOM;
 
   return (
-    sampleY >= duckTop &&
-    sampleY <= duckBottom &&
+    projectileBottom >= duckTop &&
+    projectileTop <= duckBottom &&
     projectileRight >= duckLeft &&
     projectileLeft <= duckRight
   );

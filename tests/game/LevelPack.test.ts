@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { LEVELS, LEVEL_VARIANT_SLOTS, MASTER_LEVELS, randomizeLevels } from '@/levels/catalog';
 import { parseLevel, countBadges, findSpawnPosition } from '@/game/Level';
+import { validateLevelLayout } from '@/game/LevelValidator';
 import { TileType } from '@/types';
 import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
@@ -60,6 +61,12 @@ describe('Level pack', () => {
       const level = parseLevel(rawLevel);
       expect(findSpawnPosition(level.grid, TileType.PlayerSpawn), `player spawn missing in level ${level.id}`).not.toBeNull();
       expect(countBadges(level.grid), `badges missing in level ${level.id}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('passes the campaign layout validator for every curated variant', () => {
+    for (const rawLevel of getAllVariants()) {
+      expect(validateLevelLayout(rawLevel), `layout issues in level ${rawLevel.id}`).toEqual([]);
     }
   });
 

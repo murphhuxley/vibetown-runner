@@ -4,6 +4,7 @@ import levelData03 from '@/levels/level-03.json';
 import levelData04 from '@/levels/level-04.json';
 import levelData05 from '@/levels/level-05.json';
 import { GRID_COLS, GRID_ROWS } from '@/constants';
+import { assertValidLevelLayout } from '@/game/LevelValidator';
 import { TileType, WeatherType } from '@/types';
 
 interface RawLevel {
@@ -147,6 +148,8 @@ function validateBuiltLevel(level: RawLevel): void {
   if (level.id >= 6 && duckCount < 2) {
     throw new Error(`Level ${level.id} should sustain mid-game pressure with at least two ducks`);
   }
+
+  assertValidLevelLayout(level);
 }
 
 function withPowerHelmet(level: RawLevel, powerHelmet: { x: number; y: number }): RawLevel {
@@ -511,15 +514,15 @@ const builtLevels: RawLevel[] = [
     g.ducks(14, [6, 18]).ducks(8, [12, 24]);
     g.player(1, 17);
   }),
-  createBuiltLevel(25, 'Vibetown Finale', 'cosmic-2', WeatherType.None, 13, (g) => {
-    g.sand(1, 2, 11).sand(1, 15, 25);
+  createBuiltLevel(25, 'Vibetown Finale', 'cosmic-2', WeatherType.None, 8, (g) => {
+    g.sand(2, 2, 11).sand(2, 15, 25);
     g.sand(5, 0, 8).sand(5, 11, 17).sand(5, 20, 27);
     g.sand(10, 2, 25);
     g.sand(15, 0, 6).sand(15, 9, 17).sand(15, 20, 27);
     g.coral(10, 8, 9).coral(10, 18, 19).coral(15, 7, 8).coral(15, 18, 19);
     g.ladder(4, 2, 17).ladder(13, 2, 17).ladder(22, 2, 17);
-    g.rope(4, 9, 10).rope(4, 18, 19).rope(8, 3, 24).rope(13, 1, 26);
-    g.badges(0, [3, 8, 24]).badges(4, [1, 13, 26]).badges(9, [4, 16, 23]).badges(14, [2, 11, 15]);
+    g.rope(8, 3, 24).rope(13, 1, 26);
+    g.badges(1, [3, 8, 24]).badges(4, [1, 14, 26]).badges(9, [5, 16, 23]).badges(14, [2, 11, 15]);
     g.ducks(14, [5, 17]).ducks(8, [10, 22]);
     g.player(1, 17);
   }),
@@ -533,6 +536,12 @@ export const LEVEL_VARIANT_SLOTS: RawLevel[][] = [
   levelFiveVariants,
   ...builtLevels.map((level) => [level, mirrorLevel(level)]),
 ];
+
+for (const variants of LEVEL_VARIANT_SLOTS) {
+  for (const level of variants) {
+    assertValidLevelLayout(level);
+  }
+}
 
 // Canonical A-path campaign, useful for tests and any future "classic route" mode.
 export const MASTER_LEVELS: RawLevel[] = LEVEL_VARIANT_SLOTS.map((slot) => slot[0]);

@@ -64,6 +64,7 @@ export class Renderer {
   private coralTile: HTMLImageElement | null = null;
   private ladderTile: HTMLImageElement | null = null;
   private ropeTile: HTMLImageElement | null = null;
+  private topEdgeTile: HTMLImageElement | null = null;
   private bgImage: HTMLImageElement | null = null;
   private badgeSprite: HTMLImageElement | null = null;
   private shakaSprites: HTMLImageElement[] = [];
@@ -316,6 +317,7 @@ export class Renderer {
     this.coralTile = null;
     this.ladderTile = null;
     this.ropeTile = null;
+    this.topEdgeTile = null;
     this.bgImage = null;
     this.loadTileSprites(themeKey);
   }
@@ -327,8 +329,8 @@ export class Renderer {
   }
 
   private loadTileSprites(themeKey: string): void {
-    const base = '/assets/tiles/';
-    const district = themeKey.replace(/-\d+$/, '');
+    const base = '/assets/sprites/';
+    const district = this.assetDistrict(themeKey);
     const tryLoad = (src: string): Promise<HTMLImageElement | null> =>
       new Promise((resolve) => {
         const img = new Image();
@@ -340,7 +342,15 @@ export class Renderer {
     tryLoad(base + district + '-coral.png').then(img => { this.coralTile = img; });
     tryLoad(base + district + '-ladder.png').then(img => { this.ladderTile = img; });
     tryLoad(base + district + '-rope.png').then(img => { this.ropeTile = img; });
+    tryLoad(base + district + '-top-edge.png').then(img => { this.topEdgeTile = img; });
     tryLoad('/assets/backgrounds/' + district + '-bg.png').then(img => { this.bgImage = img; });
+  }
+
+  private assetDistrict(themeKey: string): string {
+    const district = themeKey.replace(/-\d+$/, '');
+    if (district === 'gray') return 'grayscale';
+    if (district === 'future') return 'futuristic';
+    return district;
   }
 
   updateAnimation(dt: number): void {
@@ -869,6 +879,9 @@ export class Renderer {
         const right = grid[y]?.[x + 1];
 
         if (!this.isSolidTile(above)) {
+          if (this.topEdgeTile && (tile === TileType.Sand || tile === TileType.TrapSand)) {
+            ctx.drawImage(this.topEdgeTile, px, py, S, S);
+          }
           ctx.fillStyle = 'rgba(255,255,255,0.18)';
           ctx.fillRect(px, py, S, s(1));
           ctx.fillStyle = 'rgba(255,255,255,0.07)';
