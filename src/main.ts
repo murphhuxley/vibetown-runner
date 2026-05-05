@@ -21,6 +21,7 @@ import { loadPlayerSprites, loadDuckSprites } from '@/engine/SpriteSheet';
 import { GamePhase } from '@/types';
 import { getTheme } from '@/engine/Themes';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GRID_ROWS, TILE_SIZE, COLORS, DISPLAY_SCALE, RENDER_SCALE } from '@/constants';
+import { LEVELS } from '@/levels/catalog';
 import { sfxDig, sfxCollect, sfxTrap, sfxKill, sfxDeath, sfxShoot, sfxLFV, sfxLevelComplete, sfxVibestr, sfxRevealLadders, sfxFallStart, sfxFallStop, sfxLfvActivate, sfxError, sfxMenuClick, musicStart, musicStop, musicSetMuted, shadowFunkStart, shadowFunkStop, lfvSfxStart, lfvSfxStop } from '@/engine/Audio';
 import { getTop25, submitScore, LeaderboardEntry, registerPlayer, loginPlayer, getStoredPlayer, storePlayer, clearStoredPlayer } from '@/leaderboard';
 
@@ -234,6 +235,7 @@ function hideMenu(): void {
     hasSubmittedThisRun = false;
     game.restart();
     syncTheme();
+    updateDevLevelPreviewUi();
   }
   game.startGame();
   musicStop();
@@ -550,6 +552,124 @@ function syncTheme(): void {
 }
 syncTheme();
 
+interface DevLevelPreviewUi {
+  root: HTMLDivElement;
+  label: HTMLSpanElement;
+  input: HTMLInputElement;
+}
+
+let devLevelPreviewUi: DevLevelPreviewUi | null = null;
+
+function updateDevLevelPreviewUi(): void {
+  if (!devLevelPreviewUi) return;
+  const currentLevel = game.state.currentLevel;
+  devLevelPreviewUi.label.textContent = `LVL ${currentLevel} / ${LEVELS.length}`;
+  devLevelPreviewUi.input.value = String(currentLevel);
+}
+
+function setPreviewLevelUrl(levelNumber: number): void {
+  const url = new URL(window.location.href);
+  url.searchParams.set('level', String(levelNumber));
+  window.history.replaceState({}, '', url);
+}
+
+function jumpToPreviewLevel(levelNumber: number, updateUrl = true): void {
+  const clamped = Math.max(1, Math.min(LEVELS.length, Math.floor(levelNumber)));
+  if (!game.loadLevel(clamped - 1)) return;
+  input.clear();
+  menuScreen.classList.add('hidden');
+  game.startGame();
+  syncTheme();
+  updateDevLevelPreviewUi();
+  if (updateUrl) setPreviewLevelUrl(clamped);
+  canvas.focus();
+}
+
+function setupDevLevelPreview(): void {
+  if (!isDevHost) return;
+
+  const root = document.createElement('div');
+  root.style.cssText = [
+    'position:fixed',
+    'top:10px',
+    'right:10px',
+    'z-index:9999',
+    'display:flex',
+    'align-items:center',
+    'gap:6px',
+    'padding:7px 8px',
+    'border:1px solid rgba(255,255,255,0.35)',
+    'border-radius:10px',
+    'background:rgba(13,13,13,0.74)',
+    'color:#fff',
+    "font:700 11px 'Brice', monospace",
+    'box-shadow:0 4px 16px rgba(0,0,0,0.22)',
+    'backdrop-filter:blur(6px)',
+  ].join(';');
+
+  const label = document.createElement('span');
+  label.style.cssText = 'min-width:76px;text-align:center;color:#ffe472';
+
+  const makeButton = (text: string): HTMLButtonElement => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = text;
+    button.style.cssText = [
+      'appearance:none',
+      'border:1px solid rgba(255,255,255,0.25)',
+      'border-radius:7px',
+      'background:rgba(255,255,255,0.12)',
+      'color:#fff',
+      'padding:4px 7px',
+      "font:700 11px 'Brice', monospace",
+      'cursor:pointer',
+    ].join(';');
+    return button;
+  };
+
+  const previous = makeButton('Prev');
+  const next = makeButton('Next');
+  const inputEl = document.createElement('input');
+  inputEl.type = 'number';
+  inputEl.min = '1';
+  inputEl.max = String(LEVELS.length);
+  inputEl.step = '1';
+  inputEl.style.cssText = [
+    'width:48px',
+    'border:1px solid rgba(255,255,255,0.25)',
+    'border-radius:7px',
+    'background:rgba(255,255,255,0.13)',
+    'color:#fff',
+    'padding:4px 5px',
+    "font:700 11px 'Brice', monospace",
+    'text-align:center',
+  ].join(';');
+
+  previous.addEventListener('click', () => jumpToPreviewLevel(game.state.currentLevel - 1));
+  next.addEventListener('click', () => jumpToPreviewLevel(game.state.currentLevel + 1));
+  inputEl.addEventListener('change', () => jumpToPreviewLevel(Number(inputEl.value)));
+  inputEl.addEventListener('keydown', (event) => {
+    event.stopPropagation();
+    if (event.key === 'Enter') {
+      jumpToPreviewLevel(Number(inputEl.value));
+      inputEl.blur();
+    }
+  });
+
+  root.append(previous, label, next, inputEl);
+  document.body.appendChild(root);
+
+  devLevelPreviewUi = { root, label, input: inputEl };
+  updateDevLevelPreviewUi();
+
+  const initialLevel = Number(new URLSearchParams(window.location.search).get('level'));
+  if (Number.isFinite(initialLevel) && initialLevel > 0) {
+    jumpToPreviewLevel(initialLevel, true);
+  }
+}
+
+setupDevLevelPreview();
+
 // Load sprites before starting game loop — menu is visible during load
 const spriteLoad = Promise.all([
   loadPlayerSprites().then((sprites) => {
@@ -625,6 +745,7 @@ function toggleSoundEnabled(): void {
     game.onLevelComplete = () => { showInstallPromptIfEligible(); };
     game.onVibestr = undefined; game.onRevealLadders = undefined;
     game.onPowerStart = onPowerActivate; game.onPowerEnd = onPowerEnd;
+    sfxFallStop();
     shadowFunkStop(); lfvSfxStop();
   }
 }
@@ -682,7 +803,7 @@ const loop = new GameLoop(
     renderer.updateAnimation(dt);
 
     // Fall sound — play while falling, stop on land
-    if (isPlaying && game.state.player.isFalling) {
+    if (soundEnabled && isPlaying && game.state.player.isFalling) {
       sfxFallStart();
     } else {
       sfxFallStop();
@@ -824,11 +945,13 @@ function handleStateTransition(): void {
   if (game.state.phase === GamePhase.Dead) {
     game.loadLevel(game.state.currentLevel - 1);
     syncTheme();
+    updateDevLevelPreviewUi();
   } else if (game.state.phase === GamePhase.LevelComplete) {
     if (!game.loadLevel(game.state.currentLevel)) {
       game.state.phase = GamePhase.Victory;
     } else {
       syncTheme();
+      updateDevLevelPreviewUi();
     }
   } else if (game.state.phase === GamePhase.GameOver || game.state.phase === GamePhase.Victory) {
     if (!hasSubmittedThisRun) {
@@ -838,12 +961,25 @@ function handleStateTransition(): void {
       needsFreshRunFromMenu = false;
       game.restart();
       syncTheme();
+      updateDevLevelPreviewUi();
     }
   }
 }
 
 // Handle state transitions (retry / next level) — keyboard.
 window.addEventListener('keydown', (e) => {
+  if (isDevHost && e.target instanceof HTMLElement && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    if (e.key === ']') {
+      e.preventDefault();
+      jumpToPreviewLevel(game.state.currentLevel + 1);
+      return;
+    }
+    if (e.key === '[') {
+      e.preventDefault();
+      jumpToPreviewLevel(game.state.currentLevel - 1);
+      return;
+    }
+  }
   if (game.state.phase === GamePhase.Paused) {
     game.state.phase = GamePhase.Playing;
     return;
@@ -954,4 +1090,5 @@ if (isDevHost) {
   // Debug export for playtesting
   (window as any).__game = game;
   (window as any).__syncTheme = syncTheme;
+  (window as any).__jumpToLevel = jumpToPreviewLevel;
 }

@@ -1,5 +1,5 @@
 import { GameState, GamePhase, TileType, Direction, DuckState, ProjectileState } from '@/types';
-import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, DUCK_TRAP_ESCAPE_TIME, DUCK_TRAP_SUPPORT_DELAY, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS, DUCK_HOLE_KILL_LEAD_MS, SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK, SCORE_POWER_KILL } from '@/constants';
+import { GRID_ROWS, GRID_COLS, PLAYER_SPEED, PLAYER_FALL_SPEED, HOLE_OPEN_ANIM, POWER_HELMET_SHOTS, DUCK_HOLE_KILL_LEAD_MS, SCORE_BADGE, SCORE_TRAP_DUCK, SCORE_KILL_DUCK, SCORE_POWER_KILL } from '@/constants';
 import { parseLevel, countBadges, findSpawnPosition, findAllSpawnPositions, cloneGrid, ensureHiddenExit } from '@/game/Level';
 import { createPlayer, movePlayer, canClimb, canTraverseRope } from '@/game/Player';
 import { createDuck, moveDuckToward, trapDuck, updateTrappedDuck, respawnDuck } from '@/game/Duck';
@@ -497,10 +497,11 @@ export class GameManager {
   private updateDucks(): void {
     const { grid } = this.state;
 
-    // Trapped ducks act as solid ground for other ducks (can't fall in occupied hole)
+    // Trapped ducks reserve their holes immediately, even before they become
+    // player-supporting bridges. This prevents multiple ducks stacking in one cavity.
     const trappedPositions: { x: number; y: number }[] = [];
     for (const duck of this.state.ducks) {
-      if (this.isDuckProvidingSupport(duck)) {
+      if (duck.isTrapped) {
         trappedPositions.push({ x: duck.pos.x, y: duck.pos.y });
         grid[duck.pos.y][duck.pos.x] = TileType.Sand;
       }
@@ -527,6 +528,8 @@ export class GameManager {
         if (duck.pos.x === hole.x && duck.pos.y === hole.y) {
           const hadBadge = duck.carryingBadge;
           trapDuck(duck);
+          trappedPositions.push({ x: duck.pos.x, y: duck.pos.y });
+          grid[duck.pos.y][duck.pos.x] = TileType.Sand;
           if (hadBadge) {
             // Drop the badge above the hole so the player can collect it
             this.state.grid[duck.pos.y - 1][duck.pos.x] = TileType.Badge;
@@ -535,6 +538,7 @@ export class GameManager {
           this.scorePopups.push(createScorePopup(duck.pos.x, duck.pos.y, `+${SCORE_TRAP_DUCK}`, '#F5D76E'));
           addVibe(this.vibeMeter, 'trap');
           this.onTrap?.();
+          break;
         }
       }
     }
@@ -780,10 +784,6 @@ export class GameManager {
         this.startPlayerRender(previousPos, this.state.player.pos, this.PLAYER_FALL_INTERVAL);
       }
     }
-  }
-
-  private isDuckProvidingSupport(duck: DuckState): boolean {
-    return duck.isTrapped && duck.trapTimer <= DUCK_TRAP_ESCAPE_TIME - DUCK_TRAP_SUPPORT_DELAY;
   }
 
   private revealHiddenLadders(): void {

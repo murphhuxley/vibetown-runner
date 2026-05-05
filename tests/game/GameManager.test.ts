@@ -3,6 +3,7 @@ import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
 import { Direction, GamePhase, TileType } from '@/types';
 import { createProjectile } from '@/game/Projectile';
+import { createDuck, trapDuck } from '@/game/Duck';
 import { DUCK_HOLE_KILL_LEAD_MS } from '@/constants';
 
 describe('GameManager', () => {
@@ -81,6 +82,73 @@ describe('GameManager', () => {
 
     expect(game.state.ducks[0].isTrapped).toBe(true);
     expect(game.drops).toHaveLength(0);
+  });
+
+  it('prevents a second duck from falling into an already occupied hole', () => {
+    const hole = { x: 5, y: 5 };
+    const grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    grid[hole.y + 1][hole.x] = TileType.Sand;
+
+    const trappedDuck = createDuck(0, hole);
+    trapDuck(trappedDuck);
+    const fallingDuck = createDuck(1, { x: hole.x, y: hole.y - 1 });
+
+    game.state.grid = grid;
+    game.state.player.pos = { x: hole.x, y: hole.y + 3 };
+    game.state.holes = [{
+      x: hole.x,
+      y: hole.y,
+      timer: 1000,
+      phase: 'open',
+      fillTile: TileType.Sand,
+      direction: Direction.Left,
+    }];
+    game.state.ducks = [trappedDuck, fallingDuck];
+
+    (game as any).updateDucks();
+
+    expect(trappedDuck.isTrapped).toBe(true);
+    expect(fallingDuck.isTrapped).toBe(false);
+    expect(fallingDuck.pos).not.toEqual(hole);
+    expect(game.state.grid[hole.y][hole.x]).toBe(TileType.Empty);
+  });
+
+  it('reserves a hole as soon as a duck falls in during the same duck tick', () => {
+    const originalRandom = Math.random;
+    Math.random = () => 0; // ground ducks hesitate; unsupported ducks still fall.
+    try {
+      const hole = { x: 5, y: 5 };
+      const grid = Array.from({ length: game.state.grid.length }, () => (
+        Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+      ));
+      grid[hole.y + 1][hole.x] = TileType.Sand;
+
+      const firstDuck = createDuck(0, hole);
+      const secondDuck = createDuck(1, { x: hole.x, y: hole.y - 1 });
+
+      game.state.grid = grid;
+      game.state.player.pos = { x: hole.x, y: hole.y + 3 };
+      game.state.holes = [{
+        x: hole.x,
+        y: hole.y,
+        timer: 1000,
+        phase: 'open',
+        fillTile: TileType.Sand,
+        direction: Direction.Left,
+      }];
+      game.state.ducks = [firstDuck, secondDuck];
+
+      (game as any).updateDucks();
+
+      expect(firstDuck.isTrapped).toBe(true);
+      expect(secondDuck.isTrapped).toBe(false);
+      expect(secondDuck.pos).toEqual({ x: hole.x, y: hole.y - 1 });
+      expect(game.state.grid[hole.y][hole.x]).toBe(TileType.Empty);
+    } finally {
+      Math.random = originalRandom;
+    }
   });
 
   it('auto-equips the level 3 helmet pickup and uses space to fire', () => {

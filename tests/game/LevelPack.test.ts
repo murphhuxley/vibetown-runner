@@ -7,6 +7,7 @@ import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
 
 const SOLID_TILES = new Set([TileType.Sand, TileType.Coral, TileType.TrapSand]);
+const ASSET_PATHS = new Set(Object.keys(import.meta.glob('/public/assets/**/*')));
 
 function countTile(grid: number[][], tile: TileType): number {
   let count = 0;
@@ -45,6 +46,39 @@ const EXPECTED_DUCKS = new Map([
   [16, 3], [17, 3], [18, 3], [19, 3], [20, 4],
   [21, 3], [22, 3], [23, 3], [24, 4], [25, 4],
 ]);
+
+const EXPECTED_THEME_PREFIX_BY_LEVEL = new Map([
+  [1, 'nature'], [2, 'nature'], [3, 'nature'],
+  [4, 'beach'], [5, 'beach'], [6, 'beach'],
+  [7, 'city'], [8, 'city'], [9, 'city'],
+  [10, 'rainbow'], [11, 'rainbow'], [12, 'rainbow'],
+  [13, 'gray'], [14, 'gray'], [15, 'gray'],
+  [16, 'flower'], [17, 'flower'], [18, 'flower'],
+  [19, 'future'], [20, 'future'], [21, 'future'],
+  [22, 'gold'], [23, 'gold'],
+  [24, 'cosmic'], [25, 'cosmic'],
+]);
+
+function assetDistrictForTheme(themeKey: string): string {
+  const district = themeKey.replace(/-\d+$/, '');
+  if (district === 'gray') return 'grayscale';
+  if (district === 'future') return 'futuristic';
+  return district;
+}
+
+function tileDistrictForAsset(assetDistrict: string): string {
+  if (assetDistrict === 'grayscale') return 'gray';
+  if (assetDistrict === 'futuristic') return 'future';
+  return assetDistrict;
+}
+
+function assetExists(...parts: string[]): boolean {
+  return ASSET_PATHS.has(`/public/assets/${parts.join('/')}`);
+}
+
+function hasAnyAsset(paths: string[][]): boolean {
+  return paths.some((pathParts) => assetExists(...pathParts));
+}
 
 describe('Level pack', () => {
   it('contains at least 25 levels', () => {
@@ -128,6 +162,56 @@ describe('Level pack', () => {
         expect(countTile(level.grid, TileType.Badge), `badge count drifted in level ${level.id}`).toBe(EXPECTED_BADGES.get(level.id));
         expect(countTile(level.grid, TileType.DuckSpawn), `duck count drifted in level ${level.id}`).toBe(EXPECTED_DUCKS.get(level.id));
       }
+    }
+  });
+
+  it('keeps level themes aligned to the authored district sequence', () => {
+    for (const rawLevel of getAllVariants()) {
+      const expectedPrefix = EXPECTED_THEME_PREFIX_BY_LEVEL.get(rawLevel.id);
+      expect(expectedPrefix, `missing expected district for level ${rawLevel.id}`).toBeDefined();
+      expect(rawLevel.theme, `level ${rawLevel.id} should declare a theme`).toMatch(new RegExp(`^${expectedPrefix}-\\d+$`));
+    }
+  });
+
+  it('keeps every district theme wired to a complete visual tile set', () => {
+    const checkedDistricts = new Set<string>();
+
+    for (const rawLevel of getAllVariants()) {
+      const district = assetDistrictForTheme(rawLevel.theme);
+      if (checkedDistricts.has(district)) continue;
+      checkedDistricts.add(district);
+
+      const tileDistrict = tileDistrictForAsset(district);
+      expect(assetExists('backgrounds', `${district}-bg.png`), `${district} background missing`).toBe(true);
+      expect(assetExists('sprites', `${district}-top-edge.png`), `${district} top edge missing`).toBe(true);
+      expect(
+        hasAnyAsset([
+          ['sprites', `${district}-sand.png`],
+          ['tiles', `${tileDistrict}-sand.png`],
+        ]),
+        `${district} sand tile missing`,
+      ).toBe(true);
+      expect(
+        hasAnyAsset([
+          ['sprites', `${district}-ladder.png`],
+          ['tiles', `${tileDistrict}-ladder.png`],
+        ]),
+        `${district} ladder tile missing`,
+      ).toBe(true);
+      expect(
+        hasAnyAsset([
+          ['sprites', `${district}-rope.png`],
+          ['tiles', `${tileDistrict}-rope.png`],
+        ]),
+        `${district} rope tile missing`,
+      ).toBe(true);
+      expect(
+        hasAnyAsset([
+          ['sprites', `tileset-${district}.png`],
+          ['tilesets', `${district}-tileset.png`],
+        ]),
+        `${district} autotile atlas missing`,
+      ).toBe(true);
     }
   });
 

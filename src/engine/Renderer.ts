@@ -61,11 +61,13 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private theme: LevelTheme = getTheme('beach');
   private sandTile: HTMLImageElement | null = null;
+  private sandTileset: HTMLImageElement | null = null;
   private coralTile: HTMLImageElement | null = null;
   private ladderTile: HTMLImageElement | null = null;
   private ropeTile: HTMLImageElement | null = null;
   private topEdgeTile: HTMLImageElement | null = null;
   private bgImage: HTMLImageElement | null = null;
+  private tileSpriteLoadVersion = 0;
   private badgeSprite: HTMLImageElement | null = null;
   private shakaSprites: HTMLImageElement[] = [];
   private lfvActivationSprite: HTMLImageElement | null = null;
@@ -111,6 +113,7 @@ export class Renderer {
   private readonly PLAYER_SCALE = 1;
   private readonly DUCK_SCALE = 1.1;
   private readonly BASE_TILE_SIZE = 32;
+  private readonly TILESET_CELL_SIZE = 32;
   private bgTime = 0;
   private shakeTimer = 0;
   private shakeDuration = 0;
@@ -314,12 +317,13 @@ export class Renderer {
       coralShadow: shiftColor(theme.coralShadow, hueShift),
     };
     this.sandTile = null;
+    this.sandTileset = null;
     this.coralTile = null;
     this.ladderTile = null;
     this.ropeTile = null;
     this.topEdgeTile = null;
     this.bgImage = null;
-    this.loadTileSprites(themeKey);
+    this.loadTileSprites(themeKey, ++this.tileSpriteLoadVersion);
   }
 
   setWeather(weather: WeatherType): void {
@@ -328,22 +332,82 @@ export class Renderer {
     this.weatherEffects = getWeatherEffects(weather);
   }
 
-  private loadTileSprites(themeKey: string): void {
-    const base = '/assets/sprites/';
+  private loadTileSprites(themeKey: string, loadVersion: number): void {
+    const spriteBase = '/assets/sprites/';
+    const tileBase = '/assets/tiles/';
     const district = this.assetDistrict(themeKey);
-    const tryLoad = (src: string): Promise<HTMLImageElement | null> =>
+    const tileDistrict = this.tileDistrict(district);
+    const setIfCurrent = (key: 'sandTile' | 'sandTileset' | 'coralTile' | 'ladderTile' | 'ropeTile' | 'topEdgeTile' | 'bgImage', img: HTMLImageElement | null): void => {
+      if (this.tileSpriteLoadVersion !== loadVersion) return;
+      switch (key) {
+        case 'sandTile': this.sandTile = img; break;
+        case 'sandTileset': this.sandTileset = img; break;
+        case 'coralTile': this.coralTile = img; break;
+        case 'ladderTile': this.ladderTile = img; break;
+        case 'ropeTile': this.ropeTile = img; break;
+        case 'topEdgeTile': this.topEdgeTile = img; break;
+        case 'bgImage': this.bgImage = img; break;
+      }
+    };
+    const tryLoad = (src: string, requiresTransparency = false): Promise<HTMLImageElement | null> =>
       new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve(img);
+        img.onload = () => {
+          if (!this.imageHasVisiblePixels(img)) {
+            resolve(null);
+            return;
+          }
+          if (requiresTransparency && !this.imageHasTransparentPixels(img)) {
+            resolve(null);
+            return;
+          }
+          resolve(img);
+        };
         img.onerror = () => resolve(null);
         img.src = src;
       });
-    tryLoad(base + district + '-sand.png').then(img => { this.sandTile = img; });
-    tryLoad(base + district + '-coral.png').then(img => { this.coralTile = img; });
-    tryLoad(base + district + '-ladder.png').then(img => { this.ladderTile = img; });
-    tryLoad(base + district + '-rope.png').then(img => { this.ropeTile = img; });
-    tryLoad(base + district + '-top-edge.png').then(img => { this.topEdgeTile = img; });
-    tryLoad('/assets/backgrounds/' + district + '-bg.png').then(img => { this.bgImage = img; });
+    const tryLoadAny = async (sources: string[], requiresTransparency = false): Promise<HTMLImageElement | null> => {
+      for (const src of sources) {
+        const img = await tryLoad(src, requiresTransparency);
+        if (img) return img;
+      }
+      return null;
+    };
+
+    tryLoadAny([
+      `${spriteBase}${district}-sand.png`,
+      `${tileBase}${tileDistrict}-sand.png`,
+    ]).then(img => setIfCurrent('sandTile', img));
+    if (this.shouldUseTilesetAutotiling()) {
+      tryLoadAny([
+        `${spriteBase}tileset-${district}.png?v=autotile-v1`,
+        `/assets/tilesets/${district}-tileset.png?v=autotile-v1`,
+      ]).then(img => setIfCurrent('sandTileset', img));
+    }
+    tryLoadAny([
+      `${spriteBase}${district}-coral.png`,
+      `${tileBase}${tileDistrict}-coral.png`,
+    ]).then(img => setIfCurrent('coralTile', img));
+    // Ladders and hang bars are gameplay affordances first. Render them procedurally
+    // so every district keeps its own color language without full-tile PNG artifacts.
+    setIfCurrent('ladderTile', null);
+    setIfCurrent('ropeTile', null);
+    tryLoadAny([
+      `${spriteBase}${district}-top-edge.png`,
+      `${tileBase}${tileDistrict}-top-edge.png`,
+    ]).then(img => setIfCurrent('topEdgeTile', img));
+    tryLoadAny([
+      `/assets/backgrounds/${district}-bg.png`,
+    ]).then(img => setIfCurrent('bgImage', img));
+  }
+
+  private shouldUseTilesetAutotiling(): boolean {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('autotile') === '1';
+    } catch {
+      return false;
+    }
   }
 
   private assetDistrict(themeKey: string): string {
@@ -351,6 +415,59 @@ export class Renderer {
     if (district === 'gray') return 'grayscale';
     if (district === 'future') return 'futuristic';
     return district;
+  }
+
+  private tileDistrict(assetDistrict: string): string {
+    if (assetDistrict === 'grayscale') return 'gray';
+    if (assetDistrict === 'futuristic') return 'future';
+    return assetDistrict;
+  }
+
+  private imageHasVisiblePixels(img: HTMLImageElement): boolean {
+    const width = img.naturalWidth;
+    const height = img.naturalHeight;
+    if (width <= 0 || height <= 0) return false;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+
+    try {
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, width, height).data;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 8) return true;
+      }
+      return false;
+    } catch {
+      return true;
+    }
+  }
+
+  private imageHasTransparentPixels(img: HTMLImageElement): boolean {
+    const width = img.naturalWidth;
+    const height = img.naturalHeight;
+    if (width <= 0 || height <= 0) return false;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+
+    try {
+      ctx.drawImage(img, 0, 0);
+      const data = ctx.getImageData(0, 0, width, height).data;
+      let transparentPixels = 0;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] < 248) transparentPixels++;
+      }
+      return transparentPixels / (width * height) >= 0.35;
+    } catch {
+      return true;
+    }
   }
 
   updateAnimation(dt: number): void {
@@ -830,7 +947,7 @@ export class Renderer {
         switch (tile) {
           case TileType.Sand:
           case TileType.TrapSand:
-            this.drawSand(px, py);
+            this.drawSandTile(grid, x, y, px, py);
             break;
           case TileType.Coral:
             this.drawCoral(px, py);
@@ -860,6 +977,10 @@ export class Renderer {
     return tile === TileType.Sand || tile === TileType.TrapSand || tile === TileType.Coral;
   }
 
+  private isSandTile(tile: TileType | undefined): boolean {
+    return tile === TileType.Sand || tile === TileType.TrapSand;
+  }
+
   private drawGridSurfacePolish(grid: TileType[][]): void {
     const ctx = this.ctx;
     const S = TILE_SIZE;
@@ -879,7 +1000,7 @@ export class Renderer {
         const right = grid[y]?.[x + 1];
 
         if (!this.isSolidTile(above)) {
-          if (this.topEdgeTile && (tile === TileType.Sand || tile === TileType.TrapSand)) {
+          if (this.topEdgeTile && !this.sandTileset && (tile === TileType.Sand || tile === TileType.TrapSand)) {
             ctx.drawImage(this.topEdgeTile, px, py, S, S);
           }
           ctx.fillStyle = 'rgba(255,255,255,0.18)';
@@ -905,6 +1026,60 @@ export class Renderer {
       }
     }
     ctx.restore();
+  }
+
+  private drawSandTile(grid: TileType[][], x: number, y: number, px: number, py: number): void {
+    if (!this.sandTileset) {
+      this.drawSand(px, py);
+      return;
+    }
+
+    // Backing pass keeps the collision tile visually solid even when atlas edge cells
+    // intentionally contain transparent cap/corner pixels.
+    this.drawSand(px, py);
+
+    const cell = this.getSandTilesetCell(grid, x, y);
+    this.ctx.drawImage(
+      this.sandTileset,
+      cell.x * this.TILESET_CELL_SIZE,
+      cell.y * this.TILESET_CELL_SIZE,
+      this.TILESET_CELL_SIZE,
+      this.TILESET_CELL_SIZE,
+      px,
+      py,
+      TILE_SIZE,
+      TILE_SIZE,
+    );
+  }
+
+  private getSandTilesetCell(grid: TileType[][], x: number, y: number): Position {
+    const above = this.isSandTile(grid[y - 1]?.[x]);
+    const below = this.isSandTile(grid[y + 1]?.[x]);
+    const left = this.isSandTile(grid[y]?.[x - 1]);
+    const right = this.isSandTile(grid[y]?.[x + 1]);
+
+    // The authored 128x128 sheets are 4x4 atlases. They are arranged as a
+    // decorative sample, so we use the consistently placed cap/body cells and
+    // keep the old full tile underneath as a no-holes fallback.
+    if (!above) {
+      if (!left && !right) return { x: 1, y: 3 };
+      if (!left) return { x: 0, y: 1 };
+      if (!right) return { x: 3, y: 0 };
+      return { x: 2, y: 0 };
+    }
+
+    if (!below) {
+      if (!left && !right) return { x: 3, y: 3 };
+      if (!left) return { x: 0, y: 2 };
+      if (!right) return { x: 3, y: 2 };
+      return { x: 1, y: 2 };
+    }
+
+    if (!left && !right) return { x: 1, y: 0 };
+    if (!left) return { x: 0, y: 2 };
+    if (!right) return { x: 3, y: 1 };
+
+    return { x: 2, y: 1 };
   }
 
   private drawSand(px: number, py: number): void {
@@ -1069,6 +1244,11 @@ export class Renderer {
   }
 
   private drawLadder(px: number, py: number): void {
+    if (this.ladderTile) {
+      this.ctx.drawImage(this.ladderTile, px, py, TILE_SIZE, TILE_SIZE);
+      return;
+    }
+
     const ctx = this.ctx;
     const color = this.theme.ladder;
     const S = TILE_SIZE;
@@ -1083,14 +1263,18 @@ export class Renderer {
         ctx.fillRect(px + s(10), py, s(12), S); // center glow
         ctx.globalAlpha = 1;
         ctx.fillRect(px + s(13), py, s(6), S); // bright core
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillRect(px + s(14), py, s(4), S); // white hot center
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = this.theme.rope;
+        ctx.fillRect(px + s(14), py, s(4), S);
+        ctx.globalAlpha = 1;
         // Floating step pads
         for (let ry = py + s(4); ry < py + S; ry += s(8)) {
           ctx.fillStyle = color;
           ctx.fillRect(px + s(8), ry, s(16), s(2));
-          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.globalAlpha = 0.5;
+          ctx.fillStyle = this.theme.rope;
           ctx.fillRect(px + s(9), ry, s(14), s(1));
+          ctx.globalAlpha = 1;
         }
         break;
       }
@@ -1099,14 +1283,16 @@ export class Renderer {
         ctx.fillStyle = color;
         ctx.fillRect(px + s(9), py, s(3), S);
         ctx.fillRect(px + S - s(9) - s(3), py, s(3), S);
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.globalAlpha = 0.38;
+        ctx.fillStyle = this.theme.sandHighlight;
         ctx.fillRect(px + s(10), py, s(1), S);
         ctx.fillRect(px + S - s(10), py, s(1), S);
+        ctx.globalAlpha = 1;
         for (let ry = py + s(5); ry < py + S - s(2); ry += s(7)) {
           ctx.fillStyle = color;
           ctx.fillRect(px + s(9), ry, S - s(18), s(2));
           // Sparkle dots on rungs
-          ctx.fillStyle = '#FFFFFF';
+          ctx.fillStyle = this.theme.rope;
           ctx.fillRect(px + s(12), ry, s(1), s(1));
           ctx.fillRect(px + S - s(13), ry, s(1), s(1));
         }
@@ -1123,31 +1309,50 @@ export class Renderer {
         ctx.fillStyle = color;
         ctx.fillRect(railL, py, railW, S);
         ctx.fillRect(railR, py, railW, S);
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = this.theme.sandHighlight;
         ctx.fillRect(railL, py, s(1), S);
         ctx.fillRect(railR, py, s(1), S);
+        ctx.globalAlpha = 1;
         for (let ry = py + s(5); ry < py + S - s(2); ry += s(7)) {
           ctx.fillStyle = color;
           ctx.fillRect(railL, ry, railR + railW - railL, s(3));
-          ctx.fillStyle = 'rgba(255,255,255,0.25)';
+          ctx.globalAlpha = 0.35;
+          ctx.fillStyle = this.theme.sandHighlight;
           ctx.fillRect(railL, ry, railR + railW - railL, s(1));
+          ctx.globalAlpha = 1;
         }
         break;
       }
       case 'rainbow': {
-        // Rainbow: each rung a different color
+        // Rainbow: vivid district-colored rails with thin color rungs.
+        const railW = s(2);
         const railL = px + s(8);
-        const railR = px + S - s(8) - s(2);
-        ctx.fillStyle = '#333333';
-        ctx.fillRect(railL, py, s(2), S);
-        ctx.fillRect(railR, py, s(2), S);
-        const colors = ['#FF4444', '#FF8800', '#FFDD00', '#44DD44', '#4488FF', '#AA44FF'];
+        const railR = px + S - s(8) - railW;
+        ctx.fillStyle = 'rgba(20,18,28,0.45)';
+        ctx.fillRect(railL + 1, py + 1, railW, S);
+        ctx.fillRect(railR + 1, py + 1, railW, S);
+        ctx.fillStyle = color;
+        ctx.fillRect(railL, py, railW, S);
+        ctx.fillRect(railR, py, railW, S);
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = this.theme.rope;
+        ctx.fillRect(railL, py, s(1), S);
+        ctx.fillRect(railR, py, s(1), S);
+        ctx.globalAlpha = 1;
+
+        const colors = ['#FF2F91', '#FF8A2A', '#FFD52E', '#29D66B', '#2F7BFF', '#9B3DFF'];
         let ci = 0;
-        for (let ry = py + s(4); ry < py + S - s(2); ry += s(5)) {
+        const rungH = s(2);
+        for (let ry = py + s(5); ry < py + S - s(2); ry += s(6)) {
+          ctx.fillStyle = 'rgba(20,18,28,0.35)';
+          ctx.fillRect(railL + 1, ry + 1, railR + railW - railL, rungH);
           ctx.fillStyle = colors[ci % colors.length];
-          ctx.fillRect(railL, ry, railR + s(2) - railL, s(3));
-          ctx.fillStyle = 'rgba(255,255,255,0.3)';
-          ctx.fillRect(railL, ry, railR + s(2) - railL, s(1));
+          ctx.fillRect(railL, ry, railR + railW - railL, rungH);
+          ctx.globalAlpha = 0.4;
+          ctx.fillStyle = this.theme.rope;
+          ctx.fillRect(railL, ry, railR + railW - railL, s(1));
+          ctx.globalAlpha = 1;
           ci++;
         }
         break;
@@ -1169,8 +1374,10 @@ export class Renderer {
           ctx.fillRect(railL + 1, ry + 1, railR + railW - railL, s(2));
           ctx.fillStyle = color;
           ctx.fillRect(railL, ry, railR + railW - railL, s(2));
-          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.globalAlpha = 0.25;
+          ctx.fillStyle = this.theme.sandHighlight;
           ctx.fillRect(railL, ry, railR + railW - railL, 1);
+          ctx.globalAlpha = 1;
         }
         break;
       }
@@ -1178,6 +1385,11 @@ export class Renderer {
   }
 
   private drawRope(px: number, py: number): void {
+    if (this.ropeTile) {
+      this.ctx.drawImage(this.ropeTile, px, py, TILE_SIZE, TILE_SIZE);
+      return;
+    }
+
     const ctx = this.ctx;
     const color = this.theme.rope;
     const midY = py + this.scaleToTile(this.ROPE_LINE_OFFSET_Y);
@@ -1198,8 +1410,10 @@ export class Renderer {
         ctx.fillRect(startX, top - s(1), TILE_SIZE, beamH + s(2)); // mid glow
         ctx.globalAlpha = 1;
         ctx.fillRect(startX, top, TILE_SIZE, beamH); // core beam
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillRect(startX, top + s(1), TILE_SIZE, s(1)); // white hot center
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = this.theme.ladder;
+        ctx.fillRect(startX, top + s(1), TILE_SIZE, s(1));
+        ctx.globalAlpha = 1;
         break;
       }
       case 'cosmic': {
@@ -1211,10 +1425,12 @@ export class Renderer {
         ctx.fillRect(startX, top - s(2), TILE_SIZE, ropeH + s(4));
         ctx.globalAlpha = 1;
         ctx.fillRect(startX, top, TILE_SIZE, ropeH);
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.globalAlpha = 0.38;
+        ctx.fillStyle = this.theme.ladder;
         ctx.fillRect(startX, top, TILE_SIZE, s(1));
+        ctx.globalAlpha = 1;
         // Sparkle dots along the tether
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = this.theme.ladder;
         for (let x = startX + s(3); x < endX; x += s(6)) {
           ctx.fillRect(x, top + s(1), s(1), s(1));
         }
@@ -1228,8 +1444,10 @@ export class Renderer {
         ctx.fillRect(startX, top + s(2), TILE_SIZE, ropeH);
         ctx.fillStyle = color;
         ctx.fillRect(startX, top, TILE_SIZE, ropeH);
-        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = this.theme.ladder;
         ctx.fillRect(startX, top, TILE_SIZE, s(2));
+        ctx.globalAlpha = 1;
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
         ctx.fillRect(startX, top + ropeH - s(1), TILE_SIZE, s(1));
         // Gold accent stripe
@@ -1238,18 +1456,22 @@ export class Renderer {
         break;
       }
       case 'rainbow': {
-        // Rainbow: multicolor gradient rope
-        const ropeH = s(5);
+        // Rainbow: thin spectral cable, not a full-tile stripe.
+        const ropeH = s(3);
         const top = midY - ropeH / 2;
-        const colors = ['#FF4444', '#FF8800', '#FFDD00', '#44DD44', '#4488FF', '#AA44FF'];
+        const colors = ['#FF2F91', '#FF8A2A', '#FFD52E', '#29D66B', '#2F7BFF', '#9B3DFF'];
         const segW = Math.ceil(TILE_SIZE / colors.length);
+        ctx.fillStyle = 'rgba(25,20,32,0.35)';
+        ctx.fillRect(startX, top + s(1), TILE_SIZE, ropeH);
         for (let i = 0; i < colors.length; i++) {
           ctx.fillStyle = colors[i];
           ctx.fillRect(startX + i * segW, top, segW, ropeH);
         }
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = this.theme.ladder;
         ctx.fillRect(startX, top, TILE_SIZE, s(1));
-        ctx.fillStyle = 'rgba(0,0,0,0.2)';
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
         ctx.fillRect(startX, top + ropeH - s(1), TILE_SIZE, s(1));
         break;
       }
@@ -1263,8 +1485,10 @@ export class Renderer {
         for (let x = startX; x < endX; x += s(6)) {
           ctx.fillStyle = color;
           ctx.fillRect(x, top, s(4), ropeH);
-          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.globalAlpha = 0.28;
+          ctx.fillStyle = this.theme.ladder;
           ctx.fillRect(x, top, s(4), s(1));
+          ctx.globalAlpha = 1;
           // Thin connector
           ctx.fillStyle = color;
           ctx.fillRect(x + s(4), top + s(1), s(2), ropeH - s(2));
@@ -1279,8 +1503,10 @@ export class Renderer {
         ctx.fillRect(startX, top + s(1), TILE_SIZE, ropeH);
         ctx.fillStyle = color;
         ctx.fillRect(startX, top, TILE_SIZE, ropeH);
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.globalAlpha = 0.25;
+        ctx.fillStyle = this.theme.ladder;
         ctx.fillRect(startX, top, TILE_SIZE, s(1));
+        ctx.globalAlpha = 1;
         // Small flower buds along vine
         const budColors = ['#FF80A0', '#FFB0C0', '#FF60A0'];
         for (let x = startX + s(4); x < endX; x += s(8)) {
@@ -1297,18 +1523,22 @@ export class Renderer {
         ctx.fillRect(startX, top + s(2), TILE_SIZE, ropeH);
         ctx.fillStyle = color;
         ctx.fillRect(startX, top, TILE_SIZE, ropeH);
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.globalAlpha = 0.28;
+        ctx.fillStyle = this.theme.ladder;
         ctx.fillRect(startX, top, TILE_SIZE, s(2));
+        ctx.globalAlpha = 1;
         ctx.fillStyle = 'rgba(0,0,0,0.2)';
         ctx.fillRect(startX, top + ropeH - s(1), TILE_SIZE, s(1));
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
         for (let x = startX + s(2); x < endX; x += s(4)) {
           ctx.fillRect(x, top + s(1), s(1), ropeH - s(2));
         }
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = this.theme.ladder;
         for (let x = startX + s(4); x < endX; x += s(4)) {
           ctx.fillRect(x, top + s(1), s(1), ropeH - s(2));
         }
+        ctx.globalAlpha = 1;
         break;
       }
     }
