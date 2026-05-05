@@ -56,6 +56,17 @@ describe('Level design audit', () => {
     expect(blockers).toEqual([]);
   });
 
+  it('keeps rope routes clear enough for the hanging sprite', () => {
+    const crampedRopes = getAllVariants().flatMap((level) => {
+      const report = auditLevelDesign(level);
+      return report.issues
+        .filter((issue) => issue.code === 'rope-body-cramped' || issue.code === 'rope-body-blocked')
+        .map((issue) => ({ level: level.id, ...issue }));
+    });
+
+    expect(crampedRopes).toEqual([]);
+  });
+
   it('keeps later levels from becoming flat money-collection lanes', () => {
     for (const level of getAllVariants().filter((candidate) => candidate.id >= 8)) {
       const report = auditLevelDesign(level);

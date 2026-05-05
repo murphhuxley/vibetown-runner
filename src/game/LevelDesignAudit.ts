@@ -62,16 +62,16 @@ export function auditLevelDesign(level: LevelDesignInput): LevelDesignReport {
   const badges = findAll(grid, TileType.Badge);
   const ducks = findAll(grid, TileType.DuckSpawn);
   const platformSegments = findPlatformSegments(grid);
+  const upperPlatformSegments = platformSegments.filter((segment) => segment.y < GRID_ROWS - 2);
   const playableFloorRows = unique(
-    platformSegments
+    upperPlatformSegments
       .map((segment) => segment.y)
-      .filter((y) => y < GRID_ROWS - 2),
   );
   const ladderColumns = findLadderColumns(grid);
   const ropeSpans = findRopeSpans(grid);
   const digOpportunityCount = countDigOpportunities(grid);
   const badgeRows = unique(badges.map((badge) => badge.y));
-  const longestPlatformRun = platformSegments.reduce((longest, segment) => Math.max(longest, segment.length), 0);
+  const longestPlatformRun = upperPlatformSegments.reduce((longest, segment) => Math.max(longest, segment.length), 0);
   const minDuckDistanceFromSpawn = playerSpawn
     ? minDistance(playerSpawn, ducks)
     : null;
