@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="manifest" href="/manifest.json" />
-  <link rel="apple-touch-icon" href="/icons/apple-icon-180.png" />
+  <link rel="apple-touch-icon" href="/icons/apple-icon-v2-180.png" />
   <link rel="apple-touch-startup-image" href="/splash/apple-splash-2048-2732.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
   <link rel="apple-touch-startup-image" href="/splash/apple-splash-2732-2048.jpg" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
   <link rel="apple-touch-startup-image" href="/splash/apple-splash-1668-2388.jpg" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
@@ -956,19 +956,36 @@
       background: #141414;
       border: 2px solid #F5D76E;
       border-radius: 8px;
-      padding: 24px;
-      max-width: 320px;
+      padding: 24px 22px;
+      max-width: min(380px, calc(100vw - 32px));
       text-align: center;
       font-family: 'Brice', sans-serif;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.45);
     }
     .install-card-icon {
-      width: 64px; height: 64px; image-rendering: pixelated;
+      width: 72px; height: 72px; image-rendering: pixelated; border-radius: 16px;
     }
     .install-card-title {
       color: #F5D76E; font-weight: 900; font-size: 16px; margin: 12px 0 8px;
     }
     .install-card-body {
       color: #D4C5A9; font-size: 12px; line-height: 1.5; margin-bottom: 16px;
+    }
+    .install-steps {
+      text-align: left;
+      margin: 12px 0 16px;
+      padding-left: 20px;
+      color: #F5E6B0;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .install-steps li { margin: 6px 0; }
+    .install-note {
+      color: #9F9278;
+      font-size: 10px;
+      line-height: 1.45;
+      margin-top: -6px;
+      margin-bottom: 16px;
     }
     .install-card-actions {
       display: flex; gap: 8px; justify-content: center;
@@ -1315,7 +1332,15 @@
     <div class="install-card-inner">
       <img src="/icons/icon-192.png" alt="" class="install-card-icon">
       <div class="install-card-title">INSTALL VIBETOWN RUNNER</div>
-      <div class="install-card-body">Add to your home screen to play faster and offline.</div>
+      <div class="install-card-body">
+        Add the game to your home screen so it opens full-screen like an app.
+      </div>
+      <ol class="install-steps">
+        <li>Tap <strong>INSTALL</strong>.</li>
+        <li>Confirm the browser prompt.</li>
+        <li>Open <strong>Vibetown Runner</strong> from your home screen.</li>
+      </ol>
+      <div class="install-note">If the prompt does not appear, use your browser menu and choose Install app or Add to Home screen.</div>
       <div class="install-card-actions">
         <button id="install-yes" class="install-btn primary">INSTALL</button>
         <button id="install-no" class="install-btn">NOT NOW</button>
@@ -1326,10 +1351,17 @@
   <!-- iOS Install Instructions Card -->
   <div id="ios-install-card" class="install-card hidden" role="dialog" aria-label="Add to Home Screen">
     <div class="install-card-inner">
+      <img src="/icons/apple-icon-v2-180.png" alt="" class="install-card-icon">
       <div class="install-card-title">ADD TO HOME SCREEN</div>
       <div class="install-card-body">
-        Tap <strong>Share</strong> below, then <strong>Add to Home Screen</strong>.
+        iPhone does not show a normal install button, but you can still add the game as an app.
       </div>
+      <ol class="install-steps">
+        <li>Tap the <strong>Share</strong> button in Safari.</li>
+        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
+        <li>Tap <strong>Add</strong>, then launch it from your home screen.</li>
+      </ol>
+      <div class="install-note">If you do not see Add to Home Screen, open the game in Safari first.</div>
       <div class="install-card-actions">
         <button id="ios-install-close" class="install-btn primary">GOT IT</button>
       </div>
