@@ -428,12 +428,10 @@ export class GameManager {
       return;
     }
 
-    // Process directional input
-    let dir = Direction.None;
-    if (this.input.left) dir = Direction.Left;
-    else if (this.input.right) dir = Direction.Right;
-    else if (this.input.up) dir = Direction.Up;
-    else if (this.input.down) dir = Direction.Down;
+    // Process directional input. Ladder intent gets priority when a climb can
+    // start; otherwise holding horizontal while tapping up/down blows past
+    // ladders too easily compared to classic Lode Runner.
+    const dir = this.getPlayerInputDirection();
 
     if (dir !== Direction.None) {
       const moved = movePlayer(player, grid, dir);
@@ -464,6 +462,28 @@ export class GameManager {
         this.completeLevel();
       }
     }
+  }
+
+  private getPlayerInputDirection(): Direction {
+    const { player, grid } = this.state;
+
+    if (this.input.up && this.canStartClimbing(Direction.Up, player.pos, grid)) {
+      return Direction.Up;
+    }
+    if (this.input.down && this.canStartClimbing(Direction.Down, player.pos, grid)) {
+      return Direction.Down;
+    }
+
+    if (this.input.left) return Direction.Left;
+    if (this.input.right) return Direction.Right;
+    if (this.input.up) return Direction.Up;
+    if (this.input.down) return Direction.Down;
+    return Direction.None;
+  }
+
+  private canStartClimbing(direction: Direction.Up | Direction.Down, pos: { x: number; y: number }, grid: TileType[][]): boolean {
+    const target = { x: pos.x, y: pos.y + (direction === Direction.Up ? -1 : 1) };
+    return canClimb(grid, pos) || canClimb(grid, target);
   }
 
   private restoreTrappedTiles(grid: TileType[][], positions: { x: number; y: number }[]): void {

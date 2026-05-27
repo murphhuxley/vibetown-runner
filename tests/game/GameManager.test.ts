@@ -47,6 +47,42 @@ describe('GameManager', () => {
     expect(game.state.player.pos.x).toBe(startPos.x + 1);
   });
 
+  it('prioritizes climbing up when horizontal input is also held on a ladder', () => {
+    const grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    grid[9][5] = TileType.Ladder;
+    grid[10][5] = TileType.Ladder;
+
+    game.state.grid = grid;
+    game.state.ducks = [];
+    game.state.player.pos = { x: 5, y: 10 };
+
+    input.handleKeyDown('ArrowRight');
+    input.handleKeyDown('ArrowUp');
+    game.update(200);
+
+    expect(game.state.player.pos).toEqual({ x: 5, y: 9 });
+  });
+
+  it('prioritizes entering a ladder below instead of walking past it', () => {
+    const grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    grid[11][5] = TileType.Ladder;
+    grid[12][5] = TileType.Ladder;
+
+    game.state.grid = grid;
+    game.state.ducks = [];
+    game.state.player.pos = { x: 5, y: 10 };
+
+    input.handleKeyDown('ArrowRight');
+    input.handleKeyDown('ArrowDown');
+    game.update(200);
+
+    expect(game.state.player.pos).toEqual({ x: 5, y: 11 });
+  });
+
   it('does not spawn a money drop when a duck without a bag falls into a hole', () => {
     const hole = { x: 5, y: 5 };
     const grid = Array.from({ length: game.state.grid.length }, () => (
