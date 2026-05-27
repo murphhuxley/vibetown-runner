@@ -32,7 +32,7 @@ Owns GameState: player, ducks, grid, score, level, holes. Phases: Menu, Playing,
 Two-pass: background (gradient + weather) -> grid (tiles with hue shifting) -> entities. Sprite frame-based animation with interpolation. `shiftColor()` for rainbow district HSL rotation.
 
 ### Input (`src/engine/Input.ts`)
-WASD/Arrows for movement, Z/C for dig, Space for LFV/Power. Touch controls exist in HTML but show "MOBILE COMING SOON".
+WASD/Arrows for movement, Z/C for dig, Space for LFV/Power. Mobile/PWA controls are wired through `src/engine/MobileBoot.ts`.
 
 ## Key Directories
 ```
@@ -154,7 +154,7 @@ Retries up to 80x to ensure solvability. Never silently produces unsolvable leve
 Simple password hash (non-crypto, 100 rounds). Name squatting prevention, not security.
 
 ## Known Issues / TODOs
-- **Mobile controls:** Touch D-pad exists in HTML but not wired to game logic. Shows "MOBILE COMING SOON".
+- **Mobile controls:** Wired through `src/engine/MobileBoot.ts`; continue tuning hit zones and camera feel on real devices.
 - **Autotiling (Approach B):** AI-generated corner-aware tiling. Design phase.
 - **Level editor:** In-browser grid painter with solvability checker. Not started.
 - **Audio enhancements:** Dynamic music transitions, positional audio, master volume.

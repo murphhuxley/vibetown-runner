@@ -240,6 +240,8 @@ function hideMenu(): void {
   game.startGame();
   musicStop();
   musicStart();
+  window.setTimeout(showInstallPromptIfEligible, 700);
+  window.setTimeout(showInstallPromptIfEligible, 2500);
   canvas.focus();
 }
 

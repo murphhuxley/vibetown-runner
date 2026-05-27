@@ -287,6 +287,8 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 let installPromptEvent: BeforeInstallPromptEvent | null = null;
+let installPromptHandlersBound = false;
+let installPromptVisible = false;
 
 function captureInstallPrompt(): void {
   window.addEventListener('beforeinstallprompt', (e) => {
@@ -295,11 +297,45 @@ function captureInstallPrompt(): void {
   });
 }
 
+function isStandaloneApp(): boolean {
+  return (navigator as Navigator & { standalone?: boolean }).standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+}
+
 function isIOSStandaloneEligible(): boolean {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true
-    || window.matchMedia('(display-mode: standalone)').matches;
+  const isStandalone = isStandaloneApp();
   return isIOS && !isStandalone;
+}
+
+function bindInstallPromptHandlers(androidCard: HTMLElement | null, iosCard: HTMLElement | null): void {
+  if (installPromptHandlersBound) return;
+  installPromptHandlersBound = true;
+
+  document.getElementById('install-yes')?.addEventListener('click', async () => {
+    if (!installPromptEvent || !androidCard) return;
+    androidCard.classList.add('hidden');
+    installPromptVisible = false;
+    const prompt = installPromptEvent;
+    installPromptEvent = null;
+    await prompt.prompt();
+    const choice = await prompt.userChoice.catch(() => ({ outcome: 'dismissed' as const }));
+    if (choice.outcome === 'dismissed') {
+      localStorage.setItem('installDismissed', '1');
+    }
+  });
+
+  document.getElementById('install-no')?.addEventListener('click', () => {
+    androidCard?.classList.add('hidden');
+    installPromptVisible = false;
+    localStorage.setItem('installDismissed', '1');
+  });
+
+  document.getElementById('ios-install-close')?.addEventListener('click', () => {
+    iosCard?.classList.add('hidden');
+    installPromptVisible = false;
+    localStorage.setItem('installDismissed', '1');
+  });
 }
 
 export function showInstallPromptIfEligible(): void {
@@ -307,26 +343,18 @@ export function showInstallPromptIfEligible(): void {
   // on mobile where "add to home screen" unlocks fullscreen standalone. Chrome's native
   // prompt is already suppressed by captureInstallPrompt()'s preventDefault.
   if (!detectTouch()) return;
+  if (isStandaloneApp()) return;
   if (localStorage.getItem('installDismissed') === '1') return;
+  if (installPromptVisible) return;
   const androidCard = document.getElementById('install-card');
   const iosCard = document.getElementById('ios-install-card');
+  bindInstallPromptHandlers(androidCard, iosCard);
   if (installPromptEvent && androidCard) {
     androidCard.classList.remove('hidden');
-    document.getElementById('install-yes')?.addEventListener('click', async () => {
-      androidCard.classList.add('hidden');
-      await installPromptEvent!.prompt();
-      installPromptEvent = null;
-    }, { once: true });
-    document.getElementById('install-no')?.addEventListener('click', () => {
-      androidCard.classList.add('hidden');
-      localStorage.setItem('installDismissed', '1');
-    }, { once: true });
+    installPromptVisible = true;
   } else if (isIOSStandaloneEligible() && iosCard) {
     iosCard.classList.remove('hidden');
-    document.getElementById('ios-install-close')?.addEventListener('click', () => {
-      iosCard.classList.add('hidden');
-      localStorage.setItem('installDismissed', '1');
-    }, { once: true });
+    installPromptVisible = true;
   }
 }
 
