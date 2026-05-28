@@ -1,5 +1,6 @@
 import { GRID_COLS, GRID_ROWS } from '@/constants';
 import { cloneGrid, ensureHiddenExit, findSpawnPosition } from '@/game/Level';
+import { getTargetDuckCountForLevel } from '@/levels/pressureCurve';
 import { Position, TileType } from '@/types';
 
 export type LevelIssueSeverity = 'error' | 'warning';
@@ -19,7 +20,8 @@ export interface LevelLayout {
   powerHelmet?: Position;
 }
 
-const SOLID_TILES = new Set<TileType>([TileType.Sand, TileType.Coral, TileType.TrapSand]);
+const PHYSICAL_SOLID_TILES = new Set<TileType>([TileType.Sand, TileType.Coral]);
+const VISUAL_SOLID_TILES = new Set<TileType>([TileType.Sand, TileType.Coral, TileType.TrapSand]);
 const NON_LANE_TILES = new Set<TileType>([TileType.Ladder, TileType.Rope, TileType.HiddenLadder]);
 
 export function validateLevelLayout(level: LevelLayout): LevelValidationIssue[] {
@@ -82,28 +84,28 @@ function validateCounts(levelId: number, grid: TileType[][], issues: LevelValida
     issues.push(error('missing-badges', `Level ${levelId} must contain at least one money bag`));
   }
 
-  if (levelId <= 5 && duckCount !== 1) {
-    issues.push(error('onboarding-duck-count', `Level ${levelId} should teach one duck at a time`));
-  }
-
-  if (levelId >= 6 && duckCount < 2) {
-    issues.push(error('midgame-duck-count', `Level ${levelId} should sustain mid-game pressure with at least two ducks`));
+  const targetDuckCount = getTargetDuckCountForLevel(levelId);
+  if (duckCount !== targetDuckCount) {
+    issues.push(error(
+      'duck-count-curve',
+      `Level ${levelId} should have ${targetDuckCount} ducks for the campaign pressure curve`,
+    ));
   }
 }
 
 function validateGeometry(levelId: number, grid: TileType[][], issues: LevelValidationIssue[]): void {
   forEachTile(grid, (tile, x, y) => {
     if (tile === TileType.Rope) {
-      if (isSolid(grid[y + 1]?.[x])) {
+      if (isVisualSolid(grid[y + 1]?.[x])) {
         issues.push(error('rope-too-low', `Level ${levelId} rope is too close to the platform below`, x, y));
       }
 
-      if (isSolid(grid[y - 1]?.[x]) || isSolid(grid[y - 2]?.[x])) {
+      if (isVisualSolid(grid[y - 1]?.[x]) || isVisualSolid(grid[y - 2]?.[x])) {
         issues.push(error('rope-headroom', `Level ${levelId} rope needs two clear cells above it`, x, y));
       }
     }
 
-    if (y > 0 && y < GRID_ROWS - 1 && !NON_LANE_TILES.has(tile) && isSolid(grid[y + 1]?.[x]) && isSolid(grid[y - 1]?.[x])) {
+    if (y > 0 && y < GRID_ROWS - 1 && !NON_LANE_TILES.has(tile) && isVisualSolid(grid[y + 1]?.[x]) && isVisualSolid(grid[y - 1]?.[x])) {
       issues.push(error('low-ceiling-lane', `Level ${levelId} has a supported running lane with no headroom`, x, y));
     }
   });
@@ -130,7 +132,7 @@ function validatePickupPlacement(
     issues.push(error('powerup-not-empty', `Level ${levelId} power helmet must sit on an empty cell`, powerHelmet.x, powerHelmet.y));
   }
 
-  if (!isSolid(grid[powerHelmet.y + 1]?.[powerHelmet.x])) {
+  if (!isPhysicallySolid(grid[powerHelmet.y + 1]?.[powerHelmet.x])) {
     issues.push(error('powerup-not-supported', `Level ${levelId} power helmet must sit on a real platform`, powerHelmet.x, powerHelmet.y));
   }
 }
@@ -186,12 +188,12 @@ function floodFill(grid: TileType[][], start: Position, hiddenLaddersRevealed: b
       }
     }
 
-    if (isLadder(grid[pos.y][pos.x], hiddenLaddersRevealed) || isLadder(grid[pos.y - 1]?.[pos.x], hiddenLaddersRevealed)) {
+    if (canClimb(grid, pos, hiddenLaddersRevealed) || canClimb(grid, { x: pos.x, y: pos.y - 1 }, hiddenLaddersRevealed)) {
       const up = { x: pos.x, y: pos.y - 1 };
       if (inBounds(up.x, up.y) && !isBlocked(grid, up.x, up.y, hiddenLaddersRevealed)) queue.push(up);
     }
 
-    if (isLadder(grid[pos.y][pos.x], hiddenLaddersRevealed) || isLadder(grid[pos.y + 1]?.[pos.x], hiddenLaddersRevealed)) {
+    if (canClimb(grid, pos, hiddenLaddersRevealed) || canClimb(grid, { x: pos.x, y: pos.y + 1 }, hiddenLaddersRevealed)) {
       const down = { x: pos.x, y: pos.y + 1 };
       if (inBounds(down.x, down.y) && !isBlocked(grid, down.x, down.y, hiddenLaddersRevealed)) queue.push(down);
     }
@@ -242,8 +244,12 @@ function tileAt(grid: TileType[][], x: number, y: number): TileType {
   return grid[y][x];
 }
 
-function isSolid(tile: TileType | undefined): boolean {
-  return tile !== undefined && SOLID_TILES.has(tile);
+function isPhysicallySolid(tile: TileType | undefined): boolean {
+  return tile !== undefined && PHYSICAL_SOLID_TILES.has(tile);
+}
+
+function isVisualSolid(tile: TileType | undefined): boolean {
+  return tile !== undefined && VISUAL_SOLID_TILES.has(tile);
 }
 
 function isDiggable(tile: TileType | undefined): boolean {
@@ -254,16 +260,27 @@ function isLadder(tile: TileType | undefined, hiddenLaddersRevealed: boolean): b
   return tile === TileType.Ladder || (hiddenLaddersRevealed && tile === TileType.HiddenLadder);
 }
 
+function canClimb(grid: TileType[][], pos: Position, hiddenLaddersRevealed: boolean): boolean {
+  const tile = tileAt(grid, pos.x, pos.y);
+  if (isLadder(tile, hiddenLaddersRevealed)) return true;
+  if (tile !== TileType.Rope) return false;
+
+  return (
+    isLadder(tileAt(grid, pos.x, pos.y - 1), hiddenLaddersRevealed) ||
+    isLadder(tileAt(grid, pos.x, pos.y + 1), hiddenLaddersRevealed)
+  );
+}
+
 function isBlocked(grid: TileType[][], x: number, y: number, hiddenLaddersRevealed: boolean): boolean {
   const tile = tileAt(grid, x, y);
   if (tile === TileType.HiddenLadder) return false;
-  return isSolid(tile);
+  return isPhysicallySolid(tile);
 }
 
 function isSupported(grid: TileType[][], pos: Position, hiddenLaddersRevealed: boolean): boolean {
   if (pos.y >= GRID_ROWS - 1) return true;
   const here = tileAt(grid, pos.x, pos.y);
-  if (isLadder(here, hiddenLaddersRevealed) || here === TileType.Rope) return true;
+  if (canClimb(grid, pos, hiddenLaddersRevealed) || here === TileType.Rope) return true;
   const below = tileAt(grid, pos.x, pos.y + 1);
-  return isSolid(below) || isLadder(below, hiddenLaddersRevealed);
+  return isPhysicallySolid(below) || isLadder(below, hiddenLaddersRevealed);
 }

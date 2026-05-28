@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { auditLevelDesign, getBlockingDesignIssues } from '@/game/LevelDesignAudit';
 import { LEVEL_VARIANT_SLOTS } from '@/levels/catalog';
+import { getTargetDuckCountForLevel } from '@/levels/pressureCurve';
 
 function getAllVariants() {
   return LEVEL_VARIANT_SLOTS.flatMap((slot) => slot);
@@ -86,12 +87,12 @@ describe('Level design audit', () => {
   it('keeps the campaign pressure curve readable instead of simply meaner', () => {
     for (const level of getAllVariants()) {
       const report = auditLevelDesign(level);
-      const maxDucks = level.id <= 5 ? 1 : level.id < 14 ? 2 : level.id < 20 ? 3 : 4;
+      const targetDucks = getTargetDuckCountForLevel(level.id);
 
       expect(
         report.metrics.duckCount,
         `level ${level.id} should build duck pressure gradually`,
-      ).toBeLessThanOrEqual(maxDucks);
+      ).toBe(targetDucks);
     }
   });
 });

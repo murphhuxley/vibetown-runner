@@ -83,6 +83,46 @@ describe('GameManager', () => {
     expect(game.state.player.pos).toEqual({ x: 5, y: 11 });
   });
 
+  it('reveals the hidden ladder when no bags remain on the grid or with ducks', () => {
+    const grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    grid[0][8] = TileType.HiddenLadder;
+    grid[1][8] = TileType.HiddenLadder;
+
+    game.state.grid = grid;
+    game.state.player.pos = { x: 5, y: 10 };
+    game.state.badgesTotal = 1;
+    game.state.badgesCollected = 0;
+    game.state.ducks.forEach((duck) => {
+      duck.carryingBadge = false;
+    });
+
+    (game as any).checkLevelCompletion();
+
+    expect(game.state.grid[0][8]).toBe(TileType.Ladder);
+    expect(game.state.grid[1][8]).toBe(TileType.Ladder);
+  });
+
+  it('does not reveal the hidden ladder while a duck is still carrying a bag', () => {
+    const grid = Array.from({ length: game.state.grid.length }, () => (
+      Array.from({ length: game.state.grid[0].length }, () => TileType.Empty)
+    ));
+    grid[0][8] = TileType.HiddenLadder;
+    grid[1][8] = TileType.HiddenLadder;
+
+    game.state.grid = grid;
+    game.state.player.pos = { x: 5, y: 10 };
+    game.state.badgesTotal = 1;
+    game.state.badgesCollected = 0;
+    game.state.ducks[0].carryingBadge = true;
+
+    (game as any).checkLevelCompletion();
+
+    expect(game.state.grid[0][8]).toBe(TileType.HiddenLadder);
+    expect(game.state.grid[1][8]).toBe(TileType.HiddenLadder);
+  });
+
   it('does not spawn a money drop when a duck without a bag falls into a hole', () => {
     const hole = { x: 5, y: 5 };
     const grid = Array.from({ length: game.state.grid.length }, () => (
@@ -507,6 +547,34 @@ describe('GameManager', () => {
     expect(game.vibeMeter.meter).toBe(0);
     expect(game.vibeMeter.lfvTimer).toBe(0);
     expect(game.state.player.isLFV).toBe(false);
+  });
+
+  it('keeps trapped ducks non-lethal bridges while LFV is active', () => {
+    game.state.grid = Array.from({ length: game.state.grid.length }, (_, y) => (
+      Array.from({ length: game.state.grid[0].length }, () => (
+        y === 6 ? TileType.Sand : TileType.Empty
+      ))
+    ));
+    game.state.grid[6][5] = TileType.Empty;
+    game.state.player.pos = { x: 4, y: 5 };
+    game.state.player.facing = Direction.Right;
+    game.vibeMeter.lfvTimer = 1000;
+    game.state.player.isLFV = true;
+
+    const duck = game.state.ducks[0];
+    duck.pos = { x: 5, y: 6 };
+    duck.isTrapped = true;
+    duck.trapTimer = 1;
+    duck.carryingBadge = false;
+    game.state.ducks = [duck];
+
+    input.handleKeyDown('ArrowRight');
+    game.update(200);
+
+    expect(game.state.phase).toBe(GamePhase.Playing);
+    expect(game.state.player.pos).toEqual({ x: 5, y: 5 });
+    expect(duck.isTrapped).toBe(true);
+    expect(duck.trapTimer).toBe(1);
   });
 
   it('spawns the helmet randomly on levels after 5', () => {

@@ -1,4 +1,5 @@
 import { GRID_COLS, GRID_ROWS } from '@/constants';
+import { getTargetDuckCountForLevel, MAX_DUCK_COUNT } from '@/levels/pressureCurve';
 import { Position, TileType } from '@/types';
 
 export type LevelDesignSeverity = 'blocker' | 'warning' | 'note';
@@ -210,16 +211,17 @@ function auditEnemyPressure(
   minDuckDistanceFromSpawn: number | null,
   issues: LevelDesignIssue[],
 ): void {
-  if (levelId <= 5 && ducks.length !== 1) {
-    issues.push(blocker('onboarding-duck-count', `Level ${levelId} should keep onboarding to one duck`));
+  const targetDuckCount = getTargetDuckCountForLevel(levelId);
+
+  if (ducks.length !== targetDuckCount) {
+    issues.push(blocker(
+      'duck-pressure-off-curve',
+      `Level ${levelId} should use ${targetDuckCount} ducks from the campaign pressure curve`,
+    ));
   }
 
-  if (levelId >= 6 && ducks.length < 2) {
-    issues.push(blocker('low-duck-pressure', `Level ${levelId} needs at least two ducks after onboarding`));
-  }
-
-  if (levelId < 14 && ducks.length > 2) {
-    issues.push(note('early-duck-overload', `Level ${levelId} may be using duck count before route design to create pressure`));
+  if (ducks.length > MAX_DUCK_COUNT) {
+    issues.push(blocker('duck-pressure-cap', `Level ${levelId} exceeds the current ${MAX_DUCK_COUNT}-duck performance cap`));
   }
 
   if (minDuckDistanceFromSpawn !== null && minDuckDistanceFromSpawn < 5) {

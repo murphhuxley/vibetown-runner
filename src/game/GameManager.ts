@@ -203,6 +203,7 @@ export class GameManager {
       this.onLFVEnd?.();
     }
     this.suppressLFVWhilePowerHelmetActive();
+    const ducksFrozenByLFV = isLFVActive(this.vibeMeter);
 
     // Tick down dig animation timer
     if (this.digTimer > 0) {
@@ -305,7 +306,7 @@ export class GameManager {
     this.duckMoveAccum += dt * duckWeatherMult;
     if (this.duckMoveAccum >= this.currentDuckInterval) {
       this.duckMoveAccum = 0;
-      if (!isLFVActive(this.vibeMeter)) {
+      if (!ducksFrozenByLFV) {
         // Snapshot positions before move
         for (const duck of this.state.ducks) {
           this.duckRenderFrom.set(duck.id, { ...duck.pos });
@@ -325,7 +326,9 @@ export class GameManager {
     }
 
     // Update trapped ducks
-    this.updateTrappedDucks(dt);
+    if (!ducksFrozenByLFV) {
+      this.updateTrappedDucks(dt);
+    }
 
     // Tick down escape immunity
     for (const duck of this.state.ducks) {
@@ -419,12 +422,7 @@ export class GameManager {
 
       this.checkPlayerCollisions();
 
-      if (this.state.badgesCollected >= this.state.badgesTotal) {
-        this.revealHiddenLadders();
-        if (player.pos.y === 0) {
-          this.completeLevel();
-        }
-      }
+      this.checkLevelCompletion();
       return;
     }
 
@@ -455,13 +453,7 @@ export class GameManager {
     // Player-duck collision
     this.checkPlayerCollisions();
 
-    // Level completion check
-    if (this.state.badgesCollected >= this.state.badgesTotal) {
-      this.revealHiddenLadders();
-      if (player.pos.y === 0) {
-        this.completeLevel();
-      }
-    }
+    this.checkLevelCompletion();
   }
 
   private getPlayerInputDirection(): Direction {
@@ -516,6 +508,11 @@ export class GameManager {
 
   private updateDucks(): void {
     const { grid } = this.state;
+    const occupiedDuckPositions = new Set(
+      this.state.ducks
+        .filter((duck) => !duck.isTrapped)
+        .map((duck) => this.duckPositionKey(duck.pos))
+    );
 
     // Trapped ducks reserve their holes immediately, even before they become
     // player-supporting bridges. This prevents multiple ducks stacking in one cavity.
@@ -530,10 +527,12 @@ export class GameManager {
     for (const duck of this.state.ducks) {
       if (duck.isTrapped) continue;
 
+      occupiedDuckPositions.delete(this.duckPositionKey(duck.pos));
       const moved = moveDuckToward(
-        duck, this.state.grid, this.state.player.pos, this.state.ducks
+        duck, this.state.grid, this.state.player.pos, occupiedDuckPositions
       );
       Object.assign(duck, moved);
+      occupiedDuckPositions.add(this.duckPositionKey(duck.pos));
 
       // Duck picks up badge from ground
       const tile = getTile(this.state.grid, duck.pos);
@@ -567,6 +566,10 @@ export class GameManager {
     this.restoreTrappedTiles(grid, trappedPositions);
   }
 
+  private duckPositionKey(pos: { x: number; y: number }): string {
+    return `${pos.x},${pos.y}`;
+  }
+
   private checkBadgeCollection(): void {
     const { player, grid } = this.state;
     const tile = getTile(grid, player.pos);
@@ -578,6 +581,25 @@ export class GameManager {
       addVibe(this.vibeMeter, 'badge');
       this.onCollect?.();
     }
+  }
+
+  private checkLevelCompletion(): void {
+    if (!this.hasClearedAllBadges()) return;
+
+    this.revealHiddenLadders();
+    if (this.state.player.pos.y === 0) {
+      this.completeLevel();
+    }
+  }
+
+  private hasClearedAllBadges(): boolean {
+    return this.countOutstandingBadges() === 0;
+  }
+
+  private countOutstandingBadges(): number {
+    const gridBadges = countBadges(this.state.grid);
+    const carriedBadges = this.state.ducks.filter((duck) => duck.carryingBadge).length;
+    return gridBadges + carriedBadges;
   }
 
   private checkPowerHelmetCollection(): void {

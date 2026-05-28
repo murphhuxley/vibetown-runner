@@ -13,6 +13,7 @@
 
 import { TileType } from '@/types';
 import { GRID_COLS, GRID_ROWS } from '@/constants';
+import { MAX_DUCK_COUNT } from '@/levels/pressureCurve';
 
 export interface GeneratedLevel {
   grid: number[][];
@@ -35,7 +36,7 @@ interface Config {
 function getConfig(difficulty: number): Config {
   return {
     badges: Math.round(4 + difficulty * 12),
-    ducks: Math.round(1 + difficulty * 5),
+    ducks: Math.round(1 + difficulty * (MAX_DUCK_COUNT - 1)),
     ladderCount: Math.max(2, 4 - Math.floor(difficulty * 2)),  // 4→2
     gapCount: 1 + Math.floor(difficulty * 2),                   // 1→3
     gapMaxWidth: 3 + Math.floor(difficulty * 3),                 // 3→6

@@ -8,19 +8,10 @@ export interface WeatherEffects {
 }
 
 export function getSpeedMultiplier(
-  weather: WeatherType,
-  entity: 'player' | 'duck'
+  _weather: WeatherType,
+  _entity: 'player' | 'duck'
 ): number {
-  switch (weather) {
-    case WeatherType.Sunshine:
-      return 1.15;
-    case WeatherType.Rain:
-      return 0.8;
-    case WeatherType.TradeWinds:
-      return entity === 'duck' ? 0.75 : 1;
-    default:
-      return 1;
-  }
+  return 1;
 }
 
 export function getWeatherEffects(weather: WeatherType): WeatherEffects {

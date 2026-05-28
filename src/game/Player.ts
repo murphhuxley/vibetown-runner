@@ -16,7 +16,12 @@ export function createPlayer(pos: Position): PlayerState {
 
 export function canClimb(grid: TileType[][], pos: Position): boolean {
   const tile = getTile(grid, pos);
-  return tile === TileType.Ladder;
+  if (tile === TileType.Ladder) return true;
+  if (tile !== TileType.Rope) return false;
+
+  const above = { x: pos.x, y: pos.y - 1 };
+  const below = { x: pos.x, y: pos.y + 1 };
+  return getTile(grid, above) === TileType.Ladder || getTile(grid, below) === TileType.Ladder;
 }
 
 export function canTraverseRope(grid: TileType[][], pos: Position): boolean {

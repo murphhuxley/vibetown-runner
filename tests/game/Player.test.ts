@@ -75,4 +75,27 @@ describe('Player', () => {
     grid[10][5] = TileType.Rope;
     expect(canTraverseRope(grid, { x: 5, y: 10 })).toBe(true);
   });
+
+  it('treats rope crossing through a ladder as climbable', () => {
+    const grid = floorGrid();
+    grid[10][5] = TileType.Ladder;
+    grid[11][5] = TileType.Rope;
+    grid[12][5] = TileType.Ladder;
+
+    expect(canClimb(grid, { x: 5, y: 11 })).toBe(true);
+  });
+
+  it('moves down through a rope crossing in the middle of a ladder', () => {
+    const grid = floorGrid();
+    grid[10][5] = TileType.Ladder;
+    grid[11][5] = TileType.Rope;
+    grid[12][5] = TileType.Ladder;
+
+    const player = createPlayer({ x: 5, y: 10 });
+    player.isOnLadder = true;
+    const moved = movePlayer(player, grid, Direction.Down);
+
+    expect(moved.pos).toEqual({ x: 5, y: 11 });
+    expect(moved.isOnLadder).toBe(true);
+  });
 });

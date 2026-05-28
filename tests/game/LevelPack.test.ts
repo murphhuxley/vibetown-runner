@@ -5,8 +5,11 @@ import { validateLevelLayout } from '@/game/LevelValidator';
 import { TileType } from '@/types';
 import { GameManager } from '@/game/GameManager';
 import { InputManager } from '@/engine/Input';
+import { getTargetDuckCountForLevel } from '@/levels/pressureCurve';
+import { GRID_COLS, GRID_ROWS } from '@/constants';
 
-const SOLID_TILES = new Set([TileType.Sand, TileType.Coral, TileType.TrapSand]);
+const PHYSICAL_SOLID_TILES = new Set([TileType.Sand, TileType.Coral]);
+const VISUAL_SOLID_TILES = new Set([TileType.Sand, TileType.Coral, TileType.TrapSand]);
 const ASSET_PATHS = new Set(Object.keys(import.meta.glob('/public/assets/**/*')));
 
 function countTile(grid: number[][], tile: TileType): number {
@@ -24,11 +27,16 @@ function getAllVariants() {
 }
 
 function isSolid(cell: number | undefined): boolean {
-  return cell !== undefined && SOLID_TILES.has(cell as TileType);
+  return cell !== undefined && VISUAL_SOLID_TILES.has(cell as TileType);
 }
 
 function hasPlatformBelow(grid: number[][], x: number, y: number): boolean {
   return isSolid(grid[y + 1]?.[x]);
+}
+
+function hasPhysicalPlatformBelow(grid: number[][], x: number, y: number): boolean {
+  const cell = grid[y + 1]?.[x];
+  return cell !== undefined && PHYSICAL_SOLID_TILES.has(cell as TileType);
 }
 
 const EXPECTED_BADGES = new Map([
@@ -37,14 +45,6 @@ const EXPECTED_BADGES = new Map([
   [11, 8], [12, 8], [13, 8], [14, 9], [15, 9],
   [16, 9], [17, 9], [18, 9], [19, 9], [20, 10],
   [21, 10], [22, 10], [23, 10], [24, 11], [25, 12],
-]);
-
-const EXPECTED_DUCKS = new Map([
-  [1, 1], [2, 1], [3, 1], [4, 1], [5, 1],
-  [6, 2], [7, 2], [8, 2], [9, 2], [10, 2],
-  [11, 2], [12, 2], [13, 2], [14, 3], [15, 3],
-  [16, 3], [17, 3], [18, 3], [19, 3], [20, 4],
-  [21, 3], [22, 3], [23, 3], [24, 4], [25, 4],
 ]);
 
 const EXPECTED_THEME_PREFIX_BY_LEVEL = new Map([
@@ -160,7 +160,7 @@ describe('Level pack', () => {
 
       for (const level of LEVELS) {
         expect(countTile(level.grid, TileType.Badge), `badge count drifted in level ${level.id}`).toBe(EXPECTED_BADGES.get(level.id));
-        expect(countTile(level.grid, TileType.DuckSpawn), `duck count drifted in level ${level.id}`).toBe(EXPECTED_DUCKS.get(level.id));
+        expect(countTile(level.grid, TileType.DuckSpawn), `duck count drifted in level ${level.id}`).toBe(getTargetDuckCountForLevel(level.id));
       }
     }
   });
@@ -221,7 +221,7 @@ describe('Level pack', () => {
         for (let x = 0; x < level.grid[y].length; x++) {
           if (level.grid[y][x] !== TileType.Rope) continue;
           expect(
-            SOLID_TILES.has(level.grid[y + 1][x]),
+            VISUAL_SOLID_TILES.has(level.grid[y + 1][x]),
             `rope at (${x}, ${y}) in level ${level.id} is too close to the platform below`,
           ).toBe(false);
         }
@@ -269,8 +269,31 @@ describe('Level pack', () => {
       const { x, y } = level.powerHelmet;
       expect(level.grid[y][x], `level ${level.id} power helmet must stay on an empty tile`).toBe(TileType.Empty);
       expect(level.grid[y][x] === TileType.Ladder || level.grid[y][x] === TileType.Rope, `level ${level.id} power helmet cannot sit on ladder/rope`).toBe(false);
-      expect(hasPlatformBelow(level.grid, x, y), `level ${level.id} power helmet needs a real platform under it`).toBe(true);
+      expect(hasPhysicalPlatformBelow(level.grid, x, y), `level ${level.id} power helmet needs a real platform under it`).toBe(true);
     }
+  });
+
+  it('does not prove routes by treating false bricks as physical support', () => {
+    const grid = Array.from({ length: GRID_ROWS }, () => Array(GRID_COLS).fill(TileType.Empty));
+    grid[GRID_ROWS - 1].fill(TileType.Sand);
+    grid[GRID_ROWS - 2][4] = TileType.DuckSpawn;
+
+    for (let y = 0; y < GRID_ROWS - 1; y++) {
+      grid[y][1] = TileType.Ladder;
+    }
+
+    grid[GRID_ROWS - 2][1] = TileType.PlayerSpawn;
+    grid[10][5] = TileType.Badge;
+    grid[11][2] = TileType.TrapSand;
+    grid[11][3] = TileType.TrapSand;
+    grid[11][4] = TileType.TrapSand;
+    grid[11][5] = TileType.TrapSand;
+
+    const issues = validateLevelLayout({ id: 1, grid, exitColumn: 1 });
+    expect(
+      issues.some((issue) => issue.code === 'unreachable-badge'),
+      'false-brick support should not make a money bag reachable',
+    ).toBe(true);
   });
 
   it('keeps the authored level 3 helmet tile free for the pickup', () => {

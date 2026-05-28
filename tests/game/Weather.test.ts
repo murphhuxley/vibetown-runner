@@ -8,19 +8,19 @@ describe('Weather', () => {
     expect(getSpeedMultiplier(WeatherType.None, 'duck')).toBe(1);
   });
 
-  it('sunshine speeds up both player and ducks', () => {
-    expect(getSpeedMultiplier(WeatherType.Sunshine, 'player')).toBe(1.15);
-    expect(getSpeedMultiplier(WeatherType.Sunshine, 'duck')).toBe(1.15);
+  it('sunshine keeps player and duck speed consistent', () => {
+    expect(getSpeedMultiplier(WeatherType.Sunshine, 'player')).toBe(1);
+    expect(getSpeedMultiplier(WeatherType.Sunshine, 'duck')).toBe(1);
   });
 
-  it('rain slows both player and ducks', () => {
-    expect(getSpeedMultiplier(WeatherType.Rain, 'player')).toBe(0.8);
-    expect(getSpeedMultiplier(WeatherType.Rain, 'duck')).toBe(0.8);
+  it('rain keeps player and duck speed consistent', () => {
+    expect(getSpeedMultiplier(WeatherType.Rain, 'player')).toBe(1);
+    expect(getSpeedMultiplier(WeatherType.Rain, 'duck')).toBe(1);
   });
 
-  it('trade winds slow ducks but not player', () => {
+  it('trade winds keep player and duck speed consistent', () => {
     expect(getSpeedMultiplier(WeatherType.TradeWinds, 'player')).toBe(1);
-    expect(getSpeedMultiplier(WeatherType.TradeWinds, 'duck')).toBe(0.75);
+    expect(getSpeedMultiplier(WeatherType.TradeWinds, 'duck')).toBe(1);
   });
 
   it('high tide has no speed effect', () => {
