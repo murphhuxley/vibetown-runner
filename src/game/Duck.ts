@@ -91,10 +91,12 @@ export function moveDuckToward(
 
   const moved = chooseClassicDuckMove(duck, grid, playerPos, occupiedDuckPositions, duck.escapeImmunity > 0);
   if (moved) {
-    next.pos = moved.pos;
-    next.isOnLadder = moved.isOnLadder;
-    next.isOnRope = moved.isOnRope;
-    next.facing = resolveDuckFacing(duck, moved, playerPos);
+    const resolvedMove = resolveImmediateHorizontalFall(grid, duck, moved) ?? moved;
+    next.pos = resolvedMove.pos;
+    next.isOnLadder = resolvedMove.isOnLadder;
+    next.isOnRope = resolvedMove.isOnRope;
+    next.isFalling = resolvedMove.isFalling;
+    next.facing = resolveDuckFacing(duck, resolvedMove, playerPos);
     return next;
   }
 
@@ -126,6 +128,27 @@ function chooseClassicDuckMove(
   }
 
   return null;
+}
+
+function resolveImmediateHorizontalFall(
+  grid: TileType[][],
+  duck: DuckState,
+  moved: PlayerState
+): PlayerState | null {
+  const movedHorizontally = moved.pos.x !== duck.pos.x && moved.pos.y === duck.pos.y;
+  if (!movedHorizontally) return null;
+  if (isSupported(grid, moved.pos, moved.isOnLadder, moved.isOnRope)) return null;
+
+  const below = { x: moved.pos.x, y: moved.pos.y + 1 };
+  if (!isInBounds(below) || !canMoveTo(grid, below)) return null;
+
+  return {
+    ...moved,
+    pos: below,
+    isFalling: true,
+    isOnLadder: false,
+    isOnRope: false,
+  };
 }
 
 function getClassicPriorities(

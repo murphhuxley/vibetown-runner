@@ -92,3 +92,15 @@ This file is the single source of truth for architectural, design, and organizat
 **Why this was independent:** The prompt directed the gameplay outcome, but not the implementation shape. I chose to keep the weather multiplier API as the single neutral rule so future weather visuals do not accidentally reintroduce movement drift through a separate path.
 
 **Consequences:** Rain, sunshine, trade winds, and high tide no longer change player or duck speed. Existing rendering and theme effects remain intact, and tests now lock weather speed behavior to consistent timing.
+
+## 2026-05-28 — Resolve Duck Hole Entry In The Same Movement Tick
+
+**Context:** Ducks could visually float over a dug hole for one frame because horizontal chase movement allowed them to step onto the unsupported air cell above the open cavity before gravity ran on the next duck tick.
+
+**Decision:** Duck movement now collapses an unsupported horizontal chase step into an immediate downward move when the cell below is open, so a duck entering a dug hole commits to falling in the same simulation tick.
+
+**Standards-backed evidence:** ISO/IEC/IEEE 25010 identifies functional suitability and reliability as software quality characteristics. Arcade collision rules should keep visual state and simulation state aligned; a one-frame contradiction creates unreliable feedback. The local Lode Runner research also treats dug holes as trap commitments for enemies, not as bridgeable air cells.
+
+**Why this was independent:** The prompt identified the symptom but did not prescribe whether to fix animation, collision, or AI. I chose the simulation-level fix because it keeps rendering honest and avoids masking the issue with a sprite-specific fallback.
+
+**Consequences:** Ducks no longer get a standing or turning frame over open holes. They still chase into holes when pathing dictates it, but trap entry is immediate and consistent with player expectation.

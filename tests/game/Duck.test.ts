@@ -28,7 +28,7 @@ describe('Duck', () => {
     expect(moved.pos.x).toBeLessThan(10);
   });
 
-  it('will step into an open hole when chasing the player', () => {
+  it('drops immediately into an open hole when chasing the player', () => {
     const grid = floorGrid();
     grid[GRID_ROWS - 1][9] = TileType.Empty;
 
@@ -36,7 +36,10 @@ describe('Duck', () => {
     const playerPos = { x: 5, y: groundedY };
     const moved = moveDuckToward(duck, grid, playerPos, new Set(), 0);
 
-    expect(moved.pos).toEqual({ x: 9, y: groundedY });
+    expect(moved.pos).toEqual({ x: 9, y: groundedY + 1 });
+    expect(moved.isFalling).toBe(true);
+    expect(moved.isOnLadder).toBe(false);
+    expect(moved.isOnRope).toBe(false);
   });
 
   it('moves toward a nearby ladder when the player is above', () => {
